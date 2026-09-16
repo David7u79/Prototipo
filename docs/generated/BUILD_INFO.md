@@ -1,0 +1,29 @@
+# Información de compilación
+
+- Fecha: 2026-09-16T23:48:11.503Z
+- Commit: 1becc5b7c2cb8677d4d89ccac38c469890db6013
+- Rama: ai/docs
+- Cambios sin commit: sí
+- Node: v24.19.0
+- pnpm: PENDIENTE
+- Última migración: 20260916230349_init
+- SHA-256 corto de schema.prisma: 0fcd18fd1751
+
+## Aplicaciones y paquetes
+
+@garfit/api@0.1.0
+@garfit/web@0.1.0
+@garfit/mobile@0.1.0
+@garfit/landing@0.1.0
+@garfit/types@0.1.0
+@garfit/validation@0.1.0
+@garfit/api-client@0.1.0
+@garfit/config@0.1.0
+
+## Dependencias clave
+
+next: 16.3.5
+expo: ~57.0.23
+astro: ^7.3.3
+@nestjs/core: ^12.0.1
+prisma: 7.10.0

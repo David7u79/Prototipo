@@ -1,0 +1,17 @@
+# Referencias
+
+- [Node.js](https://nodejs.org/docs/latest/api/)
+- [pnpm](https://pnpm.io/)
+- [Turborepo](https://turborepo.com/docs)
+- [TypeScript](https://www.typescriptlang.org/docs/)
+- [NestJS](https://docs.nestjs.com/)
+- [Prisma](https://www.prisma.io/docs)
+- [PostgreSQL](https://www.postgresql.org/docs/)
+- [Next.js](https://nextjs.org/docs)
+- [React](https://react.dev/)
+- [Astro](https://docs.astro.build/)
+- [Expo](https://docs.expo.dev/)
+- [React Native](https://reactnative.dev/docs/getting-started)
+- [Vitest](https://vitest.dev/guide/)
+- [TypeDoc](https://typedoc.org/documents/Overview.html)
+- [Google Identity](https://developers.google.com/identity)
