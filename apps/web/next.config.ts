@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ['@garfit/types', '@garfit/validation', '@garfit/api-client'],
 };
 
 export default nextConfig;
