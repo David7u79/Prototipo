@@ -1,0 +1,551 @@
+openapi: 3.0.0
+paths:
+  /health:
+    get:
+      operationId: HealthController_check
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+      tags:
+        - health
+  /auth/providers:
+    get:
+      operationId: AuthController_providers
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthProvidersResponse"
+        "429": &a1
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      tags: &a2
+        - auth
+  /auth/register:
+    post:
+      operationId: AuthController_register
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterDto"
+      responses:
+        "201":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "409":
+          description: EMAIL_ALREADY_REGISTERED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "429": *a1
+      tags: *a2
+  /auth/login:
+    post:
+      operationId: AuthController_login
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: INVALID_CREDENTIALS
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "429": *a1
+      tags: *a2
+  /auth/google:
+    post:
+      operationId: AuthController_google
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GoogleLoginDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: INVALID_GOOGLE_TOKEN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "429": *a1
+        "503":
+          description: GOOGLE_AUTH_NOT_CONFIGURED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      tags: *a2
+  /auth/refresh:
+    post:
+      operationId: AuthController_refresh
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenDto"
+      responses:
+        "200":
+          description: Tokens rotados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: INVALID_REFRESH_TOKEN
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "429": *a1
+      tags: *a2
+  /auth/logout:
+    post:
+      operationId: AuthController_logout
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenDto"
+      responses:
+        "204":
+          description: Sesión revocada (idempotente)
+        "429": *a1
+      tags: *a2
+  /auth/me:
+    get:
+      operationId: AuthController_me
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "401":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "429": *a1
+      security:
+        - bearer: []
+      tags: *a2
+  /profile:
+    get:
+      operationId: ProfileController_get
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AthleteProfileResponse"
+        "401": &a3
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: PROFILE_NOT_FOUND
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      security: &a4
+        - bearer: []
+      tags: &a5
+        - profile
+    put:
+      operationId: ProfileController_upsert
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpsertAthleteProfileDto"
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AthleteProfileResponse"
+        "401": *a3
+      security: *a4
+      tags: *a5
+  /releases/latest/android:
+    get:
+      operationId: ReleasesController_latestAndroid
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LatestReleaseResponse"
+        "404":
+          description: NO_RELEASE_PUBLISHED
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      tags: &a6
+        - releases
+  /releases/android/{version}/download:
+    get:
+      operationId: ReleasesController_downloadAndroid
+      parameters:
+        - name: version
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: APK; cabecera X-Checksum-Sha256 con su SHA-256
+        "400":
+          description: VALIDATION_FAILED
+          content:
+            application/vnd.android.package-archive:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+        "404":
+          description: RELEASE_NOT_FOUND
+          content:
+            application/vnd.android.package-archive:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      tags: *a6
+info:
+  title: GarFit API
+  description: "API central de GarFit: autenticación, perfil del atleta y releases."
+  version: 0.1.0
+  contact: {}
+tags: []
+servers: []
+components:
+  securitySchemes:
+    bearer:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - degraded
+        database:
+          type: string
+          enum:
+            - up
+            - down
+        version:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - status
+        - database
+        - version
+        - timestamp
+    ApiErrorResponse:
+      type: object
+      properties:
+        statusCode:
+          type: number
+          example: 404
+        code:
+          type: string
+          example: NO_RELEASE_PUBLISHED
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+      required:
+        - statusCode
+        - code
+        - message
+    GoogleProviderResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        webClientId:
+          type: string
+          nullable: true
+      required:
+        - enabled
+        - webClientId
+    AuthProvidersResponse:
+      type: object
+      properties:
+        local:
+          type: boolean
+          enum:
+            - true
+        google:
+          $ref: "#/components/schemas/GoogleProviderResponse"
+      required:
+        - local
+        - google
+    RegisterDto:
+      type: object
+      properties:
+        email:
+          type: string
+          example: atleta@example.com
+        password:
+          type: string
+          minLength: 8
+          maxLength: 128
+        name:
+          type: string
+          maxLength: 80
+          example: Ana López
+      required:
+        - email
+        - password
+        - name
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        providers:
+          type: array
+          items:
+            type: string
+            enum:
+              - LOCAL
+              - GOOGLE
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email
+        - name
+        - avatarUrl
+        - providers
+        - createdAt
+        - updatedAt
+    AuthTokensResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: JWT HS256 de vida corta.
+        accessTokenExpiresIn:
+          type: number
+          description: Segundos hasta que expira el access token.
+        refreshToken:
+          type: string
+          description: Token opaco y rotativo.
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+      required:
+        - accessToken
+        - accessTokenExpiresIn
+        - refreshToken
+        - refreshTokenExpiresAt
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserResponse"
+        tokens:
+          $ref: "#/components/schemas/AuthTokensResponse"
+      required:
+        - user
+        - tokens
+    LoginDto:
+      type: object
+      properties:
+        email:
+          type: string
+          example: atleta@example.com
+        password:
+          type: string
+      required:
+        - email
+        - password
+    GoogleLoginDto:
+      type: object
+      properties:
+        idToken:
+          type: string
+          description: ID token (JWT) emitido por Google Identity Services.
+      required:
+        - idToken
+    RefreshTokenDto:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+          description: Refresh token opaco emitido por GarFit.
+      required:
+        - refreshToken
+    ExperienceLevel:
+      type: string
+      enum:
+        - BEGINNER
+        - INTERMEDIATE
+        - ADVANCED
+    PrimaryGoal:
+      type: string
+      enum:
+        - STRENGTH
+        - ENDURANCE
+        - HYPERTROPHY
+        - WEIGHT_LOSS
+        - GENERAL_FITNESS
+    AthleteProfileResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        displayName:
+          type: string
+        experienceLevel:
+          allOf:
+            - $ref: "#/components/schemas/ExperienceLevel"
+        primaryGoal:
+          allOf:
+            - $ref: "#/components/schemas/PrimaryGoal"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - userId
+        - displayName
+        - experienceLevel
+        - primaryGoal
+        - createdAt
+        - updatedAt
+    UpsertAthleteProfileDto:
+      type: object
+      properties:
+        displayName:
+          type: string
+          maxLength: 40
+          example: Ana
+        experienceLevel:
+          allOf:
+            - $ref: "#/components/schemas/ExperienceLevel"
+        primaryGoal:
+          allOf:
+            - $ref: "#/components/schemas/PrimaryGoal"
+      required:
+        - displayName
+        - experienceLevel
+        - primaryGoal
+    LatestReleaseResponse:
+      type: object
+      properties:
+        platform:
+          type: string
+          enum:
+            - android
+        version:
+          type: string
+          example: 1.0.0
+        versionCode:
+          type: number
+          example: 1
+        releasedAt:
+          type: string
+          format: date-time
+        size:
+          type: number
+          description: Tamaño del APK en bytes.
+        downloadUrl:
+          type: string
+        sha256:
+          type: string
+          description: SHA-256 del APK en hexadecimal.
+        changelog:
+          type: array
+          items:
+            type: string
+      required:
+        - platform
+        - version
+        - versionCode
+        - releasedAt
+        - size
+        - downloadUrl
+        - sha256
+        - changelog
