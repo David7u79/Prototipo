@@ -59,7 +59,7 @@ model User {
 }
 
 /// Vínculo entre un User y un proveedor de identidad.
-/// LOCAL: providerAccountId = User.id y passwordHash (argon2id) presente.
+/// LOCAL: providerAccountId = correo normalizado y passwordHash (argon2id) presente.
 /// GOOGLE: providerAccountId = claim `sub` del ID token; passwordHash nulo.
 model AuthAccount {
   id                String       @id @default(uuid(7))
