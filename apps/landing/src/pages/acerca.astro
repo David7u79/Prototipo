@@ -1,0 +1,41 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const sections = [
+  [
+    'Una propuesta en construcción',
+    'El proyecto explora registro de actividad, seguimiento de marcas y análisis personalizados.',
+  ],
+  [
+    'Aclaración institucional',
+    'GarFit no es una aplicación oficial de la Universidad Autónoma de Tlaxcala ' +
+      'ni representa servicios institucionales de la UATx.',
+  ],
+] as const;
+---
+
+<Layout
+  title="Acerca de GarFit"
+  description="GarFit es un prototipo académico de Ingeniería en Computación."
+>
+  <section class="section">
+    <div class="shell max-w-3xl">
+      <p class="eyebrow">Acerca de GarFit</p>
+      <h1 class="display m-0">Tecnología para comprender el progreso deportivo.</h1>
+      <p class="copy mt-6">
+        GarFit es un prototipo académico de titulación de Ingeniería en Computación, en el
+        contexto de la Universidad Autónoma de Tlaxcala (UATx).
+      </p>
+      <div class="mt-10 space-y-5">
+        {
+          sections.map(([title, text]) => (
+            <article class="card">
+              <h2 class="m-0 text-xl font-bold">{title}</h2>
+              <p class="mb-0 leading-7 text-muted">{text}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Layout>

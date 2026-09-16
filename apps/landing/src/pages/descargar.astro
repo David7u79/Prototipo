@@ -1,0 +1,26 @@
+---
+import AndroidDownload from '../components/AndroidDownload.astro';
+import Layout from '../layouts/Layout.astro';
+
+const webUrl = import.meta.env.PUBLIC_WEB_APP_URL ?? 'http://localhost:3000';
+---
+
+<Layout
+  title="Descargar | GarFit"
+  description="Consulta la última versión Android publicada de GarFit o abre la aplicación web."
+>
+  <section class="section">
+    <div class="shell grid gap-10 lg:grid-cols-[.8fr_1.2fr]">
+      <div>
+        <p class="eyebrow">Descargar GarFit</p>
+        <h1 class="display m-0">Elige cómo continuar.</h1>
+        <p class="copy mt-6">
+          La aplicación web está disponible desde tu navegador. Para Android, mostramos solo
+          la última versión publicada por GarFit.
+        </p>
+        <a class="button button-secondary mt-7" href={webUrl}>Abrir aplicación web</a>
+      </div>
+      <AndroidDownload detailed />
+    </div>
+  </section>
+</Layout>

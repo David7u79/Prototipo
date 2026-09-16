@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #14213d;
+  --color-muted: #526176;
+  --color-surface: #f6f8fb;
+  --color-line: #dce3ed;
+  --color-accent: #166534;
+  --color-accent-dark: #14532d;
+  --font-sans: "Inter", "Segoe UI", sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply m-0 bg-white font-sans text-ink antialiased;
+  }
+
+  a {
+    @apply text-inherit;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-4 outline-accent;
+  }
+}
+
+@layer components {
+  .shell {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .section {
+    @apply py-16 sm:py-24;
+  }
+
+  .eyebrow {
+    @apply mb-3 text-sm font-bold uppercase tracking-[0.14em] text-accent;
+  }
+
+  .display {
+    @apply text-4xl font-black leading-[1.05] tracking-tight text-ink sm:text-6xl;
+  }
+
+  .heading {
+    @apply text-3xl font-extrabold tracking-tight sm:text-4xl;
+  }
+
+  .copy {
+    @apply max-w-2xl text-lg leading-8 text-muted;
+  }
+
+  .button {
+    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-3 text-center;
+    @apply text-sm font-bold no-underline transition hover:-translate-y-0.5;
+  }
+
+  .button-primary {
+    @apply bg-accent text-white hover:bg-accent-dark;
+  }
+
+  .button-secondary {
+    @apply border border-line bg-white text-ink hover:border-accent;
+  }
+
+  .card {
+    @apply rounded-2xl border border-line bg-white p-6 shadow-sm;
+  }
+
+  .status {
+    @apply text-sm leading-6 text-muted;
+  }
+}

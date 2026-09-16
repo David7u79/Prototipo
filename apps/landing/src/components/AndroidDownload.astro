@@ -1,0 +1,125 @@
+---
+interface Props {
+  detailed?: boolean;
+}
+
+const { detailed = false } = Astro.props;
+const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000';
+---
+
+<section class="card" data-android-download data-api-url={apiUrl} aria-live="polite">
+  <p class="eyebrow">Android</p>
+  <h2 class="m-0 text-2xl font-extrabold">Lleva GarFit contigo</h2>
+  <p class="status mt-3" data-status>Consultando la versión disponible…</p>
+  <a class="button button-primary mt-4" data-download hidden href="#">
+    Descargar para Android
+  </a>
+  <button class="button button-secondary mt-4" data-unavailable type="button" disabled hidden>
+    Próximamente
+  </button>
+  {
+    detailed && (
+      <div class="mt-6 border-t border-line pt-6" data-release-details hidden>
+        <h3 class="m-0 text-lg font-bold">Notas de la versión</h3>
+        <ul class="mt-3 space-y-2 pl-5 text-sm leading-6 text-muted" data-changelog />
+        <p class="mt-5 text-sm text-muted">
+          <strong class="text-ink">SHA-256:</strong> <code class="break-all" data-sha />
+        </p>
+        <p class="text-sm leading-6 text-muted">
+          Para verificar el archivo, compara este valor con el hash SHA-256 calculado para la
+          APK que descargaste.
+        </p>
+        <h3 class="mt-6 text-lg font-bold">Instalación fuera de Play Store</h3>
+        <ol class="space-y-2 pl-5 text-sm leading-6 text-muted">
+          <li>Descarga la APK desde el botón disponible.</li>
+          <li>Cuando Android lo solicite, habilita la instalación desde esta fuente.</li>
+          <li>Abre el archivo descargado y sigue las indicaciones del sistema.</li>
+        </ol>
+      </div>
+    )
+  }
+  <noscript>
+    <p class="mt-4 text-sm text-muted">
+      Consulta la disponibilidad de Android en
+      <a class="font-bold text-accent" href="/descargar">la página de descarga</a>.
+    </p>
+  </noscript>
+</section>
+
+<script>
+  import { createApiClient } from '@garfit/api-client';
+
+  function formatSize(bytes: number): string {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function formatDate(date: string): string {
+    return new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date(date));
+  }
+
+  function showUnavailable(status: HTMLElement, button: HTMLButtonElement | null): void {
+    status.textContent = 'No hay una versión publicada actualmente.';
+    if (button) button.hidden = false;
+  }
+
+  function showError(status: HTMLElement): void {
+    status.textContent = 'No fue posible consultar la versión disponible.';
+  }
+
+  function populateDetails(root: HTMLElement, changelogItems: string[], hash: string): void {
+    const details = root.querySelector('[data-release-details]');
+    const changelog = root.querySelector('[data-changelog]');
+    const sha = root.querySelector('[data-sha]');
+
+    if (!(details instanceof HTMLElement) || !(changelog instanceof HTMLUListElement)) return;
+    if (!(sha instanceof HTMLElement)) return;
+
+    changelog.replaceChildren(
+      ...changelogItems.map((item) => {
+        const entry = document.createElement('li');
+        entry.textContent = item;
+        return entry;
+      }),
+    );
+    sha.textContent = hash;
+    details.hidden = false;
+  }
+
+  async function loadLatestRelease(root: HTMLElement): Promise<void> {
+    const status = root.querySelector('[data-status]');
+    const download = root.querySelector('[data-download]');
+    const unavailable = root.querySelector('[data-unavailable]');
+
+    if (!(status instanceof HTMLElement)) return;
+
+    const apiUrl = root.dataset.apiUrl ?? 'http://localhost:4000';
+    try {
+      const release = await createApiClient({ baseUrl: apiUrl }).releases.latestAndroid();
+
+      if (release === null) {
+        showUnavailable(
+          status,
+          unavailable instanceof HTMLButtonElement ? unavailable : null,
+        );
+        return;
+      }
+
+      status.textContent = `Versión ${release.version} · ${formatSize(release.size)} · ` +
+        `Publicada el ${formatDate(release.releasedAt)}`;
+
+      if (download instanceof HTMLAnchorElement) {
+        download.href = release.downloadUrl;
+        download.textContent = `Descargar para Android (${release.version})`;
+        download.hidden = false;
+      }
+
+      // Los detalles solo existen en la página de descarga.
+      populateDetails(root, release.changelog, release.sha256);
+    } catch {
+      showError(status);
+    }
+  }
+
+  const root = document.querySelector('[data-android-download]');
+  if (root instanceof HTMLElement) void loadLatestRelease(root);
+</script>
