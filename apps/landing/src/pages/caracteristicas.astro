@@ -1,0 +1,54 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const features = [
+  ['Perfil del atleta', 'Disponible', 'Configura la información base de tu seguimiento.'],
+  ['Acceso con correo y Google', 'Disponible', 'Crea tu cuenta o inicia sesión.'],
+  ['Biblioteca de movimientos', 'En desarrollo', 'Consulta una base para registrar tu práctica.'],
+  ['Registro de entrenamientos', 'En desarrollo', 'Guarda sesiones y resultados en tu historial.'],
+  ['Marcas personales (PRs)', 'En desarrollo', 'Identifica mejores resultados consistentes.'],
+  [
+    'Historial y estadísticas',
+    'En desarrollo',
+    'Observa la evolución con visualizaciones claras.',
+  ],
+] as const;
+---
+
+<Layout
+  title="Características | GarFit"
+  description="Funciones presentes y en desarrollo de GarFit."
+>
+  <section class="section">
+    <div class="shell">
+      <p class="eyebrow">Características</p>
+      <h1 class="display m-0">Una base para seguir tu propio rendimiento.</h1>
+      <p class="copy mt-6">
+        GarFit se construye por etapas. Estas son las capacidades actuales y la propuesta en
+        desarrollo.
+      </p>
+      <div class="mt-10 grid gap-5 md:grid-cols-2">
+        {
+          features.map(([name, status, text]) => (
+            <article class="card">
+              <div class="flex items-start justify-between gap-3">
+                <h2 class="m-0 text-xl font-bold">{name}</h2>
+                <span
+                  class:list={[
+                    'shrink-0 rounded-full px-3 py-1 text-xs font-bold',
+                    status === 'Disponible'
+                      ? 'bg-green-100 text-green-900'
+                      : 'bg-slate-100 text-slate-700',
+                  ]}
+                >
+                  {status}
+                </span>
+              </div>
+              <p class="mb-0 mt-4 leading-7 text-muted">{text}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</Layout>

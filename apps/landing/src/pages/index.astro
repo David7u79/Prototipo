@@ -1,17 +1,89 @@
 ---
+import AndroidDownload from '../components/AndroidDownload.astro';
+import Layout from '../layouts/Layout.astro';
 
+const webUrl = import.meta.env.PUBLIC_WEB_APP_URL ?? 'http://localhost:3000';
+const overviewItems = ['Entrenamientos', 'Marcas personales', 'Evolución', 'Análisis'];
+const steps = [
+  {
+    title: 'Registra',
+    text: 'Anota entrenamientos, movimientos y resultados con una estructura para tu práctica.',
+  },
+  {
+    title: 'Consulta',
+    text: 'Revisa historial, marcas personales y estadísticas conforme estén disponibles.',
+  },
+  {
+    title: 'Entiende',
+    text: 'Un asistente con IA, en desarrollo, ayudará a interpretar el progreso.',
+  },
+];
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Layout
+  title="GarFit | Entrena · Registra · Evoluciona"
+  description="Seguimiento inteligente del rendimiento deportivo para atletas."
+>
+  <section class="section bg-surface">
+    <div class="shell grid items-center gap-10 lg:grid-cols-[1.15fr_.85fr]">
+      <div>
+        <p class="eyebrow">Seguimiento inteligente del rendimiento deportivo</p>
+        <h1 class="display m-0 max-w-3xl">Entrena. Registra. Evoluciona.</h1>
+        <p class="copy mt-6">
+          GarFit es una plataforma web y móvil para atletas que quieren comprender su avance
+          con un registro más claro de entrenamientos y marcas personales.
+        </p>
+        <div class="mt-8 flex flex-wrap gap-3">
+          <a class="button button-primary" href={webUrl}>Abrir aplicación web</a>
+          <a class="button button-secondary" href="/descargar">Descargar para Android</a>
+        </div>
+      </div>
+      <div class="card border-accent/20 bg-white">
+        <p class="text-lg font-bold">Tu progreso merece algo mejor que notas dispersas.</p>
+        <p class="leading-7 text-muted">
+          Centraliza tu perfil deportivo, sesiones y resultados para volver a cada
+          entrenamiento con contexto.
+        </p>
+        <div class="mt-5 grid grid-cols-2 gap-3 text-sm font-bold">
+          {overviewItems.map((item) => <div class="rounded-lg bg-surface p-4">{item}</div>)}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell">
+      <p class="eyebrow">El problema</p>
+      <h2 class="heading m-0">De registros sueltos a una historia deportiva.</h2>
+      <p class="copy mt-5">
+        Cuando los entrenamientos viven en una libreta, notas distintas o solo en la memoria,
+        es difícil reconocer qué cambió y hacia dónde avanzar.
+      </p>
+      <div class="mt-10 grid gap-5 md:grid-cols-3">
+        {
+          steps.map(({ title, text }) => (
+            <article class="card">
+              <h3 class="m-0 text-xl font-bold">{title}</h3>
+              <p class="mb-0 leading-7 text-muted">{text}</p>
+            </article>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="section bg-surface">
+    <div class="shell grid gap-8 lg:grid-cols-2">
+      <div>
+        <p class="eyebrow">Disponibilidad</p>
+        <h2 class="heading m-0">Web hoy, Android cuando haya una versión publicada.</h2>
+        <p class="copy mt-5">
+          Ya puedes abrir GarFit en la web. La distribución para Android se consulta desde la
+          API de GarFit.
+        </p>
+        <a class="button button-primary mt-7" href={webUrl}>Abrir aplicación web</a>
+      </div>
+      <AndroidDownload />
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,51 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const assistantCapabilities = [
+  ['Analizar', 'Ayudará a leer patrones en la actividad registrada y a darles contexto.'],
+  ['Explicar', 'Podrá aclarar conceptos, movimientos y WODs de tu entrenamiento.'],
+  [
+    'Distinguir',
+    'Los PRs y estadísticas se calculan con código determinista; la IA los interpreta.',
+  ],
+] as const;
+---
+
+<Layout
+  title="IA | GarFit"
+  description="El asistente de inteligencia artificial de GarFit está en desarrollo."
+>
+  <section class="section bg-surface">
+    <div class="shell">
+      <p class="eyebrow">Asistente IA · En desarrollo</p>
+      <h1 class="display m-0 max-w-4xl">Contexto para interpretar tu entrenamiento.</h1>
+      <p class="copy mt-6">
+        El asistente de GarFit está pensado para analizar entrenamientos y progreso, y para
+        explicar movimientos y WODs de forma comprensible.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="shell">
+      <div class="grid gap-5 md:grid-cols-3">
+        {
+          assistantCapabilities.map(([title, text]) => (
+            <article class="card">
+              <h2 class="m-0 text-xl font-bold">{title}</h2>
+              <p class="mb-0 leading-7 text-muted">{text}</p>
+            </article>
+          ))
+        }
+      </div>
+      <div class="mt-10 max-w-3xl rounded-2xl border border-line bg-surface p-6">
+        <h2 class="m-0 text-xl font-bold">Cómo se integrará</h2>
+        <p class="leading-7 text-muted">
+          La IA usará Google Gemini a través del servidor de GarFit; nunca se conectará desde
+          el dispositivo. Esta función está en desarrollo y no reemplaza a un profesional de
+          la salud.
+        </p>
+      </div>
+    </div>
+  </section>
+</Layout>
