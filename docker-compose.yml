@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: garfit-postgres
+    environment:
+      POSTGRES_USER: garfit
+      POSTGRES_PASSWORD: garfit
+      POSTGRES_DB: garfit
+    ports:
+      # 5442 en el host para no chocar con un PostgreSQL local u otros proyectos.
+      - '5442:5432'
+    volumes:
+      - garfit-pgdata:/var/lib/postgresql/data
+      - ./scripts/db/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U garfit']
+      interval: 5s
+      retries: 10
+
+volumes:
+  garfit-pgdata:

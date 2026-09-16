@@ -1,0 +1,126 @@
+// Modelo de datos de GarFit — Fase 1 (fundación).
+// Fuente de verdad del ERD: `pnpm docs:generate` produce docs/generated/database/erd.svg.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../../../docs/generated/database/erd.svg"
+  renderer = "graphviz"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Proveedor de identidad con el que el usuario demuestra quién es.
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+enum ExperienceLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum PrimaryGoal {
+  STRENGTH
+  ENDURANCE
+  HYPERTROPHY
+  WEIGHT_LOSS
+  GENERAL_FITNESS
+}
+
+enum ReleasePlatform {
+  ANDROID
+}
+
+/// Persona que usa GarFit. Un único User por correo, sin importar cuántos proveedores vincule.
+model User {
+  id              String    @id @default(uuid(7))
+  /// Siempre en minúsculas.
+  email           String    @unique
+  name            String?
+  avatarUrl       String?
+  /// Fecha en que un proveedor confiable (Google) verificó el correo. Null = no verificado.
+  emailVerifiedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  accounts AuthAccount[]
+  sessions Session[]
+  profile  AthleteProfile?
+}
+
+/// Vínculo entre un User y un proveedor de identidad.
+/// LOCAL: providerAccountId = User.id y passwordHash (argon2id) presente.
+/// GOOGLE: providerAccountId = claim `sub` del ID token; passwordHash nulo.
+model AuthAccount {
+  id                String       @id @default(uuid(7))
+  userId            String
+  provider          AuthProvider
+  providerAccountId String
+  passwordHash      String?
+  createdAt         DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@unique([userId, provider])
+}
+
+/// Sesión emitida por GarFit. Sólo se guarda el hash SHA-256 del refresh token (rotativo).
+model Session {
+  id               String    @id @default(uuid(7))
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Perfil deportivo del atleta (1:1 con User).
+model AthleteProfile {
+  id              String          @id @default(uuid(7))
+  userId          String          @unique
+  displayName     String
+  experienceLevel ExperienceLevel
+  primaryGoal     PrimaryGoal
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// Versión distribuible de la app móvil. El binario vive en ReleaseStorage bajo `filePath`.
+model AppRelease {
+  id          String          @id @default(uuid(7))
+  platform    ReleasePlatform
+  /// SemVer, p. ej. 1.0.0.
+  version     String
+  versionCode Int
+  fileName    String
+  /// Clave relativa dentro del almacenamiento (nunca una ruta absoluta).
+  filePath    String
+  fileSize    Int
+  sha256      String
+  changelog   String[]
+  published   Boolean         @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime        @default(now())
+
+  @@unique([platform, version])
+  @@unique([platform, versionCode])
+  @@index([platform, published, versionCode])
+}

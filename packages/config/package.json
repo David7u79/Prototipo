@@ -1,0 +1,17 @@
+{
+  "name": "@garfit/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./eslint": "./eslint.config.js"
+  },
+  "dependencies": {
+    "@eslint/js": "^10.0.0",
+    "globals": "^17.12.0",
+    "typescript-eslint": "^8.70.0"
+  },
+  "peerDependencies": {
+    "eslint": "^10.0.0"
+  }
+}

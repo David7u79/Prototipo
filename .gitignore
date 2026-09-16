@@ -1,0 +1,32 @@
+node_modules/
+dist/
+build/
+.next/
+.astro/
+.expo/
+.turbo/
+coverage/
+*.tsbuildinfo
+.DS_Store
+npm-debug.log*
+pnpm-debug.log*
+
+# Secretos: sólo se versionan los .env.example
+.env
+.env.*
+!.env.example
+
+# Prisma generado
+apps/api/src/generated/
+
+# Binarios de releases (se publican vía script, no por git)
+storage/releases/**/*
+!storage/releases/**/.gitkeep
+
+# Mobile nativo (Development Builds se generan con prebuild)
+apps/mobile/android/
+apps/mobile/ios/
+
+# Reportes pesados regenerables
+docs/generated/typedoc/
+docs/generated/coverage/html/

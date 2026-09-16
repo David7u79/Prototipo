@@ -1,0 +1,29 @@
+{
+  "name": "garfit",
+  "private": true,
+  "description": "GarFit — seguimiento inteligente del rendimiento deportivo (prototipo académico).",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "pnpm --filter @garfit/api prisma:migrate",
+    "docs:generate": "node scripts/docs/generate.mjs",
+    "docs:check": "node scripts/docs/generate.mjs --check"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.7",
+    "turbo": "^2.10.13",
+    "typedoc": "^0.28.20",
+    "typescript": "~6.0.3"
+  }
+}
