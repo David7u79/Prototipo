@@ -9,6 +9,8 @@ import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProfileModule } from './profile/profile.module.js';
 import { ReleasesModule } from './releases/releases.module.js';
+import { MovementsModule } from './movements/movements.module.js';
+import { RecordsModule } from './records/records.module.js';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { ReleasesModule } from './releases/releases.module.js';
     HealthModule,
     AuthModule,
     ProfileModule,
+    MovementsModule,
+    RecordsModule,
     ReleasesModule,
     AiModule,
   ],

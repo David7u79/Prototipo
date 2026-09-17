@@ -26,6 +26,7 @@ export async function createTestApp(
 /** Vacía todas las tablas de dominio entre tests. */
 export async function resetDatabase(prisma: PrismaService): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE "Session", "AuthAccount", "AthleteProfile", "AppRelease", "User" CASCADE',
+    `TRUNCATE TABLE "PersonalRecord", "Movement", "Session", "AuthAccount",
+      "AthleteProfile", "AppRelease", "User" CASCADE`,
   );
 }

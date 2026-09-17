@@ -1,0 +1,89 @@
+/**
+ * Crea o reinicia un atleta de demostración con perfil y marcas plausibles.
+ * Nunca en producción; la contraseña sale de DEMO_USER_PASSWORD. Uso: `pnpm db:seed:demo`.
+ */
+import 'dotenv/config';
+import { hash } from '@node-rs/argon2';
+import { PrismaPg } from '@prisma/adapter-pg';
+import { PASSWORD_MIN_LENGTH, toCanonical } from '@garfit/domain';
+import { PrismaClient } from '../generated/prisma/client.js';
+
+if (process.env.NODE_ENV === 'production') {
+  throw new Error('La semilla demo no se puede ejecutar en producción');
+}
+const password = process.env.DEMO_USER_PASSWORD;
+if (!password || password.length < PASSWORD_MIN_LENGTH) {
+  throw new Error(`DEMO_USER_PASSWORD debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`);
+}
+const databaseUrl = process.env.DATABASE_URL;
+if (!databaseUrl) throw new Error('DATABASE_URL es obligatoria');
+const email = (process.env.DEMO_USER_EMAIL ?? 'demo@garfit.example').trim().toLowerCase();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
+const records = [
+  ['barbell-full-squat', 'WEIGHT', 100, 'KILOGRAM', 1, '2025-01-10'],
+  ['barbell-full-squat', 'WEIGHT', 105, 'KILOGRAM', 1, '2025-03-10'],
+  ['barbell-full-squat', 'WEIGHT', 110, 'KILOGRAM', 1, '2025-06-10'],
+  ['barbell-bench-press', 'WEIGHT', 75, 'KILOGRAM', 1, '2025-04-10'],
+  ['barbell-bench-press', 'WEIGHT', 80, 'KILOGRAM', 1, '2025-07-10'],
+  ['push-up', 'REPS', 30, 'REPETITION', null, '2025-05-10'],
+  ['push-up', 'REPS', 38, 'REPETITION', null, '2025-08-10'],
+  ['front-plank-with-twist', 'DURATION', 60, 'SECOND', null, '2025-08-15'],
+] as const;
+
+try {
+  const movements = await prisma.movement.findMany({
+    where: { slug: { in: records.map((item) => item[0]) } },
+  });
+  if (movements.length !== new Set(records.map((item) => item[0])).size) {
+    throw new Error('Falta el catálogo: ejecuta pnpm db:seed antes de la semilla demo');
+  }
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { name: 'Atleta demo' },
+    create: { email, name: 'Atleta demo' },
+  });
+  await prisma.authAccount.upsert({
+    where: { userId_provider: { userId: user.id, provider: 'LOCAL' } },
+    update: { providerAccountId: email, passwordHash: await hash(password, { algorithm: 2 }) },
+    create: {
+      userId: user.id,
+      provider: 'LOCAL',
+      providerAccountId: email,
+      passwordHash: await hash(password, { algorithm: 2 }),
+    },
+  });
+  await prisma.athleteProfile.upsert({
+    where: { userId: user.id },
+    update: {
+      displayName: 'Atleta demo',
+      experienceLevel: 'INTERMEDIATE',
+      primaryGoal: 'STRENGTH',
+      preferredUnits: 'METRIC',
+    },
+    create: {
+      userId: user.id,
+      displayName: 'Atleta demo',
+      experienceLevel: 'INTERMEDIATE',
+      primaryGoal: 'STRENGTH',
+      preferredUnits: 'METRIC',
+    },
+  });
+  await prisma.personalRecord.deleteMany({ where: { userId: user.id } });
+  const movementIds = new Map(movements.map((movement) => [movement.slug, movement.id]));
+  await prisma.personalRecord.createMany({
+    data: records.map(([slug, recordType, value, unit, repetitions, performedAt]) => ({
+      userId: user.id,
+      movementId: movementIds.get(slug)!,
+      recordType,
+      value,
+      unit,
+      normalizedValue: toCanonical(value, unit),
+      repetitions,
+      performedAt: new Date(`${performedAt}T00:00:00.000Z`),
+      source: 'MANUAL',
+    })),
+  });
+  console.log(`Usuario demo preparado: ${email}`);
+} finally {
+  await prisma.$disconnect();
+}
