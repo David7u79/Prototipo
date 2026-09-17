@@ -21,7 +21,7 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
 // The API client reads this in-memory copy; SecureStore is the durable source.
 let currentTokens: AuthTokens | null = null;
 
-const api = createApiClient({
+export const api = createApiClient({
   baseUrl: apiUrl,
   getAccessToken: () => currentTokens?.accessToken ?? null,
 });
@@ -37,6 +37,7 @@ type SessionContextValue = {
   logout: () => Promise<void>;
   loadProfile: () => Promise<AthleteProfile | null>;
   saveProfile: (input: AthleteProfileInput) => Promise<void>;
+  request: <Result>(action: () => Promise<Result>) => Promise<Result>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -230,6 +231,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       logout,
       loadProfile,
       saveProfile,
+      request: withSessionRefresh,
     }),
     [
       googleEnabled,
@@ -240,6 +242,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
       ready,
       register,
       saveProfile,
+      withSessionRefresh,
       signInWithGoogle,
       user,
     ],

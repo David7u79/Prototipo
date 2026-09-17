@@ -5,11 +5,12 @@ import {
   PRIMARY_GOAL_LABELS,
   PRIMARY_GOALS,
 } from '@garfit/validation';
-import type { ExperienceLevel, PrimaryGoal } from '@garfit/types';
+import type { ExperienceLevel, PrimaryGoal, UnitSystem } from '@garfit/types';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Field, Title, uiStyles } from '@/components/ui';
 import { messageFor, useSession } from '@/lib/auth';
+import { profileCanonicalValue, profileDisplayValue } from '@/lib/presentation';
 
 type ChipProps = {
   label: string;
@@ -39,6 +40,17 @@ export default function ProfileScreen() {
   const [primaryGoal, setPrimaryGoal] = useState<PrimaryGoal>(
     profile?.primaryGoal ?? 'GENERAL_FITNESS',
   );
+  const [preferredUnits, setPreferredUnits] = useState<UnitSystem>(
+    profile?.preferredUnits ?? 'METRIC',
+  );
+  const [birthDate, setBirthDate] = useState(profile?.birthDate ?? '');
+  const [height, setHeight] = useState(
+    profileDisplayValue(profile?.heightCm ?? null, preferredUnits, 'height'),
+  );
+  const [weight, setWeight] = useState(
+    profileDisplayValue(profile?.weightKg ?? null, preferredUnits, 'weight'),
+  );
+  const [trainingSince, setTrainingSince] = useState(profile?.trainingSince ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -47,6 +59,11 @@ export default function ProfileScreen() {
       displayName,
       experienceLevel,
       primaryGoal,
+      preferredUnits,
+      birthDate: birthDate || null,
+      heightCm: profileCanonicalValue(height, preferredUnits, 'height'),
+      weightKg: profileCanonicalValue(weight, preferredUnits, 'weight'),
+      trainingSince: trainingSince || null,
     });
 
     if (!parsed.success) {
@@ -106,6 +123,31 @@ export default function ProfileScreen() {
           />
         ))}
       </View>
+      <Text style={styles.label}>Unidades</Text>
+      <View style={styles.chips}>
+        <Chip
+          label="Métrico"
+          selected={preferredUnits === 'METRIC'}
+          onPress={() => setPreferredUnits('METRIC')}
+        />
+        <Chip
+          label="Imperial"
+          selected={preferredUnits === 'IMPERIAL'}
+          onPress={() => setPreferredUnits('IMPERIAL')}
+        />
+      </View>
+      <Text style={styles.label}>Fecha de nacimiento (opcional)</Text>
+      <Field value={birthDate} onChangeText={setBirthDate} placeholder="AAAA-MM-DD" />
+      <Text
+        style={styles.label}
+      >{`Altura opcional (${preferredUnits === 'IMPERIAL' ? 'pulgadas' : 'cm'})`}</Text>
+      <Field value={height} onChangeText={setHeight} keyboardType="decimal-pad" />
+      <Text
+        style={styles.label}
+      >{`Peso opcional (${preferredUnits === 'IMPERIAL' ? 'lb' : 'kg'})`}</Text>
+      <Field value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
+      <Text style={styles.label}>Entrenas desde (opcional)</Text>
+      <Field value={trainingSince} onChangeText={setTrainingSince} placeholder="AAAA-MM-DD" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button
         label={saving ? 'Guardando…' : 'Guardar perfil'}
