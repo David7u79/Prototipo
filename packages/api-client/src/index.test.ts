@@ -180,7 +180,13 @@ describe('cliente de IA', () => {
     await client.ai.analyzeProgress({ periodDays: 60 });
     await client.ai.analyzeProgress();
 
-    expect(fetch.mock.calls.map(([url, init]) => [url, (init as RequestInit).method, (init as RequestInit).body])).toEqual([
+    expect(
+      fetch.mock.calls.map(([url, init]) => [
+        url,
+        (init as RequestInit).method,
+        (init as RequestInit).body,
+      ]),
+    ).toEqual([
       ['http://api/ai/analyze/progress', 'POST', '{"periodDays":60}'],
       ['http://api/ai/analyze/progress', 'POST', '{}'],
     ]);
@@ -206,7 +212,9 @@ describe('cliente de IA', () => {
       baseUrl: 'http://api',
       fetch: vi
         .fn()
-        .mockResolvedValue(response({ code: 'AI_CONSENT_REQUIRED', message: 'Falta consentimiento' }, 403)),
+        .mockResolvedValue(
+          response({ code: 'AI_CONSENT_REQUIRED', message: 'Falta consentimiento' }, 403),
+        ),
     });
 
     await expect(client.ai.analyzeProgress()).rejects.toMatchObject({
@@ -235,5 +243,51 @@ describe('cliente de IA', () => {
     expect(result.observations[0]?.evidence).toEqual([
       { label: 'Volumen semanal', value: '12000 kg' },
     ]);
+  });
+});
+
+describe('historial de análisis y rendimiento por WOD', () => {
+  it('lista el historial con filtros en la consulta', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({ items: [], page: 2, limit: 5, total: 0 }));
+    const client = createApiClient({ baseUrl: 'http://api', fetch });
+
+    await client.ai.analyses.list({ type: 'WOD_EXPLANATION', page: 2, limit: 5 });
+
+    expect(fetch.mock.calls[0]?.[0]).toBe(
+      'http://api/ai/analyses?type=WOD_EXPLANATION&page=2&limit=5',
+    );
+  });
+
+  it('abre un análisis guardado por su identificador', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({ id: 'abc', cached: true }));
+    const client = createApiClient({ baseUrl: 'http://api', fetch });
+
+    const analysis = await client.ai.analyses.get('abc');
+
+    expect(fetch.mock.calls[0]?.[0]).toBe('http://api/ai/analyses/abc');
+    expect(analysis.cached).toBe(true);
+  });
+
+  it('borra una entrada y el historial completo con DELETE', async () => {
+    const fetch = vi.fn().mockResolvedValue(response(undefined, 204));
+    const client = createApiClient({ baseUrl: 'http://api', fetch });
+
+    await client.ai.analyses.remove('abc');
+    await client.ai.analyses.removeAll();
+
+    expect(fetch.mock.calls[0]?.[0]).toBe('http://api/ai/analyses/abc');
+    expect(fetch.mock.calls[0]?.[1]).toMatchObject({ method: 'DELETE' });
+    expect(fetch.mock.calls[1]?.[0]).toBe('http://api/ai/analyses');
+  });
+
+  it('consulta el rendimiento de un WOD codificando el slug', async () => {
+    const performance = { wod: { slug: 'fran' }, performance: { attempts: 2 } };
+    const fetch = vi.fn().mockResolvedValue(response(performance));
+    const client = createApiClient({ baseUrl: 'http://api', fetch });
+
+    const result = await client.wods.performance('fran/1');
+
+    expect(fetch.mock.calls[0]?.[0]).toBe('http://api/wods/fran%2F1/performance');
+    expect(result.performance.attempts).toBe(2);
   });
 });

@@ -1,13 +1,14 @@
 # Información de compilación
 
-- Fecha: 2026-09-17T19:32:48.107Z
-- Commit: bb013ae2e260cc28d42c0661ab9661d6df77bf33
-- Rama: fase-4-ia
+- Fecha: 2026-09-17T23:44:32.528Z
+- Commit: 866fbd8dc60179b4066e4c7f0e1f8d79c99b758b
+- Rama: fase-5-validacion-distribucion
 - Cambios sin commit: sí
 - Node: v24.19.0
 - pnpm: 11.20.0
 - Última migración: 20260917180000_ai_analysis
 - SHA-256 corto de schema.prisma: 6c9daf3209b6
+- Android: com.garfit.app 0.5.0 (versionCode 5)
 
 ## Aplicaciones y paquetes
 

@@ -94,13 +94,18 @@ function writeBuildInfo() {
       .filter((name) => source[name]).map((name) => `${name}: ${source[name]}`);
   });
   const schemaHash = createHash('sha256').update(schema).digest('hex').slice(0, 12);
+  // Versión de la app Android: app.json es la única fuente (ADR 0010). El SHA-256 del APK no se
+  // genera aquí porque depende del artefacto compilado y vive en la evidencia de la fase.
+  const androidApp = JSON.parse(readFileSync(join(root, 'apps/mobile/app.json'), 'utf8')).expo;
   const content = [
     '# Información de compilación', '', `- Fecha: ${new Date().toISOString()}`,
     `- Commit: ${git(['rev-parse', 'HEAD'])}`,
     `- Rama: ${git(['rev-parse', '--abbrev-ref', 'HEAD'])}`,
     `- Cambios sin commit: ${dirty}`, `- Node: ${process.version}`,
     `- pnpm: ${pnpmVersion}`, `- Última migración: ${migrations.at(-1) ?? 'ninguna'}`,
-    `- SHA-256 corto de schema.prisma: ${schemaHash}`, '',
+    `- SHA-256 corto de schema.prisma: ${schemaHash}`,
+    `- Android: ${androidApp.android.package} ${androidApp.version} (versionCode ${androidApp.android.versionCode})`,
+    '',
     '## Aplicaciones y paquetes', '', versions, '', '## Dependencias clave', '',
     [...new Set(dependencies)].join('\n'), '',
   ].join('\n');
