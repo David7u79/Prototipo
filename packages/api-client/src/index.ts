@@ -8,6 +8,9 @@
  * @packageDocumentation
  */
 import type {
+  AiAnalysisResponse,
+  AiConsentResponse,
+  AiStatusResponse,
   ApiErrorBody,
   AthleteProfile,
   AuthProvidersResponse,
@@ -216,6 +219,44 @@ export function createApiClient(options: ApiClientOptions) {
        */
       complete: (id: string, input: CompleteWorkoutInput = {}) =>
         request<WorkoutDetail>('POST', `${workoutPath(id)}/complete`, input, true),
+    },
+
+    /**
+     * Análisis explicativos. GarFit calcula los datos y el proveedor sólo los interpreta: cada
+     * observación cita evidencia que la API resuelve. Requieren consentimiento del atleta
+     * (`403 AI_CONSENT_REQUIRED` si falta).
+     */
+    ai: {
+      /** Estado del servicio; nunca incluye credenciales. */
+      status: () => request<AiStatusResponse>('GET', '/ai/status', undefined, true),
+      /** Acepta enviar datos deportivos al proveedor de IA. Idempotente. */
+      giveConsent: () => request<AiConsentResponse>('POST', '/ai/consent', undefined, true),
+      revokeConsent: () => request<AiConsentResponse>('DELETE', '/ai/consent', undefined, true),
+      /** Analiza el progreso del periodo indicado (30 días por defecto). */
+      analyzeProgress: (input: { periodDays?: 30 | 60 | 90 } = {}) =>
+        request<AiAnalysisResponse>('POST', '/ai/analyze/progress', input, true),
+      /** Analiza un entrenamiento completado del propio atleta. */
+      analyzeWorkout: (workoutId: string) =>
+        request<AiAnalysisResponse>(
+          'POST',
+          `/ai/analyze/workout/${encodeURIComponent(workoutId)}`,
+          undefined,
+          true,
+        ),
+      explainWod: (slug: string) =>
+        request<AiAnalysisResponse>(
+          'POST',
+          `/ai/explain/wod/${encodeURIComponent(slug)}`,
+          undefined,
+          true,
+        ),
+      explainMovement: (slug: string) =>
+        request<AiAnalysisResponse>(
+          'POST',
+          `/ai/explain/movement/${encodeURIComponent(slug)}`,
+          undefined,
+          true,
+        ),
     },
 
     releases: {
