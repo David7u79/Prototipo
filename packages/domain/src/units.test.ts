@@ -7,7 +7,20 @@ import {
   isUnitAllowed,
   parseDuration,
   toCanonical,
+  lbToKg,
+  kgToLb,
+  inToCm,
+  cmToIn,
 } from './units.js';
+
+describe('conversiones de perfil', () => {
+  it('usa los redondeos públicos exactos', () => {
+    expect(lbToKg(100)).toBe(45.36);
+    expect(kgToLb(70)).toBe(154.3);
+    expect(inToCm(70)).toBe(177.8);
+    expect(cmToIn(180)).toBe(70.9);
+  });
+});
 
 describe('toCanonical y fromCanonical', () => {
   it('convierte libras a kg con la definición internacional y 3 decimales', () => {
