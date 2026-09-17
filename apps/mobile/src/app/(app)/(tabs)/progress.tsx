@@ -36,6 +36,12 @@ export default function ProgressScreen() {
           <Text>Registrar marca</Text>
         </Card>
       </Pressable>
+      <Pressable accessibilityRole="button" onPress={() => router.push('/(app)/ai')}>
+        <Card>
+          <Text>Análisis inteligente</Text>
+          <Text style={uiStyles.muted}>Revisa tu progreso con una explicación personalizada.</Text>
+        </Card>
+      </Pressable>
       {error ? <Text>{error}</Text> : null}
       <FlatList
         data={data?.items ?? []}

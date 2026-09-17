@@ -90,6 +90,17 @@ export default function HomeScreen() {
         </Pressable>
       ) : null}
 
+      <Pressable
+        accessibilityLabel="Abrir análisis inteligente"
+        accessibilityRole="button"
+        onPress={() => router.push('/(app)/ai')}
+      >
+        <Card>
+          <Text style={styles.cardTitle}>Análisis inteligente</Text>
+          <Text style={uiStyles.muted}>Recibe una explicación de tu progreso deportivo.</Text>
+        </Card>
+      </Pressable>
+
       {error ? (
         <View accessible={true} accessibilityLabel={`Error: ${error}`}>
           <Card style={styles.errorCard}>

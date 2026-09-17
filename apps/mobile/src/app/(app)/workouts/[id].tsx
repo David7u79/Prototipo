@@ -15,6 +15,7 @@ export default function WorkoutScreen() {
   const [sets, setSets] = useState<Record<string, EditableSet[]>>({});
   const [score, setScore] = useState(emptyScore);
   const [error, setError] = useState<string | null>(null);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const load = useCallback(async () => {
     if (!id) return;
     try {
@@ -31,6 +32,13 @@ export default function WorkoutScreen() {
     useCallback(() => {
       void load();
     }, [load]),
+  );
+  useFocusEffect(
+    useCallback(() => {
+      void request(() => api.ai.status())
+        .then((status) => setAiAvailable(status.enabled && status.configured))
+        .catch(() => setAiAvailable(false));
+    }, [request]),
   );
   async function save(complete = false) {
     if (!workout) return;
@@ -78,7 +86,8 @@ export default function WorkoutScreen() {
         <ActivityIndicator />
       </Screen>
     );
-  if (workout.status === 'COMPLETED') return <Completed workout={workout} onRemove={remove} />;
+  if (workout.status === 'COMPLETED')
+    return <Completed workout={workout} aiAvailable={aiAvailable} onAnalyze={() => router.push({ pathname: '/(app)/ai', params: { action: 'workout', id: workout.id } })} onRemove={remove} />;
   return (
     <ScrollView>
       <Screen>
@@ -263,7 +272,7 @@ function Score({
     );
   return null;
 }
-function Completed({ workout, onRemove }: { workout: WorkoutDetail; onRemove: () => void }) {
+function Completed({ workout, onRemove, aiAvailable, onAnalyze }: { workout: WorkoutDetail; onRemove: () => void; aiAvailable: boolean; onAnalyze: () => void }) {
   return (
     <ScrollView>
       <Screen>
@@ -305,6 +314,7 @@ function Completed({ workout, onRemove }: { workout: WorkoutDetail; onRemove: ()
                 )}
           </Text>
         ))}
+        {aiAvailable ? <Button label="Analizar entrenamiento" onPress={onAnalyze} secondary /> : null}
         <Button label="Borrar" onPress={onRemove} secondary />
       </Screen>
     </ScrollView>
