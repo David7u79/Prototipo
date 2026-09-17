@@ -1,22 +1,37 @@
 'use server';
 
 import { ApiError } from '@garfit/api-client';
-import { athleteProfileSchema } from '@garfit/validation';
+import {
+  athleteProfileSchema,
+  createRecordSchema,
+  updateRecordSchemaFor,
+} from '@garfit/validation';
+import type { RecordType } from '@garfit/domain';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { clearSession, serverApi } from '@/lib/auth';
+import { profileUnitFactors, toProfileMetric } from '@/lib/profile-units';
+import { apiErrorMessage, recordInputValue } from '@/lib/records';
 
 export type ProfileState = {
   errors: Record<string, string[] | undefined>;
   message: string;
 };
 
+export type RecordState = ProfileState;
+
 export async function saveProfile(_state: ProfileState, formData: FormData): Promise<ProfileState> {
+  const preferredUnits = formData.get('preferredUnits') === 'IMPERIAL' ? 'IMPERIAL' : 'METRIC';
   const parsed = athleteProfileSchema.safeParse({
     displayName: formData.get('displayName'),
     experienceLevel: formData.get('experienceLevel'),
     primaryGoal: formData.get('primaryGoal'),
+    preferredUnits,
+    birthDate: formData.get('birthDate') || null,
+    heightCm: toProfileMetric(formData.get('height'), preferredUnits, profileUnitFactors.cm, 1),
+    weightKg: toProfileMetric(formData.get('weight'), preferredUnits, profileUnitFactors.kg, 2),
+    trainingSince: formData.get('trainingSince') || null,
   });
 
   if (!parsed.success) {
@@ -34,6 +49,7 @@ export async function saveProfile(_state: ProfileState, formData: FormData): Pro
   }
 
   revalidatePath('/app');
+  revalidatePath('/app/profile');
   return { errors: {}, message: 'Perfil guardado.' };
 }
 
@@ -51,4 +67,62 @@ export async function logoutAction(): Promise<void> {
 
   clearSession(cookieStore);
   redirect('/login');
+}
+
+function recordFields(formData: FormData) {
+  const recordType = formData.get('recordType') as RecordType;
+  const repRaw = formData.get('repetitions');
+  const repetitions = recordType === 'WEIGHT' ? (repRaw ? Number(repRaw) : null) : null;
+  return {
+    movementSlug: String(formData.get('movementSlug') ?? ''),
+    recordType,
+    value: recordInputValue(recordType, String(formData.get('value') ?? '')),
+    unit: formData.get('unit'),
+    repetitions,
+    performedAt: formData.get('performedAt'),
+    notes: formData.get('notes') || null,
+  };
+}
+
+export async function createRecord(_state: RecordState, formData: FormData): Promise<RecordState> {
+  const parsed = createRecordSchema.safeParse(recordFields(formData));
+  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, message: '' };
+  try {
+    await serverApi().records.create(parsed.data);
+  } catch (error) {
+    return { errors: {}, message: apiErrorMessage(error) };
+  }
+  revalidatePath('/app');
+  revalidatePath('/app/records');
+  revalidatePath(`/app/records/${parsed.data.movementSlug}`);
+  redirect(`/app/records/${parsed.data.movementSlug}`);
+}
+
+export async function updateRecord(_state: RecordState, formData: FormData): Promise<RecordState> {
+  const recordType = formData.get('recordType') as RecordType;
+  const parsed = updateRecordSchemaFor(recordType).safeParse({
+    ...recordFields(formData),
+    movementSlug: undefined,
+    recordType: undefined,
+  });
+  if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, message: '' };
+  try {
+    await serverApi().records.update(String(formData.get('id')), parsed.data);
+  } catch (error) {
+    return { errors: {}, message: apiErrorMessage(error) };
+  }
+  const movementSlug = String(formData.get('movementSlug'));
+  revalidatePath('/app');
+  revalidatePath('/app/records');
+  revalidatePath(`/app/records/${movementSlug}`);
+  redirect(`/app/records/${movementSlug}`);
+}
+
+export async function removeRecord(formData: FormData): Promise<void> {
+  const movementSlug = String(formData.get('movementSlug'));
+  await serverApi().records.remove(String(formData.get('id')));
+  revalidatePath('/app');
+  revalidatePath('/app/records');
+  revalidatePath(`/app/records/${movementSlug}`);
+  redirect(`/app/records/${movementSlug}`);
 }

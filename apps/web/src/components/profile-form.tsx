@@ -8,7 +8,9 @@ import {
   PRIMARY_GOALS,
 } from '@garfit/validation';
 import { useActionState } from 'react';
+import { useState } from 'react';
 import { saveProfile, type ProfileState } from '@/app/app-actions';
+import { profileFormValues } from '@/lib/profile-units';
 
 const EMPTY_PROFILE_STATE: ProfileState = { errors: {}, message: '' };
 
@@ -33,6 +35,8 @@ function FieldErrors({ messages, name }: FieldErrorProps) {
 
 export function ProfileForm({ profile }: ProfileFormProps) {
   const [state, formAction, pending] = useActionState(saveProfile, EMPTY_PROFILE_STATE);
+  const [units, setUnits] = useState(profile?.preferredUnits ?? 'METRIC');
+  const values = profileFormValues(profile, units);
   const displayNameError = state.errors.displayName;
 
   return (
@@ -51,6 +55,80 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           name="displayName"
         />
         <FieldErrors messages={displayNameError} name="displayName" />
+      </div>
+      <div>
+        <label className="mb-1 block text-sm font-medium" htmlFor="preferredUnits">
+          Unidades preferidas
+        </label>
+        <select
+          defaultValue={units}
+          id="preferredUnits"
+          name="preferredUnits"
+          onChange={(event) => setUnits(event.target.value as 'METRIC' | 'IMPERIAL')}
+        >
+          <option value="METRIC">Métrico (kg, cm)</option>
+          <option value="IMPERIAL">Imperial (lb, pulgadas)</option>
+        </select>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium" htmlFor="birthDate">
+            Fecha de nacimiento
+          </label>
+          <input
+            aria-describedby={state.errors.birthDate ? 'birthDate-error' : undefined}
+            defaultValue={profile?.birthDate ?? ''}
+            id="birthDate"
+            name="birthDate"
+            type="date"
+          />
+          <FieldErrors messages={state.errors.birthDate} name="birthDate" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium" htmlFor="trainingSince">
+            Entrenas desde
+          </label>
+          <input
+            aria-describedby={state.errors.trainingSince ? 'trainingSince-error' : undefined}
+            defaultValue={profile?.trainingSince ?? ''}
+            id="trainingSince"
+            name="trainingSince"
+            type="date"
+          />
+          <FieldErrors messages={state.errors.trainingSince} name="trainingSince" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium" htmlFor="height">
+            Altura ({units === 'IMPERIAL' ? 'pulgadas' : 'cm'})
+          </label>
+          <input
+            aria-describedby={state.errors.heightCm ? 'heightCm-error' : undefined}
+            defaultValue={values.height}
+            id="height"
+            key={`height-${units}`}
+            min="1"
+            name="height"
+            step="0.1"
+            type="number"
+          />
+          <FieldErrors messages={state.errors.heightCm} name="heightCm" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium" htmlFor="weight">
+            Peso ({units === 'IMPERIAL' ? 'lb' : 'kg'})
+          </label>
+          <input
+            aria-describedby={state.errors.weightKg ? 'weightKg-error' : undefined}
+            defaultValue={values.weight}
+            id="weight"
+            key={`weight-${units}`}
+            min="1"
+            name="weight"
+            step="0.1"
+            type="number"
+          />
+          <FieldErrors messages={state.errors.weightKg} name="weightKg" />
+        </div>
       </div>
       <div>
         <label className="mb-1 block text-sm font-medium" htmlFor="experienceLevel">
