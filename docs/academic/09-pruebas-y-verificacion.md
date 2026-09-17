@@ -193,3 +193,18 @@ pnpm evidence:web
 ```
 
 Criterio de éxito: todas las herramientas deben culminar con código de retorno 0. El comando `docs:check` garantiza adicionalmente que ningún cambio en los modelos de Prisma o controladores de NestJS haya provocado divergencias no versionadas en la especificación OpenAPI o el diagrama entidad-relación ERD.
+
+## 9.8 Verificación de la fase 4
+
+La API incorporó tres grupos de pruebas. El grupo de estado y operaciones comprueba consentimiento, datos insuficientes y las cuatro operaciones; el de validación comprueba caché, esquema, evidencia y errores del proveedor; el de seguridad comprueba aislamiento, minimización e inyección. Las pruebas de dominio verifican que los hechos y sus identificadores sean deterministas antes de que intervenga un proveedor.
+
+| Grupo | Casos representativos y garantía |
+| --- | --- |
+| Estado y consentimiento | `expone estado sin filtrar credenciales`, `exige consentimiento para las cuatro operaciones` y `conserva la fecha al consentir y permite revocarla`: estado seguro y consentimiento revocable. |
+| Operaciones | `analiza progreso con hechos resueltos y datos usados`, `no llama al proveedor cuando faltan datos`, `analiza sólo entrenamientos completados y distingue ausentes` y `explica WODs benchmark y movimientos del catálogo`: contexto y evidencia. |
+| Validación | `rechaza texto no JSON después de un único reintento`, `rechaza salidas que incumplen el esquema`, `no persiste una salida que cita evidencia inexistente` y `acepta la segunda respuesta cuando corrige la primera`: rechazo seguro y reintento único. |
+| Caché y proveedor | `normaliza errores del proveedor sin revelar su mensaje`, `reutiliza el análisis idéntico sin invocar de nuevo al proveedor` e `invalida la caché cuando cambian los datos y por periodo`: resiliencia y caché. |
+| Seguridad | `oculta a A el entrenamiento y WOD privado de B`, `no reutiliza ni atribuye a B los análisis de A`, `trata notas inyectadas como datos y minimiza el contexto` y `funciona con el doble del contrato y reserva Gemini para su adaptador`: aislamiento, inyección y sustitución. |
+| Dominio | `serializa de forma estable valores, arrays, undefined y fechas`, `genera ids deterministas y slugs de serie canónicos` y `detecta ids inventados ordenados y resuelve sólo hechos conocidos sin duplicarlos`: hash y evidencia. |
+
+Los recorridos E2E verificaron consentimiento, panel de IA, análisis de progreso, evidencia, análisis de entrenamiento, explicación de WOD, explicación de movimiento y creación de WOD. Los defectos de fase se identificaron mediante estos recorridos y las suites: esquema JSON vacío en el proveedor, validación casera, dependencias ausentes del módulo, clasificación incorrecta de timeout, localización del contexto simulado, formato de fecha ISO en web, etiqueta accesible truncada y fechas fijas en la semilla. Todos fueron corregidos antes del cierre.

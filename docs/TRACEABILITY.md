@@ -63,3 +63,17 @@ Los requerimientos siguientes no cuentan con entidades, endpoints ni pruebas aso
 | RF-14 | Registro de sesiones ejecutadas y resultados de entrenamiento (`WorkoutResult`). | Planeado (fase 3) | Depende del modelado de rutinas (RF-13). |
 | RF-15 | Generación automática de marcas personales derivadas de resultados de entrenamiento (`source: WORKOUT`). | Planeado (fase 3) | El enum `RecordSource.WORKOUT` está preparado en Prisma y dominio; el flujo de extracción automática se implementará en la fase 3. |
 | RF-16 | Asistente conversacional deportivo inteligente con Google Gemini para interpretación de progreso. | Planeado (fase 3) | La estructura de contexto determinista `ProgressSnapshotService` está implementada; la integración con el cliente de Gemini se realizará en la fase 3. |
+
+## 3. Requerimientos implementados (Fase 4: IA)
+
+| Requerimiento | Implementación concreta (rutas) | Prueba automatizada (`fichero › describe › it`) | Resultado | Evidencia |
+| --- | --- | --- | --- | --- |
+| RF-18 | `apps/api/src/ai/ai.controller.ts`; `POST /ai/consent`; `DELETE /ai/consent` | `apps/api/test/ai.spec.ts › IA: estado, consentimiento y operaciones › conserva la fecha al consentir y permite revocarla` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md); captura de consentimiento |
+| RF-19 | `POST /ai/analyze/progress`; `POST /ai/analyze/workout/:workoutId` | `apps/api/test/ai.spec.ts › IA: estado, consentimiento y operaciones › analiza progreso con hechos resueltos y datos usados` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md); capturas de progreso y entrenamiento |
+| RF-20 | `POST /ai/explain/wod/:slug`; `POST /ai/explain/movement/:slug`; `apps/web/src/app/app/wods/new/page.tsx` | `apps/api/test/ai.spec.ts › IA: estado, consentimiento y operaciones › explica WODs benchmark y movimientos del catálogo` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md); capturas de WOD, movimiento y creación |
+| RF-21 | `GET /ai/status`; `apps/web/src/components/ai-analysis.tsx` | `apps/api/test/ai.spec.ts › IA: estado, consentimiento y operaciones › expone estado sin filtrar credenciales` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md); capturas de panel y evidencia |
+| RNF-18 | `packages/domain/src/ai.ts`; `packages/validation/src/index.ts`; `apps/api/src/ai/ai.service.ts` | `apps/api/test/ai-validation.spec.ts › IA: validación, disponibilidad y caché › rechaza salidas que incumplen el esquema` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md) |
+| RNF-19 | `apps/api/src/ai/ai.service.ts`; `packages/domain/src/ai.ts` | `apps/api/test/ai-security.spec.ts › IA: aislamiento y contenido seguro › trata notas inyectadas como datos y minimiza el contexto` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md) |
+| RNF-20 | `apps/api/src/ai/gemini-ai.provider.ts`; `apps/api/src/ai/ai.service.ts` | `apps/api/test/ai-validation.spec.ts › IA: validación, disponibilidad y caché › reutiliza el análisis idéntico sin invocar de nuevo al proveedor` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md) |
+
+Las filas de fase 4 se verificaron contra los títulos de pruebas existentes. El proveedor simulado permite que las pruebas y las capturas sean reproducibles sin red; la integración con Gemini real se mantiene marcada como PENDIENTE en la evidencia.

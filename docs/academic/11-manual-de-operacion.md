@@ -394,3 +394,47 @@ Durante el desarrollo e integración de la fase 3 se identificaron dos situacion
    - Protección de seguridad activada cuando `NODE_ENV === 'production'`. La semilla demo está reservada para entornos de desarrollo y evaluación local.
 5. **Fallo de conexión desde el emulador móvil a la API:**
    - Los emuladores de Android no resuelven `localhost` como la máquina anfitriona. Verifique que `EXPO_PUBLIC_API_URL` apunte a `http://10.0.2.2:4000`. Si utiliza un dispositivo físico conectado a la red local, utilice la dirección IP de su máquina en la red LAN (p. ej., `http://192.168.1.150:4000`).
+
+## 11.8 Operación de análisis explicativo (fase 4)
+
+Las capturas de esta sección se tomaron con el proveedor simulado; ilustran el flujo y no acreditan una llamada real a Gemini.
+
+1. Abra la sección IA. Si el servicio está disponible, acepte el consentimiento para permitir el envío de hechos deportivos mínimos. Si no está configurado, la pantalla informa la condición y el resto de GarFit continúa funcionando.
+2. Seleccione análisis de progreso y el periodo disponible. Lea el resumen, observaciones y sugerencias; abra la evidencia para identificar los datos que respaldan cada afirmación.
+3. Si aparece «Análisis anterior», significa que los mismos datos, modelo y versión de instrucción coincidieron con caché. No es una generación nueva.
+4. Seleccione un entrenamiento completado para analizarlo. Los borradores o recursos de otro atleta no son analizables.
+5. Seleccione un WOD para consultar su explicación y un movimiento para consultar instrucciones e información interpretada del catálogo.
+6. Desde la creación de WOD personal puede preparar una rutina web propia; después puede pedir explicación del WOD guardado.
+7. Para revocar permiso, use la acción de revocación. Desde ese momento no se realizan nuevas solicitudes al proveedor.
+
+![Figura 11.1. Consentimiento de IA](../evidence/fase-4/capturas/ai-consent.png)
+
+*Figura 11.1. Diálogo de consentimiento explícito.*
+
+![Figura 11.2. Panel de IA](../evidence/fase-4/capturas/ai-home.png)
+
+*Figura 11.2. Panel con operaciones disponibles.*
+
+![Figura 11.3. Análisis de progreso](../evidence/fase-4/capturas/ai-progress-analysis.png)
+
+*Figura 11.3. Resultado de progreso y datos usados.*
+
+![Figura 11.4. Evidencia inspeccionable](../evidence/fase-4/capturas/ai-evidence.png)
+
+*Figura 11.4. Evidencia resuelta por GarFit.*
+
+![Figura 11.5. Análisis de entrenamiento](../evidence/fase-4/capturas/ai-workout-analysis.png)
+
+*Figura 11.5. Interpretación de un entrenamiento completado.*
+
+![Figura 11.6. Explicación de WOD](../evidence/fase-4/capturas/ai-wod-explanation.png)
+
+*Figura 11.6. Explicación de WOD.*
+
+![Figura 11.7. Explicación de movimiento](../evidence/fase-4/capturas/ai-movement-explanation.png)
+
+*Figura 11.7. Explicación de movimiento.*
+
+![Figura 11.8. Creación de WOD](../evidence/fase-4/capturas/wod-new.png)
+
+*Figura 11.8. Creación de WOD personal desde web.*

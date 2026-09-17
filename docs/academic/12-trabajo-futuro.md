@@ -58,3 +58,9 @@ La transición hacia la fase 3 requerirá mantener la disciplina arquitectónica
 
 - Ninguna funcionalidad de entrenamientos o inteligencia artificial se declarará implementada sin contar previamente con sus migraciones de Prisma correspondientes, sus contratos compartidos en `packages/types`, sus pruebas automatizadas en `apps/api/test/` y su respectiva evidencia en la matriz de trazabilidad.
 - Los requerimientos de la fase 3 continuarán clasificados como `Planeado` hasta que la suite de verificación completa concluya satisfactoriamente con código 0 y se archiven las evidencias correspondientes.
+
+## 12.7 Agenda de fase 5: consolidación de IA
+
+La siguiente fase debe probar la integración con una clave real de Gemini en un entorno autorizado y registrar el resultado sin publicar secretos. También debe incorporar historial de análisis, comparación de WODs y un chat acotado que conserve consentimiento, contexto mínimo, salida estructurada y evidencia verificable.
+
+La verificación en dispositivo Android es prioritaria. Permanecen como deuda el aviso de `pg` durante la semilla demo, cobertura unitaria baja de web, límite de IA por instancia que requerirá almacén compartido al escalar, falta de historial y ausencia de un control para regenerar un análisis cuando los datos no cambian. Ninguno de estos puntos debe resolverse debilitando la regla de que GarFit calcula y el modelo interpreta.
