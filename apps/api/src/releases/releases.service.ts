@@ -75,4 +75,19 @@ export class ReleasesService {
       throw error;
     }
   }
+
+  async openLatestAndroidDownload(): Promise<ReleaseDownload> {
+    const release = await this.prisma.appRelease.findFirst({
+      where: { platform: ReleasePlatform.ANDROID, published: true },
+      orderBy: { versionCode: 'desc' },
+    });
+    if (!release) {
+      throw new ApiException(
+        404,
+        'NO_RELEASE_PUBLISHED',
+        'No hay una versión publicada actualmente',
+      );
+    }
+    return this.openAndroidDownload(release.version);
+  }
 }

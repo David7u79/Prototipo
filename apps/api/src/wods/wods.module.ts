@@ -8,5 +8,6 @@ import { WodsService } from './wods.service.js';
   imports: [AuthModule, PrismaModule],
   controllers: [WodsController],
   providers: [WodsService],
+  exports: [WodsService],
 })
 export class WodsModule {}

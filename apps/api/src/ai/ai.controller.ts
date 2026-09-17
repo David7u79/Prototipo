@@ -1,16 +1,52 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { AiAnalysisResponse as AiAnalysisResponseType } from '@garfit/types';
 import { CurrentUser, JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/jwt.strategy.js';
 import { AiService } from './ai.service.js';
-import { AiAnalysisResponse, AiConsentResponse, AiStatusResponse } from './dto/ai-responses.dto.js';
+import { AiAnalysisFiltersDto } from './dto/ai.dto.js';
+import {
+  AiAnalysisResponse,
+  AiConsentResponse,
+  AiStatusResponse,
+  PaginatedAiAnalysesResponse,
+} from './dto/ai-responses.dto.js';
 @ApiTags('ai')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('ai')
 export class AiController {
   constructor(private readonly ai: AiService) {}
+  @Get('analyses')
+  @ApiOkResponse({ type: PaginatedAiAnalysesResponse })
+  listAnalyses(@CurrentUser() user: AuthenticatedUser, @Query() filters: AiAnalysisFiltersDto) {
+    return this.ai.list(user.id, filters);
+  }
+  @Get('analyses/:id')
+  @ApiOkResponse({ type: AiAnalysisResponse })
+  getAnalysis(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ai.getAnalysis(user.id, id);
+  }
+  @Delete('analyses/:id')
+  @HttpCode(204)
+  removeAnalysis(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.ai.removeAnalysis(user.id, id);
+  }
+  @Delete('analyses')
+  @HttpCode(204)
+  removeAllAnalyses(@CurrentUser() user: AuthenticatedUser) {
+    return this.ai.removeAllAnalyses(user.id);
+  }
   @Get('status')
   @ApiOkResponse({ type: AiStatusResponse })
   status(

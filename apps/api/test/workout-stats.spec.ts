@@ -38,6 +38,17 @@ describe('GET /workouts/stats', () => {
       personalRecordsFromWorkoutsLast30Days: 0,
       recentPersonalRecords: [],
       volumeByMovementLast30Days: [],
+      periodComparison: {
+        days: 30,
+        current: { workouts: 0, trainingDays: 0, volumeKg: 0, personalRecords: 0 },
+        previous: { workouts: 0, trainingDays: 0, volumeKg: 0, personalRecords: 0 },
+        change: {
+          workouts: { absolute: 0, percent: null },
+          trainingDays: { absolute: 0, percent: null },
+          volumeKg: { absolute: 0, percent: null },
+          personalRecords: { absolute: 0, percent: null },
+        },
+      },
     });
   });
 

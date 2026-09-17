@@ -233,6 +233,32 @@ class MovementVolumeResponse {
   volumeKg!: number;
 }
 
+class PeriodMetricsResponse {
+  @ApiProperty() workouts!: number;
+  @ApiProperty() trainingDays!: number;
+  @ApiProperty() volumeKg!: number;
+  @ApiProperty() personalRecords!: number;
+}
+
+class PeriodMetricChangeResponse {
+  @ApiProperty() absolute!: number;
+  @ApiProperty({ type: Number, nullable: true }) percent!: number | null;
+}
+
+class PeriodComparisonChangeResponse {
+  @ApiProperty({ type: PeriodMetricChangeResponse }) workouts!: PeriodMetricChangeResponse;
+  @ApiProperty({ type: PeriodMetricChangeResponse }) trainingDays!: PeriodMetricChangeResponse;
+  @ApiProperty({ type: PeriodMetricChangeResponse }) volumeKg!: PeriodMetricChangeResponse;
+  @ApiProperty({ type: PeriodMetricChangeResponse }) personalRecords!: PeriodMetricChangeResponse;
+}
+
+class PeriodComparisonResponse {
+  @ApiProperty() days!: number;
+  @ApiProperty({ type: PeriodMetricsResponse }) current!: PeriodMetricsResponse;
+  @ApiProperty({ type: PeriodMetricsResponse }) previous!: PeriodMetricsResponse;
+  @ApiProperty({ type: PeriodComparisonChangeResponse }) change!: PeriodComparisonChangeResponse;
+}
+
 export class WorkoutStatsResponse {
   @ApiProperty()
   totalCompleted!: number;
@@ -254,4 +280,7 @@ export class WorkoutStatsResponse {
 
   @ApiProperty({ type: [MovementVolumeResponse] })
   volumeByMovementLast30Days!: MovementVolumeResponse[];
+
+  @ApiProperty({ type: PeriodComparisonResponse })
+  periodComparison!: PeriodComparisonResponse;
 }

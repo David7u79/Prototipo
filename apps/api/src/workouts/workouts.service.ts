@@ -1,5 +1,6 @@
 import {
   EMPTY_SCORE,
+  comparePeriods,
   countInLastDays,
   formatScore,
   normalizeSet,
@@ -251,7 +252,33 @@ export class WorkoutsService {
       },
       include: { movement: true },
     });
+    const periodRecords = await this.prisma.personalRecord.findMany({
+      where: { userId, deletedAt: null },
+      select: { performedAt: true },
+    });
     const volume = volumeByMovement(rows, from);
+    const periodComparison = comparePeriods(
+      rows.flatMap((row) =>
+        row.performedOn
+          ? [
+              {
+                performedOn: toIsoDate(row.performedOn),
+                sets: row.exercises.flatMap((exercise) =>
+                  exercise.results.map((result) => ({
+                    reps: result.reps,
+                    loadKg: numberOrNull(result.loadKg),
+                    distanceMeters: numberOrNull(result.distanceMeters),
+                    durationSeconds: result.durationSeconds,
+                  })),
+                ),
+              },
+            ]
+          : [],
+      ),
+      periodRecords.map((record) => toIsoDate(record.performedAt)),
+      30,
+      now,
+    );
     return {
       totalCompleted: rows.length,
       last7Days: countInLastDays(dates, 7, now),
@@ -270,6 +297,7 @@ export class WorkoutsService {
           movement: toWorkoutMovementRef(item.movement),
           volumeKg: item.volumeKg,
         })),
+      periodComparison,
     };
   }
   private async createFromWod(userId: string, slug: string, name?: string) {

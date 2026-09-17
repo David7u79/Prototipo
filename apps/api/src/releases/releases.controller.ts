@@ -7,6 +7,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response } from 'express';
+import type { Readable } from 'node:stream';
 import { ApiErrorResponse } from '../common/dto/api-error.dto.js';
 import { LatestReleaseResponse } from './dto/release.dto.js';
 import { ReleasesService } from './releases.service.js';
@@ -23,6 +24,20 @@ export class ReleasesController {
     return this.releases.latestAndroid();
   }
 
+  @Get('android/latest/download')
+  @ApiProduces('application/vnd.android.package-archive')
+  @ApiOkResponse({
+    description: 'APK; cabecera X-Checksum-Sha256 con su SHA-256',
+    schema: { type: 'string', format: 'binary' },
+  })
+  @ApiNotFoundResponse({ type: ApiErrorResponse, description: 'NO_RELEASE_PUBLISHED' })
+  async downloadLatestAndroid(
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const { release, stream } = await this.releases.openLatestAndroidDownload();
+    return this.sendAndroidDownload(response, release, stream);
+  }
+
   @Get('android/:version/download')
   @ApiProduces('application/vnd.android.package-archive')
   @ApiOkResponse({
@@ -36,6 +51,14 @@ export class ReleasesController {
     @Res({ passthrough: true }) response: Response,
   ): Promise<StreamableFile> {
     const { release, stream } = await this.releases.openAndroidDownload(version);
+    return this.sendAndroidDownload(response, release, stream);
+  }
+
+  private sendAndroidDownload(
+    response: Response,
+    release: { fileName: string; fileSize: number; sha256: string },
+    stream: Readable,
+  ): StreamableFile {
     const safeName = release.fileName.replace(/[^A-Za-z0-9._-]/g, '_');
     response.setHeader('X-Checksum-Sha256', release.sha256);
     return new StreamableFile(stream, {

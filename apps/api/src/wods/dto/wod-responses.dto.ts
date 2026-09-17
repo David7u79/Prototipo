@@ -11,6 +11,7 @@ import {
 } from '@garfit/domain';
 import { ApiProperty } from '@nestjs/swagger';
 import { MovementRefResponse } from '../../records/dto/record-responses.dto.js';
+import { ChangeResponse } from '../../records/dto/record-responses.dto.js';
 
 class WodMovementResponse extends MovementRefResponse {
   @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType', isArray: true })
@@ -107,4 +108,42 @@ export class PaginatedWodsResponse {
 
   @ApiProperty()
   totalPages!: number;
+}
+
+class WodAttemptResponse {
+  @ApiProperty() workoutId!: string;
+  @ApiProperty({ format: 'date' }) performedOn!: string;
+  @ApiProperty() value!: number;
+  @ApiProperty() display!: string;
+}
+
+class WodPerformanceComparisonResponse {
+  @ApiProperty({ enum: WORKOUT_TYPES, enumName: 'WorkoutType' }) workoutType!: WorkoutType;
+  @ApiProperty() comparisonAvailable!: boolean;
+  @ApiProperty({
+    enum: ['SCORE_NO_COMPARABLE', 'ESQUEMA_DESCONOCIDO', 'TIPO_NO_SOPORTADO'],
+    nullable: true,
+  })
+  unavailableReason!: string | null;
+  @ApiProperty({ enum: ['s', 'reps', 'kg'], nullable: true }) unit!: string | null;
+  @ApiProperty() lowerIsBetter!: boolean;
+  @ApiProperty() attempts!: number;
+  @ApiProperty({ type: WodAttemptResponse, nullable: true }) best!: WodAttemptResponse | null;
+  @ApiProperty({ type: WodAttemptResponse, nullable: true }) latest!: WodAttemptResponse | null;
+  @ApiProperty({ type: WodAttemptResponse, nullable: true }) previous!: WodAttemptResponse | null;
+  @ApiProperty({ type: ChangeResponse, nullable: true }) change!: ChangeResponse | null;
+  @ApiProperty({ type: [WodAttemptResponse] }) history!: WodAttemptResponse[];
+}
+
+class WodPerformanceWodResponse {
+  @ApiProperty() slug!: string;
+  @ApiProperty() name!: string;
+  @ApiProperty({ enum: WORKOUT_TYPES, enumName: 'WorkoutType' }) workoutType!: WorkoutType;
+  @ApiProperty() isBenchmark!: boolean;
+}
+
+export class WodPerformanceResponse {
+  @ApiProperty({ type: WodPerformanceWodResponse }) wod!: WodPerformanceWodResponse;
+  @ApiProperty({ type: WodPerformanceComparisonResponse })
+  performance!: WodPerformanceComparisonResponse;
 }

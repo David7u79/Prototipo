@@ -511,6 +511,24 @@ paths:
                 $ref: "#/components/schemas/WodDetailResponse"
       security: *a10
       tags: *a11
+  /wods/{slug}/performance:
+    get:
+      operationId: WodsController_performance
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WodPerformanceResponse"
+      security: *a10
+      tags: *a11
   /wods/{slug}:
     get:
       operationId: WodsController_get
@@ -714,6 +732,25 @@ paths:
                 $ref: "#/components/schemas/ApiErrorResponse"
       tags: &a14
         - releases
+  /releases/android/latest/download:
+    get:
+      operationId: ReleasesController_downloadLatestAndroid
+      parameters: []
+      responses:
+        "200":
+          description: APK; cabecera X-Checksum-Sha256 con su SHA-256
+          content:
+            application/vnd.android.package-archive:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: NO_RELEASE_PUBLISHED
+          content:
+            application/vnd.android.package-archive:
+              schema:
+                $ref: "#/components/schemas/ApiErrorResponse"
+      tags: *a14
   /releases/android/{version}/download:
     get:
       operationId: ReleasesController_downloadAndroid
@@ -744,6 +781,60 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
       tags: *a14
+  /ai/analyses:
+    get:
+      operationId: AiController_listAnalyses
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedAiAnalysesResponse"
+      security: &a15
+        - bearer: []
+      tags: &a16
+        - ai
+    delete:
+      operationId: AiController_removeAllAnalyses
+      parameters: []
+      responses:
+        "204":
+          description: ""
+      security: *a15
+      tags: *a16
+  /ai/analyses/{id}:
+    get:
+      operationId: AiController_getAnalysis
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAnalysisResponse"
+      security: *a15
+      tags: *a16
+    delete:
+      operationId: AiController_removeAnalysis
+      parameters:
+        - name: id
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "204":
+          description: ""
+      security: *a15
+      tags: *a16
   /ai/status:
     get:
       operationId: AiController_status
@@ -755,10 +846,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AiStatusResponse"
-      security: &a15
-        - bearer: []
-      tags: &a16
-        - ai
+      security: *a15
+      tags: *a16
   /ai/consent:
     post:
       operationId: AiController_consent
@@ -1892,6 +1981,112 @@ components:
         - limit
         - total
         - totalPages
+    WodPerformanceWodResponse:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        workoutType:
+          allOf:
+            - $ref: "#/components/schemas/WorkoutType"
+        isBenchmark:
+          type: boolean
+      required:
+        - slug
+        - name
+        - workoutType
+        - isBenchmark
+    WodAttemptResponse:
+      type: object
+      properties:
+        workoutId:
+          type: string
+        performedOn:
+          type: string
+          format: date
+        value:
+          type: number
+        display:
+          type: string
+      required:
+        - workoutId
+        - performedOn
+        - value
+        - display
+    WodPerformanceComparisonResponse:
+      type: object
+      properties:
+        workoutType:
+          allOf:
+            - $ref: "#/components/schemas/WorkoutType"
+        comparisonAvailable:
+          type: boolean
+        unavailableReason:
+          type: string
+          enum:
+            - SCORE_NO_COMPARABLE
+            - ESQUEMA_DESCONOCIDO
+            - TIPO_NO_SOPORTADO
+          nullable: true
+        unit:
+          type: string
+          enum:
+            - s
+            - reps
+            - kg
+          nullable: true
+        lowerIsBetter:
+          type: boolean
+        attempts:
+          type: number
+        best:
+          nullable: true
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/WodAttemptResponse"
+        latest:
+          nullable: true
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/WodAttemptResponse"
+        previous:
+          nullable: true
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/WodAttemptResponse"
+        change:
+          nullable: true
+          type: object
+          allOf:
+            - $ref: "#/components/schemas/ChangeResponse"
+        history:
+          type: array
+          items:
+            $ref: "#/components/schemas/WodAttemptResponse"
+      required:
+        - workoutType
+        - comparisonAvailable
+        - unavailableReason
+        - unit
+        - lowerIsBetter
+        - attempts
+        - best
+        - latest
+        - previous
+        - change
+        - history
+    WodPerformanceResponse:
+      type: object
+      properties:
+        wod:
+          $ref: "#/components/schemas/WodPerformanceWodResponse"
+        performance:
+          $ref: "#/components/schemas/WodPerformanceComparisonResponse"
+      required:
+        - wod
+        - performance
     WodMovementResponse:
       type: object
       properties:
@@ -2145,6 +2340,65 @@ components:
       required:
         - movement
         - volumeKg
+    PeriodMetricsResponse:
+      type: object
+      properties:
+        workouts:
+          type: number
+        trainingDays:
+          type: number
+        volumeKg:
+          type: number
+        personalRecords:
+          type: number
+      required:
+        - workouts
+        - trainingDays
+        - volumeKg
+        - personalRecords
+    PeriodMetricChangeResponse:
+      type: object
+      properties:
+        absolute:
+          type: number
+        percent:
+          type: number
+          nullable: true
+      required:
+        - absolute
+        - percent
+    PeriodComparisonChangeResponse:
+      type: object
+      properties:
+        workouts:
+          $ref: "#/components/schemas/PeriodMetricChangeResponse"
+        trainingDays:
+          $ref: "#/components/schemas/PeriodMetricChangeResponse"
+        volumeKg:
+          $ref: "#/components/schemas/PeriodMetricChangeResponse"
+        personalRecords:
+          $ref: "#/components/schemas/PeriodMetricChangeResponse"
+      required:
+        - workouts
+        - trainingDays
+        - volumeKg
+        - personalRecords
+    PeriodComparisonResponse:
+      type: object
+      properties:
+        days:
+          type: number
+        current:
+          $ref: "#/components/schemas/PeriodMetricsResponse"
+        previous:
+          $ref: "#/components/schemas/PeriodMetricsResponse"
+        change:
+          $ref: "#/components/schemas/PeriodComparisonChangeResponse"
+      required:
+        - days
+        - current
+        - previous
+        - change
     WorkoutStatsResponse:
       type: object
       properties:
@@ -2169,6 +2423,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/MovementVolumeResponse"
+        periodComparison:
+          $ref: "#/components/schemas/PeriodComparisonResponse"
       required:
         - totalCompleted
         - last7Days
@@ -2177,6 +2433,7 @@ components:
         - personalRecordsFromWorkoutsLast30Days
         - recentPersonalRecords
         - volumeByMovementLast30Days
+        - periodComparison
     CreateWorkoutDto:
       type: object
       properties: {}
@@ -2496,42 +2753,6 @@ components:
         - downloadUrl
         - sha256
         - changelog
-    AiProviderName:
-      type: string
-      enum:
-        - GEMINI
-        - FAKE
-    AiStatusResponse:
-      type: object
-      properties:
-        enabled:
-          type: boolean
-        configured:
-          type: boolean
-        provider:
-          allOf:
-            - $ref: "#/components/schemas/AiProviderName"
-        model:
-          type: string
-        consentGivenAt:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-        - enabled
-        - configured
-        - provider
-        - model
-        - consentGivenAt
-    AiConsentResponse:
-      type: object
-      properties:
-        consentGivenAt:
-          type: string
-          format: date-time
-          nullable: true
-      required:
-        - consentGivenAt
     AiAnalysisType:
       type: string
       enum:
@@ -2544,6 +2765,73 @@ components:
       enum:
         - COMPLETED
         - INSUFFICIENT_DATA
+    AiProviderName:
+      type: string
+      enum:
+        - GEMINI
+        - FAKE
+    AiAnalysisSummaryResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          allOf:
+            - $ref: "#/components/schemas/AiAnalysisType"
+        status:
+          allOf:
+            - $ref: "#/components/schemas/AiAnalysisStatus"
+        targetId:
+          type: string
+          nullable: true
+        targetLabel:
+          type: string
+          nullable: true
+        periodDays:
+          type: number
+          nullable: true
+        provider:
+          allOf:
+            - $ref: "#/components/schemas/AiProviderName"
+        model:
+          type: string
+        summary:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - type
+        - status
+        - targetId
+        - targetLabel
+        - periodDays
+        - provider
+        - model
+        - summary
+        - createdAt
+    PaginatedAiAnalysesResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAnalysisSummaryResponse"
+        page:
+          type: number
+        limit:
+          type: number
+        total:
+          type: number
+        totalPages:
+          type: number
+      required:
+        - items
+        - page
+        - limit
+        - total
+        - totalPages
     AiEvidenceCategory:
       type: string
       enum:
@@ -2555,6 +2843,7 @@ components:
         - HISTORY
         - WOD
         - MOVEMENT
+        - COMPARISON
     AiEvidenceFactResponse:
       type: object
       properties:
@@ -2674,3 +2963,34 @@ components:
         - limitations
         - missingData
         - dataUsed
+    AiStatusResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+        provider:
+          allOf:
+            - $ref: "#/components/schemas/AiProviderName"
+        model:
+          type: string
+        consentGivenAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - enabled
+        - configured
+        - provider
+        - model
+        - consentGivenAt
+    AiConsentResponse:
+      type: object
+      properties:
+        consentGivenAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - consentGivenAt
