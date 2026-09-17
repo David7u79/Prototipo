@@ -36,21 +36,22 @@ test('atleta registra y consulta sus marcas', async ({ page }) => {
   // Tras el registro la app lleva a completar el perfil deportivo.
   await expect(page).toHaveURL(/\/app\/profile$/);
 
-  await page.getByRole('link', { name: 'Inicio' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Inicio' }).click();
   await expect(page).toHaveURL(/\/app$/);
   await screenshot(page, '02-dashboard-empty.png');
 
-  await page.getByRole('link', { name: 'Perfil' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Perfil' }).click();
   await page.getByLabel('Nombre visible').fill('Atleta E2E');
   await page.getByRole('button', { name: 'Guardar perfil' }).click();
   await expect(page.getByText(/perfil guardado/i)).toBeVisible();
   await screenshot(page, '03-profile.png');
-  await page.getByRole('link', { name: 'Movimientos' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Movimientos' }).click();
   await page.getByLabel('Buscar').fill('barbell full squat');
   await page.getByRole('button', { name: 'Filtrar' }).click();
   await expect(page.getByText('Barbell full squat')).toBeVisible();
   await screenshot(page, '04-movements.png');
   await page.getByRole('link', { name: 'Barbell full squat' }).click();
+  await expect(page.getByRole('link', { name: 'Registrar una marca' })).toBeVisible();
   await screenshot(page, '05-movement-detail.png');
   await page.getByRole('link', { name: 'Registrar una marca' }).click();
   await page.getByLabel('Valor').fill('100');
@@ -65,13 +66,14 @@ test('atleta registra y consulta sus marcas', async ({ page }) => {
   await page.getByLabel('Fecha').fill(dateDaysAgo(10));
   await page.getByRole('button', { name: 'Guardar marca' }).click();
   await page.getByRole('link', { name: 'Volver a mis marcas' }).click();
+  await expect(page.getByRole('heading', { name: 'Mis marcas' })).toBeVisible();
   await screenshot(page, '07-records.png');
   await page.getByRole('link', { name: 'Ver historial' }).click();
   await expect(page.getByText('105 kg')).toBeVisible();
   await expect(page.getByText('+5 kg')).toBeVisible();
   await expect(page.getByRole('img', { name: 'Evolución de marcas' })).toBeVisible();
   await screenshot(page, '08-record-history.png');
-  await page.getByRole('link', { name: 'Inicio' }).click();
+  await page.getByRole('navigation').getByRole('link', { name: 'Inicio' }).click();
   await expect(page.getByText('Movimientos con marca')).toBeVisible();
   await expect(page.getByText('1', { exact: true })).toBeVisible();
   await screenshot(page, '09-dashboard.png');

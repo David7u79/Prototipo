@@ -3,7 +3,7 @@ import { ApiError } from '@garfit/api-client';
 import { parseMovementFilters, movementQuery } from './movement-filters';
 import { profileFormValues, profileUnitFactors, toProfileMetric } from './profile-units';
 import { apiErrorMessage, formatChange, formatValue, recordInputValue } from './records';
-import { chartPoints } from '../components/progress-chart';
+import { CHART, chartPoints } from '../components/progress-chart';
 
 describe('parámetros de filtros y paginación', () => {
   it('normaliza filtros válidos y conserva paginación', () => {
@@ -62,17 +62,23 @@ describe('escala y puntos de gráfica SVG', () => {
       { id: 'b', normalizedValue: 105 },
     ] as never;
     const points = chartPoints(entries);
-    expect(points.map((p) => p.x)).toEqual([10, 90]);
-    expect(points[0].y).toBe(70); // menor valor queda abajo
-    expect(points[1].y).toBe(10); // mayor valor queda arriba
+    const { left, right, top, bottom } = CHART.plot;
+    expect(points.map((p) => p.x)).toEqual([left, right]);
+    expect(points[0].y).toBe(bottom); // menor valor queda abajo
+    expect(points[1].y).toBe(top); // mayor valor queda arriba
   });
 
-  it('sitúa el punto en el centro cuando sólo hay un registro', () => {
+  it('centra el punto cuando sólo hay un registro', () => {
     const entries = [{ id: 'single', normalizedValue: 100 }] as never;
     const points = chartPoints(entries);
+    const { left, right, top, bottom } = CHART.plot;
     expect(points).toHaveLength(1);
-    expect(points[0].x).toBe(50);
-    expect(points[0].y).toBe(10);
+    expect(points[0].x).toBe((left + right) / 2);
+    expect(points[0].y).toBe((top + bottom) / 2);
+  });
+
+  it('el lienzo es apaisado para no crecer en alto al ocupar todo el ancho', () => {
+    expect(CHART.width / CHART.height).toBeGreaterThanOrEqual(2);
   });
 
   it('maneja un array vacío de entradas sin error', () => {
