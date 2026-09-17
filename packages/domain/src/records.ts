@@ -1,4 +1,5 @@
 import type { RecordType, RecordUnit } from './rules.js';
+import { DISTANCE_QUALIFIED_RECORD_TYPES } from './rules.js';
 import { roundTo } from './units.js';
 
 /**
@@ -17,8 +18,18 @@ export interface RecordEntry {
   normalizedValue: number;
   /** Repeticiones de una marca de carga (1 = 1RM). `null` en otros tipos. */
   repetitions: number | null;
+  /**
+   * Calificador de distancia en metros para tipos que lo exigen (TIME): la distancia sobre la
+   * que se midió el tiempo. `null` en el resto.
+   */
+  distanceMeters: number | null;
   performedAt: string;
   createdAt: string;
+}
+
+/** `true` si el tipo de marca sólo es comparable sobre la misma distancia. */
+export function requiresDistanceQualifier(recordType: RecordType): boolean {
+  return DISTANCE_QUALIFIED_RECORD_TYPES.includes(recordType);
 }
 
 /** `TIME` mejora al bajar; el resto, al subir. */
@@ -32,13 +43,20 @@ export function isBetter(recordType: RecordType, candidate: number, reference: n
 }
 
 /**
- * Una serie agrupa marcas comparables entre sí: mismo tipo y, en cargas, mismo número de
- * repeticiones (un 5RM no se compara con un 1RM).
+ * Una serie agrupa marcas comparables entre sí: mismo tipo y, además,
+ * - en cargas, mismo número de repeticiones (un 5RM no se compara con un 1RM);
+ * - en tipos calificados por distancia, misma distancia (`TIME@5000m` ≠ `TIME@10000m`).
+ * Un TIME sin distancia (registros anteriores a la fase 3) forma su propia serie `TIME`.
  */
-export function seriesKey(entry: Pick<RecordEntry, 'recordType' | 'repetitions'>): string {
-  return entry.recordType === 'WEIGHT'
-    ? `${entry.recordType}:${entry.repetitions ?? 1}`
-    : entry.recordType;
+export function seriesKey(
+  entry: Pick<RecordEntry, 'recordType' | 'repetitions'> &
+    Partial<Pick<RecordEntry, 'distanceMeters'>>,
+): string {
+  if (entry.recordType === 'WEIGHT') return `WEIGHT:${entry.repetitions ?? 1}`;
+  if (requiresDistanceQualifier(entry.recordType) && entry.distanceMeters != null) {
+    return `${entry.recordType}@${roundTo(entry.distanceMeters, 3)}m`;
+  }
+  return entry.recordType;
 }
 
 /** Orden cronológico estable: fecha de realización y, a igual fecha, fecha de registro. */
@@ -73,6 +91,8 @@ export interface RecordSeriesSummary {
   key: string;
   recordType: RecordType;
   repetitions: number | null;
+  /** Distancia que califica la serie (TIME); `null` si el tipo no la usa. */
+  distanceMeters: number | null;
   count: number;
   first: RecordEntry;
   /** Registro más reciente. */
@@ -94,7 +114,7 @@ export function summarizeSeries(entries: readonly RecordEntry[]): RecordSeriesSu
   if (!head) throw new Error('Una serie necesita al menos un registro');
   const key = seriesKey(head);
   if (entries.some((entry) => seriesKey(entry) !== key)) {
-    throw new Error('La serie mezcla tipos de marca o repeticiones distintas');
+    throw new Error('La serie mezcla tipos de marca, repeticiones o distancias distintas');
   }
 
   const ordered = [...entries].sort(compareChronologically);
@@ -121,6 +141,7 @@ export function summarizeSeries(entries: readonly RecordEntry[]): RecordSeriesSu
     key,
     recordType,
     repetitions: recordType === 'WEIGHT' ? (head.repetitions ?? 1) : null,
+    distanceMeters: requiresDistanceQualifier(recordType) ? head.distanceMeters : null,
     count: ordered.length,
     first,
     current,

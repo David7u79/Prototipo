@@ -119,6 +119,7 @@ enum Equipment {
   STEPMILL_MACHINE
   SKIERG_MACHINE
   UPPER_BODY_ERGOMETER
+  ROWING_MACHINE
 }
 
 enum MuscleGroup {
@@ -153,6 +154,23 @@ enum MovementDifficulty {
   ADVANCED
 }
 
+/// Modalidad del entrenamiento: decide el score global (ver @garfit/domain WORKOUT_TYPES).
+enum WorkoutType {
+  STRENGTH
+  FOR_TIME
+  AMRAP
+  EMOM
+  CARDIO
+  CUSTOM
+}
+
+/// DRAFT editable · IN_PROGRESS estructura fija · COMPLETED inmutable y con marcas derivadas.
+enum WorkoutStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+}
+
 /// Persona que usa GarFit. Un único User por correo, sin importar cuántos proveedores vincule.
 model User {
   id              String    @id @default(uuid(7))
@@ -169,6 +187,9 @@ model User {
   sessions        Session[]
   profile         AthleteProfile?
   personalRecords PersonalRecord[]
+  workouts        Workout[]
+  /// WODs personales (privados) creados por el atleta.
+  wods            Wod[]
 }
 
 /// Vínculo entre un User y un proveedor de identidad.
@@ -247,7 +268,9 @@ model Movement {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  personalRecords PersonalRecord[]
+  personalRecords  PersonalRecord[]
+  workoutExercises WorkoutExercise[]
+  wodExercises     WodExercise[]
 
   @@unique([source, sourceId])
   @@index([isActive, name])
@@ -269,18 +292,171 @@ model PersonalRecord {
   normalizedValue Decimal      @db.Decimal(14, 3)
   /// Sólo en marcas de carga: repeticiones de la marca (1 = 1RM).
   repetitions     Int?
+  /// Calificador de distancia (obligatorio en TIME): distancia sobre la que se midió el tiempo.
+  distanceValue   Decimal?     @db.Decimal(12, 3)
+  distanceUnit    RecordUnit?
+  /// Distancia calificadora en metros; forma parte de la serie comparable.
+  distanceMeters  Decimal?     @db.Decimal(14, 3)
   performedAt     DateTime     @db.Date
   notes           String?
   source          RecordSource @default(MANUAL)
+  /// Resultado de entrenamiento que originó la marca (source = WORKOUT).
+  workoutResultId String?
   deletedAt       DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  movement Movement @relation(fields: [movementId], references: [id], onDelete: Restrict)
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  movement      Movement       @relation(fields: [movementId], references: [id], onDelete: Restrict)
+  workoutResult WorkoutResult? @relation(fields: [workoutResultId], references: [id], onDelete: NoAction)
 
+  // Idempotencia: un mismo resultado no puede generar dos marcas del mismo tipo.
+  @@unique([workoutResultId, recordType])
   @@index([userId, deletedAt, performedAt])
   @@index([userId, movementId, recordType])
+}
+
+/// Plantilla reutilizable de entrenamiento (p. ej. "Fran"). Pública si ownerId es nulo
+/// (catálogo del proyecto); privada del atleta si tiene ownerId.
+model Wod {
+  id              String      @id @default(uuid(7))
+  slug            String      @unique
+  name            String
+  description     String?
+  workoutType     WorkoutType
+  /// AMRAP/EMOM: duración total; FOR_TIME: tiempo límite opcional.
+  durationSeconds Int?
+  /// Rondas prescritas (FOR_TIME por rondas, CUSTOM).
+  rounds          Int?
+  /// EMOM: duración de cada intervalo.
+  intervalSeconds Int?
+  /// Esquema de repeticiones por ronda, p. ej. [21, 15, 9].
+  repScheme       Int[]
+  isBenchmark     Boolean     @default(false)
+  source          String?
+  ownerId         String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  owner     User?         @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  exercises WodExercise[]
+  workouts  Workout[]
+
+  @@index([ownerId])
+  @@index([isBenchmark])
+}
+
+/// Movimiento prescrito en un WOD, en orden.
+model WodExercise {
+  id              String      @id @default(uuid(7))
+  wodId           String
+  movementId      String
+  position        Int
+  /// Repeticiones por ronda (null si las marca repScheme del WOD).
+  reps            Int?
+  loadValue       Decimal?    @db.Decimal(12, 3)
+  loadUnit        RecordUnit?
+  distanceValue   Decimal?    @db.Decimal(12, 3)
+  distanceUnit    RecordUnit?
+  durationSeconds Int?
+  notes           String?
+
+  wod      Wod      @relation(fields: [wodId], references: [id], onDelete: Cascade)
+  movement Movement @relation(fields: [movementId], references: [id], onDelete: Restrict)
+
+  @@unique([wodId, position])
+}
+
+/// Sesión personal de entrenamiento de un atleta. Puede nacer de un WOD (copia de su
+/// prescripción) o crearse libre. Nunca representa una clase ni una sesión de gimnasio.
+model Workout {
+  id              String        @id @default(uuid(7))
+  userId          String
+  wodId           String?
+  name            String
+  description     String?
+  notes           String?
+  workoutType     WorkoutType
+  status          WorkoutStatus @default(DRAFT)
+  durationSeconds Int?
+  rounds          Int?
+  intervalSeconds Int?
+  repScheme       Int[]
+  /// Fecha en que se realizó; se fija al completar (hoy por defecto).
+  performedOn     DateTime?     @db.Date
+  startedAt       DateTime?
+  completedAt     DateTime?
+  /// Borrado lógico: conserva la trazabilidad de las marcas derivadas.
+  deletedAt       DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wod       Wod?              @relation(fields: [wodId], references: [id], onDelete: Restrict)
+  exercises WorkoutExercise[]
+  score     WorkoutScore?
+
+  @@index([userId, deletedAt, status, performedOn])
+  @@index([wodId])
+}
+
+/// Movimiento dentro de un entrenamiento, con su prescripción opcional, en orden.
+model WorkoutExercise {
+  id                    String      @id @default(uuid(7))
+  workoutId             String
+  movementId            String
+  position              Int
+  targetSets            Int?
+  targetReps            Int?
+  targetLoadValue       Decimal?    @db.Decimal(12, 3)
+  targetLoadUnit        RecordUnit?
+  targetDistanceValue   Decimal?    @db.Decimal(12, 3)
+  targetDistanceUnit    RecordUnit?
+  targetDurationSeconds Int?
+  restSeconds           Int?
+  notes                 String?
+
+  workout  Workout         @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  movement Movement        @relation(fields: [movementId], references: [id], onDelete: Restrict)
+  results  WorkoutResult[]
+
+  @@unique([workoutId, position])
+  @@index([movementId])
+}
+
+/// Serie realizada de un ejercicio. Datos estructurados: nunca "5x90, 5x95" como texto.
+model WorkoutResult {
+  id                String      @id @default(uuid(7))
+  workoutExerciseId String
+  setNumber         Int
+  reps              Int?
+  loadValue         Decimal?    @db.Decimal(12, 3)
+  loadUnit          RecordUnit?
+  loadKg            Decimal?    @db.Decimal(12, 3)
+  distanceValue     Decimal?    @db.Decimal(12, 3)
+  distanceUnit      RecordUnit?
+  distanceMeters    Decimal?    @db.Decimal(14, 3)
+  durationSeconds   Int?
+  createdAt         DateTime    @default(now())
+
+  workoutExercise WorkoutExercise  @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  personalRecords PersonalRecord[]
+
+  @@unique([workoutExerciseId, setNumber])
+}
+
+/// Resultado global del entrenamiento (1:1). Qué campos aplican depende de workoutType.
+model WorkoutScore {
+  workoutId     String   @id
+  timeSeconds   Int?
+  repsAtTimeCap Int?
+  rounds        Int?
+  extraReps     Int?
+  completed     Boolean?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 }
 
 /// Versión distribuible de la app móvil. El binario vive en ReleaseStorage bajo `filePath`.

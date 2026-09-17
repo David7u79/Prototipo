@@ -21,6 +21,7 @@ export function toRecordEntry(row: PersonalRecord): RecordEntry {
     unit: row.unit,
     normalizedValue: Number(row.normalizedValue),
     repetitions: row.repetitions,
+    distanceMeters: row.distanceMeters === null ? null : Number(row.distanceMeters),
     performedAt: toIsoDate(row.performedAt),
     createdAt: row.createdAt.toISOString(),
   };

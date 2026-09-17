@@ -23,13 +23,25 @@ import type {
   RecordsOverviewResponse,
   RecordsSummaryResponse,
   User,
+  WodDetail,
+  WodFilters,
+  WodSummary,
+  WorkoutDetail,
+  WorkoutFilters,
+  WorkoutListItem,
+  WorkoutStatsResponse,
 } from '@garfit/types';
 import type {
   AthleteProfileInput,
+  CompleteWorkoutInput,
   CreateRecordInput,
+  CreateWodInput,
+  CreateWorkoutInput,
   LoginInput,
   RegisterInput,
   UpdateRecordInput,
+  UpdateWorkoutInput,
+  WorkoutResultsInput,
 } from '@garfit/validation';
 
 /** Construye `?a=1&b=2` omitiendo valores vacíos. */
@@ -75,7 +87,12 @@ export function createApiClient(options: ApiClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/+$/, '');
   const doFetch = options.fetch ?? fetch;
 
-  async function request<T>(method: Method, path: string, body?: unknown, auth = false): Promise<T> {
+  async function request<T>(
+    method: Method,
+    path: string,
+    body?: unknown,
+    auth = false,
+  ): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (auth) {
@@ -157,6 +174,50 @@ export function createApiClient(options: ApiClientOptions) {
         request<void>('DELETE', `/records/${encodeURIComponent(id)}`, undefined, true),
     },
 
+    wods: {
+      /** Catálogo público (benchmarks) más los WODs personales del atleta. */
+      list: (filters: WodFilters = {}) =>
+        request<Paginated<WodSummary>>('GET', `/wods${toQueryString(filters)}`, undefined, true),
+      /** Lanza `ApiError` 404 `WOD_NOT_FOUND` si no existe o es privado de otro atleta. */
+      get: (slug: string) =>
+        request<WodDetail>('GET', `/wods/${encodeURIComponent(slug)}`, undefined, true),
+      /** Crea un WOD personal y privado. */
+      create: (input: CreateWodInput) => request<WodDetail>('POST', '/wods', input, true),
+    },
+
+    workouts: {
+      /** Historial paginado, del más reciente al más antiguo. */
+      list: (filters: WorkoutFilters = {}) =>
+        request<Paginated<WorkoutListItem>>(
+          'GET',
+          `/workouts${toQueryString(filters)}`,
+          undefined,
+          true,
+        ),
+      stats: () => request<WorkoutStatsResponse>('GET', '/workouts/stats', undefined, true),
+      get: (id: string) => request<WorkoutDetail>('GET', workoutPath(id), undefined, true),
+      /** Libre (`name`, `workoutType`, `exercises`) o desde un WOD (`wodSlug`). */
+      create: (input: CreateWorkoutInput) =>
+        request<WorkoutDetail>('POST', '/workouts', input, true),
+      /** Sólo en DRAFT; si se envía `exercises`, reemplaza la lista. */
+      update: (id: string, input: UpdateWorkoutInput) =>
+        request<WorkoutDetail>('PATCH', workoutPath(id), input, true),
+      /** Borrado lógico; retira también las marcas que derivó. */
+      remove: (id: string) => request<void>('DELETE', workoutPath(id), undefined, true),
+      /** DRAFT → IN_PROGRESS: fija la estructura y registra `startedAt`. */
+      start: (id: string) =>
+        request<WorkoutDetail>('POST', `${workoutPath(id)}/start`, undefined, true),
+      /** Reemplaza todos los resultados y el score (antes de completar). */
+      saveResults: (id: string, input: WorkoutResultsInput) =>
+        request<WorkoutDetail>('PUT', `${workoutPath(id)}/results`, input, true),
+      /**
+       * Completa el entrenamiento y deriva marcas personales. Idempotente: repetirlo devuelve el
+       * mismo resultado sin duplicar marcas.
+       */
+      complete: (id: string, input: CompleteWorkoutInput = {}) =>
+        request<WorkoutDetail>('POST', `${workoutPath(id)}/complete`, input, true),
+    },
+
     releases: {
       /** Devuelve `null` si no hay ninguna versión Android publicada. */
       latestAndroid: async (): Promise<LatestReleaseResponse | null> => {
@@ -172,6 +233,10 @@ export function createApiClient(options: ApiClientOptions) {
 }
 
 export type ApiClient = ReturnType<typeof createApiClient>;
+
+function workoutPath(id: string): string {
+  return `/workouts/${encodeURIComponent(id)}`;
+}
 
 function toErrorBody(status: number, data: unknown): ApiErrorBody {
   if (data && typeof data === 'object' && 'message' in data) {

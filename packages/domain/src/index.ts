@@ -8,4 +8,5 @@ export * from './rules.js';
 export * from './units.js';
 export * from './records.js';
 export * from './dates.js';
+export * from './workouts.js';
 export * from './progress-snapshot.js';

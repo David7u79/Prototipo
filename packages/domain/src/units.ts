@@ -24,6 +24,33 @@ export function isUnitAllowed(recordType: RecordType, unit: RecordUnit): boolean
   return UNITS_BY_RECORD_TYPE[recordType].includes(unit);
 }
 
+// --- Medidas corporales del perfil -------------------------------------------------------
+// El perfil guarda siempre kg y cm; los formularios en sistema imperial convierten con esto.
+// (Las distancias km/mi y cargas de marcas usan toCanonical/fromCanonical.)
+
+const KG_PER_LB = 0.45359237;
+const CM_PER_IN = 2.54;
+
+/** Libras → kg, redondeado a 2 decimales (precisión de `AthleteProfile.weightKg`). */
+export function lbToKg(pounds: number): number {
+  return roundTo(pounds * KG_PER_LB, 2);
+}
+
+/** kg → libras, redondeado a 1 decimal para mostrar. */
+export function kgToLb(kilograms: number): number {
+  return roundTo(kilograms / KG_PER_LB, 1);
+}
+
+/** Pulgadas → cm, redondeado a 1 decimal (precisión de `AthleteProfile.heightCm`). */
+export function inToCm(inches: number): number {
+  return roundTo(inches * CM_PER_IN, 1);
+}
+
+/** cm → pulgadas, redondeado a 1 decimal para mostrar. */
+export function cmToIn(centimeters: number): number {
+  return roundTo(centimeters / CM_PER_IN, 1);
+}
+
 /**
  * Redondea a `decimals` decimales, con los empates alejándose de cero (6.25 → 6.3 y
  * −6.25 → −6.3) para que una mejora y un empeoramiento simétricos se muestren igual.

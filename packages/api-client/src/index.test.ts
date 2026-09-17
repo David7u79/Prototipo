@@ -46,11 +46,13 @@ describe('cliente API', () => {
 
   it('devuelve null en 404 de latestAndroid y relanza otros errores', async () => {
     const missing = createApiClient({
-      baseUrl: 'http://api', fetch: vi.fn().mockResolvedValue(response({ message: 'no' }, 404)),
+      baseUrl: 'http://api',
+      fetch: vi.fn().mockResolvedValue(response({ message: 'no' }, 404)),
     });
     await expect(missing.releases.latestAndroid()).resolves.toBeNull();
     const failed = createApiClient({
-      baseUrl: 'http://api', fetch: vi.fn().mockResolvedValue(response({ message: 'no' }, 500)),
+      baseUrl: 'http://api',
+      fetch: vi.fn().mockResolvedValue(response({ message: 'no' }, 500)),
     });
     await expect(failed.releases.latestAndroid()).rejects.toBeInstanceOf(ApiError);
   });

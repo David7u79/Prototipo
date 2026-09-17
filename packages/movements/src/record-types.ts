@@ -24,6 +24,7 @@ const CARDIO_EQUIPMENT: ReadonlySet<Equipment> = new Set<Equipment>([
   'STEPMILL_MACHINE',
   'SKIERG_MACHINE',
   'UPPER_BODY_ERGOMETER',
+  'ROWING_MACHINE',
 ]);
 
 /** Movimientos isométricos por nombre: su marca natural es cuánto tiempo se sostienen. */

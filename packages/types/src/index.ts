@@ -11,12 +11,17 @@
 import type {
   AthleteProgressSnapshot,
   Change,
+  DistanceUnit,
   ExperienceLevel,
+  LoadUnit,
   PrimaryGoal,
   RecordSource,
   RecordType,
   RecordUnit,
   UnitSystem,
+  WorkoutScore,
+  WorkoutStatus,
+  WorkoutType,
 } from '@garfit/domain';
 import type {
   Equipment,
@@ -28,6 +33,11 @@ import type {
 export type {
   AthleteProgressSnapshot,
   Change,
+  DistanceUnit,
+  LoadUnit,
+  WorkoutScore,
+  WorkoutStatus,
+  WorkoutType,
   Equipment,
   ExperienceLevel,
   MovementCategory,
@@ -153,6 +163,14 @@ export const API_ERROR_CODES = {
   RECORD_NOT_FOUND: 'RECORD_NOT_FOUND',
   /** El movimiento no admite ese tipo de marca (ver `Movement.recordTypes`). */
   RECORD_TYPE_NOT_ALLOWED: 'RECORD_TYPE_NOT_ALLOWED',
+  /** La marca deriva de un entrenamiento: se gestiona desde el entrenamiento, no a mano. */
+  RECORD_MANAGED_BY_WORKOUT: 'RECORD_MANAGED_BY_WORKOUT',
+  WORKOUT_NOT_FOUND: 'WORKOUT_NOT_FOUND',
+  /** La operación no está permitida en el estado actual (p. ej. editar uno completado). */
+  WORKOUT_INVALID_STATE: 'WORKOUT_INVALID_STATE',
+  /** Faltan resultados o score exigidos por el tipo de entrenamiento para completarlo. */
+  WORKOUT_INCOMPLETE: 'WORKOUT_INCOMPLETE',
+  WOD_NOT_FOUND: 'WOD_NOT_FOUND',
   /** La unidad no corresponde al tipo de marca, o el valor queda fuera de límites. */
   INVALID_RECORD_VALUE: 'INVALID_RECORD_VALUE',
   NOT_FOUND: 'NOT_FOUND',
@@ -235,12 +253,28 @@ export interface PersonalRecord {
   normalizedValue: number;
   /** Repeticiones de la marca de carga (1 = 1RM); `null` en otros tipos. */
   repetitions: number | null;
+  /** Calificador de distancia de TIME (la distancia cronometrada); `null` en otros tipos. */
+  distanceValue: number | null;
+  distanceUnit: DistanceUnit | null;
+  distanceMeters: number | null;
   /** `YYYY-MM-DD`. */
   performedAt: string;
   notes: string | null;
   source: RecordSource;
+  /** Por qué existe la marca si se derivó de un entrenamiento; `null` si es MANUAL. */
+  origin: RecordOrigin | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** Resultado de entrenamiento que originó una marca (`source = WORKOUT`). */
+export interface RecordOrigin {
+  workoutId: string;
+  workoutName: string;
+  /** `YYYY-MM-DD`. */
+  performedOn: string;
+  setNumber: number;
+  reps: number | null;
 }
 
 /** Registro dentro del historial de una serie. */
@@ -257,6 +291,8 @@ export interface RecordSeries {
   key: string;
   recordType: RecordType;
   repetitions: number | null;
+  /** Distancia que califica la serie de TIME (p. ej. 5000); `null` en otros tipos. */
+  distanceMeters: number | null;
   lowerIsBetter: boolean;
   count: number;
   first: RecordHistoryEntry;
@@ -287,4 +323,164 @@ export interface RecordsSummaryResponse {
   recentImprovement: { record: PersonalRecord; improvement: Change } | null;
   /** Últimos registros (máximo 5), del más reciente al más antiguo. */
   recentRecords: PersonalRecord[];
+}
+
+// --- WODs ----------------------------------------------------------------------------------
+
+/** Parámetros globales de un WOD o entrenamiento. */
+export interface WorkoutPrescriptionFields {
+  workoutType: WorkoutType;
+  /** AMRAP/EMOM: duración total; FOR_TIME: tiempo límite opcional. */
+  durationSeconds: number | null;
+  rounds: number | null;
+  /** EMOM: segundos de cada intervalo. */
+  intervalSeconds: number | null;
+  /** Repeticiones por ronda, p. ej. [21, 15, 9]; [] si no aplica. */
+  repScheme: number[];
+}
+
+/** Movimiento prescrito en un WOD. */
+export interface WodExercise {
+  position: number;
+  movement: MovementRef & { recordTypes: RecordType[] };
+  reps: number | null;
+  loadValue: number | null;
+  loadUnit: LoadUnit | null;
+  distanceValue: number | null;
+  distanceUnit: DistanceUnit | null;
+  durationSeconds: number | null;
+  notes: string | null;
+}
+
+/** WOD en listados (`GET /wods`). */
+export interface WodSummary extends WorkoutPrescriptionFields {
+  id: string;
+  slug: string;
+  name: string;
+  isBenchmark: boolean;
+  /** `true` si es un WOD privado del atleta autenticado. */
+  isPersonal: boolean;
+  exerciseCount: number;
+}
+
+/** Detalle de un WOD (`GET /wods/:slug`). */
+export interface WodDetail extends WodSummary {
+  description: string | null;
+  source: string | null;
+  exercises: WodExercise[];
+}
+
+export interface WodFilters {
+  search?: string;
+  workoutType?: WorkoutType;
+  benchmark?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+// --- Entrenamientos ------------------------------------------------------------------------
+
+/** Serie realizada de un ejercicio. */
+export interface WorkoutSetResult {
+  id: string;
+  setNumber: number;
+  reps: number | null;
+  loadValue: number | null;
+  loadUnit: LoadUnit | null;
+  loadKg: number | null;
+  distanceValue: number | null;
+  distanceUnit: DistanceUnit | null;
+  distanceMeters: number | null;
+  durationSeconds: number | null;
+}
+
+/** Ejercicio de un entrenamiento, con su prescripción y resultados. */
+export interface WorkoutExercise {
+  id: string;
+  position: number;
+  movement: MovementRef & { recordTypes: RecordType[] };
+  targetSets: number | null;
+  targetReps: number | null;
+  targetLoadValue: number | null;
+  targetLoadUnit: LoadUnit | null;
+  targetDistanceValue: number | null;
+  targetDistanceUnit: DistanceUnit | null;
+  targetDurationSeconds: number | null;
+  restSeconds: number | null;
+  notes: string | null;
+  results: WorkoutSetResult[];
+  /** Volumen del ejercicio en kg (Σ reps × carga). */
+  volumeKg: number;
+}
+
+/** Marca personal derivada de un entrenamiento, con la mejor marca previa de su serie. */
+export interface DerivedPersonalRecord {
+  record: PersonalRecord;
+  /** Mejor marca anterior de la serie en unidad canónica; `null` si fue la primera. */
+  previousBest: number | null;
+  /** Cambio respecto a `previousBest`; `null` si fue la primera. */
+  change: Change | null;
+}
+
+/** Entrenamiento en listados e historial (`GET /workouts`). */
+export interface WorkoutListItem {
+  id: string;
+  name: string;
+  workoutType: WorkoutType;
+  status: WorkoutStatus;
+  /** `YYYY-MM-DD` al completarse; `null` si aún no se completó. */
+  performedOn: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  wod: { slug: string; name: string } | null;
+  /** Nombres de los movimientos en orden. */
+  movements: string[];
+  /** Resultado principal ya formateado (score global o resumen de series); `null` si no hay. */
+  headline: string | null;
+  personalRecordCount: number;
+}
+
+/** Detalle de un entrenamiento (`GET /workouts/:id` y respuesta de `complete`). */
+export interface WorkoutDetail extends WorkoutPrescriptionFields {
+  id: string;
+  name: string;
+  description: string | null;
+  notes: string | null;
+  status: WorkoutStatus;
+  performedOn: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  wod: { slug: string; name: string } | null;
+  exercises: WorkoutExercise[];
+  /** Score global; `null` si no se registró o el tipo se mide por series. */
+  score: WorkoutScore | null;
+  headline: string | null;
+  volumeKg: number;
+  personalRecords: DerivedPersonalRecord[];
+}
+
+export interface WorkoutFilters {
+  /** `YYYY-MM-DD` inclusive, sobre la fecha de realización. */
+  from?: string;
+  to?: string;
+  /** Slug de movimiento contenido en el entrenamiento. */
+  movement?: string;
+  workoutType?: WorkoutType;
+  status?: WorkoutStatus;
+  page?: number;
+  limit?: number;
+}
+
+/** `GET /workouts/stats`: estadísticas básicas para dashboard. */
+export interface WorkoutStatsResponse {
+  totalCompleted: number;
+  last7Days: number;
+  last30Days: number;
+  lastWorkout: WorkoutListItem | null;
+  personalRecordsFromWorkoutsLast30Days: number;
+  /** Últimas marcas derivadas de entrenamientos (máximo 5). */
+  recentPersonalRecords: PersonalRecord[];
+  volumeByMovementLast30Days: { movement: MovementRef; volumeKg: number }[];
 }

@@ -47,6 +47,8 @@ export const EQUIPMENT = [
   'STEPMILL_MACHINE',
   'SKIERG_MACHINE',
   'UPPER_BODY_ERGOMETER',
+  /** Añadido por GarFit para movimientos curados (la fuente no incluye remo ergómetro). */
+  'ROWING_MACHINE',
 ] as const;
 export type Equipment = (typeof EQUIPMENT)[number];
 
@@ -131,6 +133,7 @@ export const EQUIPMENT_LABELS: Record<Equipment, string> = {
   STEPMILL_MACHINE: 'Escaladora',
   SKIERG_MACHINE: 'SkiErg',
   UPPER_BODY_ERGOMETER: 'Ergómetro de brazos',
+  ROWING_MACHINE: 'Remo ergómetro',
 };
 
 export const MUSCLE_GROUP_LABELS: Record<MuscleGroup, string> = {

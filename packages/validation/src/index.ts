@@ -8,6 +8,15 @@
  * @packageDocumentation
  */
 import {
+  DISTANCE_UNITS,
+  LOAD_UNITS,
+  UUID_PATTERN,
+  WORKOUT_LIMITS,
+  WORKOUT_STATUSES,
+  WORKOUT_TYPES,
+  normalizeSet,
+  requiresDistanceQualifier,
+  validatePrescription,
   DISPLAY_NAME_MAX_LENGTH,
   EXPERIENCE_LEVELS,
   NAME_MAX_LENGTH,
@@ -90,11 +99,7 @@ export type LoginInput = z.infer<typeof loginSchema>;
  */
 export const athleteProfileSchema = z
   .object({
-    displayName: z
-      .string()
-      .trim()
-      .min(1, 'Escribe un nombre visible')
-      .max(DISPLAY_NAME_MAX_LENGTH),
+    displayName: z.string().trim().min(1, 'Escribe un nombre visible').max(DISPLAY_NAME_MAX_LENGTH),
     experienceLevel: z.enum(EXPERIENCE_LEVELS),
     primaryGoal: z.enum(PRIMARY_GOALS),
     preferredUnits: z.enum(UNIT_SYSTEMS).default('METRIC'),
@@ -159,19 +164,49 @@ const recordValueFields = {
     `La fecha no puede ser anterior a ${RECORD_MIN_DATE}`,
   ),
   notes: z.string().trim().max(RECORD_NOTES_MAX_LENGTH).nullable(),
+  /** Calificador de TIME: distancia cronometrada. */
+  distanceValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable(),
+  distanceUnit: z.enum(DISTANCE_UNITS).nullable(),
 };
 
-/** Comprueba unidad, límites canónicos y repeticiones para un tipo de marca conocido. */
+/** Comprueba unidad, límites canónicos, repeticiones y calificador para un tipo de marca. */
 function checkRecordValue(
   input: {
     recordType: (typeof RECORD_TYPES)[number];
     value?: number;
     unit?: (typeof RECORD_UNITS)[number];
     repetitions?: number | null;
+    distanceValue?: number | null;
+    distanceUnit?: (typeof DISTANCE_UNITS)[number] | null;
   },
   ctx: z.RefinementCtx,
 ): void {
-  const { recordType, value, unit, repetitions } = input;
+  const { recordType, value, unit, repetitions, distanceValue, distanceUnit } = input;
+  const hasDistance = distanceValue != null || distanceUnit != null;
+  if (requiresDistanceQualifier(recordType)) {
+    if (distanceValue == null || distanceUnit == null) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['distanceValue'],
+        message: 'Indica la distancia sobre la que se midió el tiempo',
+      });
+    } else {
+      const meters = toCanonical(distanceValue, distanceUnit);
+      if (meters < RECORD_LIMITS.DISTANCE.min || meters > RECORD_LIMITS.DISTANCE.max) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['distanceValue'],
+          message: 'Distancia fuera de rango',
+        });
+      }
+    }
+  } else if (hasDistance) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['distanceValue'],
+      message: 'La distancia sólo califica marcas de tiempo',
+    });
+  }
   if (unit !== undefined && !isUnitAllowed(recordType, unit)) {
     ctx.addIssue({ code: 'custom', path: ['unit'], message: 'Unidad no válida para esta marca' });
     return;
@@ -200,6 +235,8 @@ export const createRecordSchema = z
     ...recordValueFields,
     repetitions: recordValueFields.repetitions.default(null),
     notes: recordValueFields.notes.default(null),
+    distanceValue: recordValueFields.distanceValue.default(null),
+    distanceUnit: recordValueFields.distanceUnit.default(null),
   })
   .superRefine((input, ctx) => {
     checkRecordValue(input, ctx);
@@ -225,18 +262,311 @@ export const updateRecordSchema = z
     repetitions: recordValueFields.repetitions.optional(),
     performedAt: recordValueFields.performedAt.optional(),
     notes: recordValueFields.notes.optional(),
+    distanceValue: recordValueFields.distanceValue.optional(),
+    distanceUnit: recordValueFields.distanceUnit.optional(),
   })
   .refine((input) => Object.keys(input).length > 0, 'No hay cambios que guardar')
   .refine(
     (input) => (input.value === undefined) === (input.unit === undefined),
     'El valor y la unidad se envían juntos',
+  )
+  .refine(
+    (input) => (input.distanceValue === undefined) === (input.distanceUnit === undefined),
+    'La distancia y su unidad se envían juntas',
   );
 export type UpdateRecordInput = z.input<typeof updateRecordSchema>;
 
-/** Valida un PATCH conociendo el tipo de la marca existente. */
-export function updateRecordSchemaFor(recordType: (typeof RECORD_TYPES)[number]) {
-  return updateRecordSchema.superRefine((input, ctx) => checkRecordValue({ recordType, ...input }, ctx));
+/**
+ * Valida un PATCH conociendo la marca existente. Las reglas se aplican sobre el resultado final
+ * (campos nuevos + los que no cambian), así un PATCH de sólo notas en un TIME no exige distancia.
+ */
+export function updateRecordSchemaFor(existing: {
+  recordType: (typeof RECORD_TYPES)[number];
+  distanceValue: number | null;
+  distanceUnit: (typeof DISTANCE_UNITS)[number] | null;
+}) {
+  return updateRecordSchema.superRefine((input, ctx) =>
+    checkRecordValue(
+      {
+        recordType: existing.recordType,
+        ...input,
+        distanceValue:
+          input.distanceValue === undefined ? existing.distanceValue : input.distanceValue,
+        distanceUnit: input.distanceUnit === undefined ? existing.distanceUnit : input.distanceUnit,
+      },
+      ctx,
+    ),
+  );
 }
+
+// --- Entrenamientos y WODs -----------------------------------------------------------------
+
+function positiveDecimal(maxDecimals: number) {
+  return z
+    .number({ error: 'Escribe un número' })
+    .positive('Debe ser mayor que 0')
+    .refine((value) => decimals(value, maxDecimals), `Usa como máximo ${maxDecimals} decimales`);
+}
+
+const optionalInt = (min: number, max: number) =>
+  z.number().int('Debe ser un número entero').min(min).max(max).nullable().default(null);
+
+const slugSchema = z.string().max(SLUG_MAX_LENGTH).regex(SLUG_PATTERN, 'Identificador inválido');
+
+/** Valor + unidad que deben enviarse juntos. */
+function pairIssue(
+  value: number | null | undefined,
+  unit: string | null | undefined,
+  path: string,
+  ctx: z.RefinementCtx,
+) {
+  if ((value == null) !== (unit == null)) {
+    ctx.addIssue({ code: 'custom', path: [path], message: 'El valor y su unidad van juntos' });
+  }
+}
+
+const prescriptionFields = {
+  workoutType: z.enum(WORKOUT_TYPES),
+  durationSeconds: optionalInt(
+    WORKOUT_LIMITS.durationSeconds.min,
+    WORKOUT_LIMITS.durationSeconds.max,
+  ),
+  rounds: optionalInt(1, WORKOUT_LIMITS.rounds.max),
+  intervalSeconds: optionalInt(
+    WORKOUT_LIMITS.intervalSeconds.min,
+    WORKOUT_LIMITS.intervalSeconds.max,
+  ),
+  repScheme: z
+    .array(z.number().int().min(1).max(WORKOUT_LIMITS.repsPerSet.max))
+    .max(WORKOUT_LIMITS.repSchemeMaxLength)
+    .default([]),
+};
+
+function checkPrescription(
+  input: {
+    workoutType: (typeof WORKOUT_TYPES)[number];
+    durationSeconds: number | null;
+    rounds: number | null;
+    intervalSeconds: number | null;
+    repScheme: number[];
+  },
+  ctx: z.RefinementCtx,
+) {
+  for (const message of validatePrescription(input.workoutType, input)) {
+    ctx.addIssue({ code: 'custom', path: ['workoutType'], message });
+  }
+}
+
+/** Movimiento prescrito en un entrenamiento. El orden del array es el orden del entrenamiento. */
+export const workoutExerciseInputSchema = z
+  .object({
+    movementSlug: slugSchema,
+    targetSets: optionalInt(1, WORKOUT_LIMITS.maxSetsPerExercise),
+    targetReps: optionalInt(1, WORKOUT_LIMITS.repsPerSet.max),
+    targetLoadValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable().default(null),
+    targetLoadUnit: z.enum(LOAD_UNITS).nullable().default(null),
+    targetDistanceValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable().default(null),
+    targetDistanceUnit: z.enum(DISTANCE_UNITS).nullable().default(null),
+    targetDurationSeconds: optionalInt(
+      WORKOUT_LIMITS.durationSeconds.min,
+      WORKOUT_LIMITS.durationSeconds.max,
+    ),
+    restSeconds: optionalInt(WORKOUT_LIMITS.restSeconds.min, WORKOUT_LIMITS.restSeconds.max),
+    notes: z.string().trim().max(WORKOUT_LIMITS.notesMaxLength).nullable().default(null),
+  })
+  .superRefine((input, ctx) => {
+    pairIssue(input.targetLoadValue, input.targetLoadUnit, 'targetLoadValue', ctx);
+    pairIssue(input.targetDistanceValue, input.targetDistanceUnit, 'targetDistanceValue', ctx);
+  });
+export type WorkoutExerciseInput = z.input<typeof workoutExerciseInputSchema>;
+
+const workoutBaseFields = {
+  name: z.string().trim().min(1, 'Escribe un nombre').max(WORKOUT_LIMITS.nameMaxLength),
+  description: z.string().trim().max(WORKOUT_LIMITS.descriptionMaxLength).nullable().default(null),
+  notes: z.string().trim().max(WORKOUT_LIMITS.notesMaxLength).nullable().default(null),
+  ...prescriptionFields,
+  exercises: z
+    .array(workoutExerciseInputSchema)
+    .min(1, 'Agrega al menos un movimiento')
+    .max(WORKOUT_LIMITS.maxExercises),
+};
+
+/**
+ * `POST /workouts`: libre (`name`, `workoutType`, `exercises`…) o desde un WOD (`wodSlug`, que
+ * copia su prescripción; `name` opcional para renombrarlo). No se admiten ambos.
+ */
+export const createWorkoutSchema = z.union([
+  z.object({ wodSlug: slugSchema, name: workoutBaseFields.name.optional() }).strict(),
+  z.object(workoutBaseFields).strict().superRefine(checkPrescription),
+]);
+export type CreateWorkoutInput = z.input<typeof createWorkoutSchema>;
+
+/** `PATCH /workouts/:id` (sólo DRAFT). Reemplaza los campos enviados; `exercises` reemplaza la lista. */
+export const updateWorkoutSchema = z
+  .object({
+    name: workoutBaseFields.name.optional(),
+    description: z.string().trim().max(WORKOUT_LIMITS.descriptionMaxLength).nullable().optional(),
+    notes: z.string().trim().max(WORKOUT_LIMITS.notesMaxLength).nullable().optional(),
+    exercises: workoutBaseFields.exercises.optional(),
+  })
+  .strict()
+  .refine((input) => Object.values(input).some((value) => value !== undefined), 'No hay cambios');
+export type UpdateWorkoutInput = z.input<typeof updateWorkoutSchema>;
+
+export const workoutSetInputSchema = z
+  .object({
+    setNumber: z.number().int().min(1).max(WORKOUT_LIMITS.maxSetsPerExercise),
+    reps: optionalInt(WORKOUT_LIMITS.repsPerSet.min, WORKOUT_LIMITS.repsPerSet.max),
+    loadValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable().default(null),
+    loadUnit: z.enum(LOAD_UNITS).nullable().default(null),
+    distanceValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable().default(null),
+    distanceUnit: z.enum(DISTANCE_UNITS).nullable().default(null),
+    durationSeconds: optionalInt(
+      WORKOUT_LIMITS.durationSeconds.min,
+      WORKOUT_LIMITS.durationSeconds.max,
+    ),
+  })
+  .strict()
+  .superRefine((input, ctx) => {
+    for (const message of normalizeSet(input).errors) {
+      ctx.addIssue({ code: 'custom', path: ['setNumber'], message });
+    }
+  });
+export type WorkoutSetInput = z.input<typeof workoutSetInputSchema>;
+
+export const workoutScoreInputSchema = z
+  .object({
+    timeSeconds: optionalInt(
+      WORKOUT_LIMITS.durationSeconds.min,
+      WORKOUT_LIMITS.durationSeconds.max,
+    ),
+    repsAtTimeCap: optionalInt(0, 100_000),
+    rounds: optionalInt(WORKOUT_LIMITS.rounds.min, WORKOUT_LIMITS.rounds.max),
+    extraReps: optionalInt(WORKOUT_LIMITS.repsPerSet.min, WORKOUT_LIMITS.repsPerSet.max),
+    completed: z.boolean().nullable().default(null),
+  })
+  .strict();
+export type WorkoutScoreInput = z.input<typeof workoutScoreInputSchema>;
+
+/**
+ * `PUT /workouts/:id/results`: reemplaza todos los resultados y el score. Cada ejercicio se
+ * identifica por su id y sus series por `setNumber` (únicos). Límite total de series.
+ */
+export const workoutResultsSchema = z
+  .object({
+    exercises: z
+      .array(
+        z
+          .object({
+            exerciseId: z.string().regex(UUID_PATTERN, 'Identificador inválido'),
+            sets: z.array(workoutSetInputSchema).max(WORKOUT_LIMITS.maxSetsPerExercise),
+          })
+          .strict(),
+      )
+      .max(WORKOUT_LIMITS.maxExercises),
+    score: workoutScoreInputSchema.nullable().default(null),
+  })
+  .strict()
+  .superRefine((input, ctx) => {
+    const exerciseIds = input.exercises.map((exercise) => exercise.exerciseId);
+    if (new Set(exerciseIds).size !== exerciseIds.length) {
+      ctx.addIssue({ code: 'custom', path: ['exercises'], message: 'Ejercicio repetido' });
+    }
+    input.exercises.forEach((exercise, index) => {
+      const numbers = exercise.sets.map((set) => set.setNumber);
+      if (new Set(numbers).size !== numbers.length) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['exercises', index, 'sets'],
+          message: 'Serie repetida',
+        });
+      }
+    });
+    const totalSets = input.exercises.reduce((total, exercise) => total + exercise.sets.length, 0);
+    if (totalSets > WORKOUT_LIMITS.maxTotalSets) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['exercises'],
+        message: `Como máximo ${WORKOUT_LIMITS.maxTotalSets} series por entrenamiento`,
+      });
+    }
+  });
+export type WorkoutResultsInput = z.input<typeof workoutResultsSchema>;
+
+/**
+ * `POST /workouts/:id/complete`. Puede incluir los resultados para guardarlos y completar en
+ * una sola operación. `performedOn` por defecto es hoy.
+ */
+export const completeWorkoutSchema = z
+  .object({
+    performedOn: isoDate.optional(),
+    results: workoutResultsSchema.optional(),
+  })
+  .strict();
+export type CompleteWorkoutInput = z.input<typeof completeWorkoutSchema>;
+
+/** Query de `GET /workouts`. */
+export const workoutFiltersSchema = z
+  .object({
+    from: z.string().refine(isValidIsoDate, 'Fecha inválida').optional(),
+    to: z.string().refine(isValidIsoDate, 'Fecha inválida').optional(),
+    movement: slugSchema.optional(),
+    workoutType: z.enum(WORKOUT_TYPES).optional(),
+    status: z.enum(WORKOUT_STATUSES).optional(),
+    page: z.coerce.number().int().min(1).max(PAGINATION.maxPage).default(1),
+    limit: z.coerce.number().int().min(1).max(PAGINATION.maxLimit).default(PAGINATION.defaultLimit),
+  })
+  .refine((input) => !input.from || !input.to || input.from <= input.to, {
+    message: '`from` debe ser anterior o igual a `to`',
+    path: ['from'],
+  });
+export type WorkoutFiltersInput = z.input<typeof workoutFiltersSchema>;
+
+/** Movimiento de un WOD personal. */
+export const wodExerciseInputSchema = z
+  .object({
+    movementSlug: slugSchema,
+    reps: optionalInt(1, WORKOUT_LIMITS.repsPerSet.max),
+    loadValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable().default(null),
+    loadUnit: z.enum(LOAD_UNITS).nullable().default(null),
+    distanceValue: positiveDecimal(RECORD_VALUE_MAX_DECIMALS).nullable().default(null),
+    distanceUnit: z.enum(DISTANCE_UNITS).nullable().default(null),
+    durationSeconds: optionalInt(
+      WORKOUT_LIMITS.durationSeconds.min,
+      WORKOUT_LIMITS.durationSeconds.max,
+    ),
+    notes: z.string().trim().max(WORKOUT_LIMITS.notesMaxLength).nullable().default(null),
+  })
+  .strict()
+  .superRefine((input, ctx) => {
+    pairIssue(input.loadValue, input.loadUnit, 'loadValue', ctx);
+    pairIssue(input.distanceValue, input.distanceUnit, 'distanceValue', ctx);
+  });
+
+/** `POST /wods`: WOD personal y privado del atleta. */
+export const createWodSchema = z
+  .object({
+    name: workoutBaseFields.name,
+    description: workoutBaseFields.description,
+    ...prescriptionFields,
+    exercises: z.array(wodExerciseInputSchema).min(1).max(WORKOUT_LIMITS.maxExercises),
+  })
+  .strict()
+  .superRefine(checkPrescription);
+export type CreateWodInput = z.input<typeof createWodSchema>;
+
+/** Query de `GET /wods`. `benchmark` llega como "true"/"false" en la query string. */
+export const wodFiltersSchema = z.object({
+  search: z.string().trim().max(SEARCH_MAX_LENGTH).optional(),
+  workoutType: z.enum(WORKOUT_TYPES).optional(),
+  benchmark: z
+    .enum(['true', 'false'])
+    .transform((value) => value === 'true')
+    .optional(),
+  page: z.coerce.number().int().min(1).max(PAGINATION.maxPage).default(1),
+  limit: z.coerce.number().int().min(1).max(PAGINATION.maxLimit).default(PAGINATION.defaultLimit),
+});
+export type WodFiltersInput = z.input<typeof wodFiltersSchema>;
 
 // --- Filtros -------------------------------------------------------------------------------
 
@@ -291,4 +621,19 @@ export const RECORD_UNIT_LABELS: Record<(typeof RECORD_UNITS)[number], string> =
   KILOMETER: 'km',
   MILE: 'mi',
   SECOND: 'segundos',
+};
+
+export const WORKOUT_TYPE_LABELS: Record<(typeof WORKOUT_TYPES)[number], string> = {
+  STRENGTH: 'Fuerza',
+  FOR_TIME: 'Por tiempo',
+  AMRAP: 'AMRAP',
+  EMOM: 'EMOM',
+  CARDIO: 'Cardio',
+  CUSTOM: 'Personalizado',
+};
+
+export const WORKOUT_STATUS_LABELS: Record<(typeof WORKOUT_STATUSES)[number], string> = {
+  DRAFT: 'Borrador',
+  IN_PROGRESS: 'En curso',
+  COMPLETED: 'Completado',
 };

@@ -49,7 +49,7 @@ export const PROFILE_LIMITS = {
 export const RECORD_TYPES = ['WEIGHT', 'REPS', 'DISTANCE', 'DURATION', 'TIME'] as const;
 export type RecordType = (typeof RECORD_TYPES)[number];
 
-/** Origen de la marca. WORKOUT se usará cuando los resultados de entrenamiento generen PRs. */
+/** Origen de la marca: registrada a mano o derivada al completar un entrenamiento. */
 export const RECORD_SOURCES = ['MANUAL', 'WORKOUT'] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 
@@ -89,6 +89,62 @@ export const RECORD_NOTES_MAX_LENGTH = 500;
 export const RECORD_VALUE_MAX_DECIMALS = 3;
 /** Fecha mínima aceptada para una marca (YYYY-MM-DD). */
 export const RECORD_MIN_DATE = '1900-01-01';
+
+/** Unidades de carga y de distancia (también se usan en entrenamientos). */
+export const LOAD_UNITS = ['KILOGRAM', 'POUND'] as const;
+export type LoadUnit = (typeof LOAD_UNITS)[number];
+export const DISTANCE_UNITS = ['METER', 'KILOMETER', 'MILE'] as const;
+export type DistanceUnit = (typeof DISTANCE_UNITS)[number];
+
+/**
+ * Tipos de marca que exigen un calificador de distancia para ser comparables: un tiempo sólo se
+ * compara con otro tiempo sobre la misma distancia (5 km con 5 km, nunca con 10 km). Es una regla
+ * por tipo de marca, no por movimiento: sirve igual para correr, remar, nadar o pedalear.
+ */
+export const DISTANCE_QUALIFIED_RECORD_TYPES: readonly RecordType[] = ['TIME'];
+
+// --- Entrenamientos ----------------------------------------------------------------------
+
+/**
+ * Modalidades de entrenamiento. Determinan qué resultado global (score) se registra:
+ * - STRENGTH: series de fuerza; resultado por serie (repeticiones × carga).
+ * - FOR_TIME: completar el trabajo lo antes posible; score = tiempo (o reps al tiempo límite).
+ * - AMRAP: tantas rondas como sea posible en un tiempo fijo; score = rondas + reps.
+ * - EMOM: trabajo al inicio de cada intervalo; score = si se completó.
+ * - CARDIO: esfuerzo de distancia y/o duración; resultado por serie (distancia, tiempo).
+ * - CUSTOM: cualquier otra estructura; sin score obligatorio.
+ * "Rondas por calidad" no necesita tipo propio: es CUSTOM con `rounds`.
+ */
+export const WORKOUT_TYPES = ['STRENGTH', 'FOR_TIME', 'AMRAP', 'EMOM', 'CARDIO', 'CUSTOM'] as const;
+export type WorkoutType = (typeof WORKOUT_TYPES)[number];
+
+/**
+ * - DRAFT: se edita libremente (estructura y resultados).
+ * - IN_PROGRESS: iniciado; la estructura queda fija, los resultados siguen editables.
+ * - COMPLETED: cerrado; inmutable (ver ADR 0008). Genera marcas personales.
+ */
+export const WORKOUT_STATUSES = ['DRAFT', 'IN_PROGRESS', 'COMPLETED'] as const;
+export type WorkoutStatus = (typeof WORKOUT_STATUSES)[number];
+
+export const WORKOUT_LIMITS = {
+  nameMaxLength: 80,
+  descriptionMaxLength: 1000,
+  notesMaxLength: 1000,
+  maxExercises: 30,
+  maxSetsPerExercise: 50,
+  maxTotalSets: 300,
+  repsPerSet: { min: 0, max: 1000 },
+  durationSeconds: { min: 1, max: 86_400 },
+  rounds: { min: 0, max: 1000 },
+  intervalSeconds: { min: 10, max: 3600 },
+  restSeconds: { min: 0, max: 3600 },
+  repSchemeMaxLength: 20,
+  /** Carga por serie en kg (mismo máximo que las marcas). */
+  loadKg: { min: 0.1, max: 1000 },
+  distanceMeters: { min: 1, max: 1_000_000 },
+  /** Ventana de consulta de estadísticas y listados. */
+  statsWindowsDays: [7, 30],
+} as const;
 
 // --- Catálogo y listados -----------------------------------------------------------------
 

@@ -8,3 +8,5 @@
 export * from './taxonomy.js';
 export * from './record-types.js';
 export * from './source-transform.js';
+export * from './curated.js';
+export * from './benchmark-wods.js';

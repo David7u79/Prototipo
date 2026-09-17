@@ -11,6 +11,7 @@ Los ADR registran decisiones arquitectónicas aceptadas.
 | [0005](0005-mobile-release-storage.md) | Releases por CLI y almacenamiento abstraído |
 | [0006](0006-documentation-as-code.md) | Documentación como código |
 | [0007](0007-personal-record-model.md) | Modelo de marcas personales, unidades y catálogo |
+| [0008](0008-workout-result-model.md) | Entrenamientos, resultados, score y marcas derivadas |
 
 ## Plantilla
 

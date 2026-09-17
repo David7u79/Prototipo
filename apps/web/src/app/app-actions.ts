@@ -100,7 +100,12 @@ export async function createRecord(_state: RecordState, formData: FormData): Pro
 
 export async function updateRecord(_state: RecordState, formData: FormData): Promise<RecordState> {
   const recordType = formData.get('recordType') as RecordType;
-  const parsed = updateRecordSchemaFor(recordType).safeParse({
+  // ponytail: la edición web aún no expone la distancia; la fase 3 la añade en el formulario.
+  const parsed = updateRecordSchemaFor({
+    recordType,
+    distanceValue: null,
+    distanceUnit: null,
+  }).safeParse({
     ...recordFields(formData),
     movementSlug: undefined,
     recordType: undefined,

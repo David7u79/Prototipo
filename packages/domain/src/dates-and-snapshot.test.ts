@@ -52,6 +52,7 @@ describe('buildProgressSnapshot', () => {
       unit: 'KILOGRAM',
       normalizedValue: value,
       repetitions: 1,
+      distanceMeters: null,
       performedAt,
       createdAt: `${performedAt}T00:00:00.000Z`,
     }));
@@ -87,13 +88,18 @@ describe('buildProgressSnapshot', () => {
       ageYears: 25,
       trainingYears: 6,
     });
-    expect(snapshot.totals).toEqual({ movementsWithRecords: 1, records: 2 });
+    expect(snapshot.totals).toEqual({
+      movementsWithRecords: 1,
+      records: 2,
+      completedWorkouts: 0,
+    });
     expect(snapshot.records).toEqual([
       {
         movementSlug: 'barbell-full-squat',
         movementName: 'Barbell full squat',
         recordType: 'WEIGHT',
         repetitions: 1,
+        distanceMeters: null,
         canonicalUnit: 'KILOGRAM',
         lowerIsBetter: false,
         entries: 2,

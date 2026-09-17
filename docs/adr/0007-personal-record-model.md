@@ -1,6 +1,7 @@
 # 0007 Modelo de marcas personales, unidades y catálogo de movimientos
 
-Estado: Aceptado (fase 2)
+Estado: Aceptado (fase 2) · Actualizado en fase 3 por [ADR 0008](0008-workout-result-model.md):
+la comparabilidad de `TIME` incluye la distancia.
 
 ## Contexto
 
@@ -21,7 +22,8 @@ real, no inventarse.
    `DISTANCE`, `DURATION` (mayor es mejor) y `TIME` (menor es mejor). `DURATION` y `TIME` se
    separan porque una plancha y una carrera cronometrada mejoran en sentidos opuestos.
 3. **Series comparables.** Sólo se comparan marcas del mismo movimiento y tipo; en `WEIGHT`,
-   además, con las mismas repeticiones (`repetitions`: 1 = 1RM, 5 = 5RM).
+   además, con las mismas repeticiones (`repetitions`: 1 = 1RM, 5 = 5RM). *(Fase 3)* En `TIME`,
+   además, sobre la misma distancia (`distanceMeters`: un 5 km no se compara con un 10 km).
 4. **Valor introducido + valor canónico.** Se guardan `value` y `unit` tal como los escribió el
    atleta y `normalizedValue` en unidad canónica (kg, repeticiones, metros, segundos), calculado
    en el servidor con factores exactos (1 lb = 0.45359237 kg). Se compara siempre con
@@ -51,7 +53,8 @@ real, no inventarse.
 
 - Añadir un tipo de marca exige tocar el enum en `@garfit/domain`, Prisma y sus unidades; un
   test de la API falla si los enums divergen.
-- Las marcas `TIME` de movimientos genéricos (p. ej. "Run") no registran la distancia: el atleta
-  debe ser consistente; la fase 3 las contextualizará con entrenamientos de referencia.
+- ~~Las marcas `TIME` de movimientos genéricos no registran la distancia.~~ Resuelto en fase 3:
+  `TIME` exige un calificador de distancia y forma series por distancia. Los `TIME` sin distancia
+  previos a la fase 3 quedan en una serie `TIME` propia.
 - Los nombres del catálogo están en inglés (la fuente no los traduce) y la dificultad no está
   disponible hasta que se clasifique de forma documentada.

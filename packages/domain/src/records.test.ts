@@ -25,6 +25,7 @@ function entry(
     createdAt: `${performedAt}T10:00:00.000Z`,
     performedAt,
     ...overrides,
+    distanceMeters: overrides.distanceMeters ?? null,
   };
 }
 
