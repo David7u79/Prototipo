@@ -5,7 +5,12 @@ import type { MovementSummary, WorkoutDetail } from '@garfit/types';
 import { WORKOUT_TYPE_LABELS } from '@garfit/validation';
 import { useActionState, useEffect, useState } from 'react';
 import { createWorkout, updateWorkout, type WorkoutState } from '@/app/workout-actions';
-import { builderExercise, mapWorkoutForBuilder, type BuilderExercise } from '@/lib/workout-builder';
+import {
+  builderExercise,
+  mapWorkoutForBuilder,
+  prescriptionIssue,
+  type BuilderExercise,
+} from '@/lib/workout-builder';
 
 const EMPTY: WorkoutState = { errors: {}, message: '' };
 type Props = { workout?: WorkoutDetail };
@@ -21,6 +26,7 @@ export function WorkoutBuilder({ workout }: Props) {
   const [updateState, updateAction, updating] = useActionState(updateWorkout, EMPTY);
   const action = workout ? updateAction : createAction;
   const state = workout ? updateState : createState;
+  const issue = prescriptionIssue(exercises);
 
   useEffect(() => {
     const value = query.trim();
@@ -107,10 +113,11 @@ export function WorkoutBuilder({ workout }: Props) {
           />
         ))}
       </section>
+      {issue && <p role="alert">{issue}</p>}
       {state.message && <p role="alert">{state.message}</p>}
       <button
-        className="rounded-lg bg-brand px-4 py-2 font-semibold text-white"
-        disabled={creating || updating}
+        className="rounded-lg bg-brand px-4 py-2 font-semibold text-white disabled:opacity-60"
+        disabled={creating || updating || issue !== null}
       >
         Guardar entrenamiento
       </button>
@@ -277,7 +284,10 @@ function UnitInput({
   return (
     <label>
       {label}
-      <select onChange={(event) => onChange(event.target.value)} value={value ?? values[0]}>
+      {/* Sin unidad elegida se muestra vacío: mostrar la primera unidad haría creer que ya
+          está seleccionada y el guardado fallaba sin explicar por qué. */}
+      <select onChange={(event) => onChange(event.target.value)} value={value ?? ''}>
+        <option value="">Selecciona unidad</option>
         {values.map((unit) => (
           <option key={unit}>{unit}</option>
         ))}

@@ -39,3 +39,26 @@ export function mapWorkoutForBuilder(workout: WorkoutDetail): BuilderExercise[] 
     notes: exercise.notes,
   }));
 }
+
+/**
+ * Comprueba la prescripción antes de enviarla: una carga o una distancia sin unidad es
+ * ambigua y la API la rechaza, así que el formulario lo dice antes de intentar guardar.
+ * Devuelve `null` cuando todo es coherente.
+ */
+export function prescriptionIssue(exercises: readonly BuilderExercise[]): string | null {
+  for (const exercise of exercises) {
+    if (exercise.targetLoadValue !== null && exercise.targetLoadUnit === null) {
+      return `Elige la unidad de carga de ${exercise.name} (kg o lb).`;
+    }
+    if (exercise.targetLoadValue === null && exercise.targetLoadUnit !== null) {
+      return `Indica la carga de ${exercise.name} o quita su unidad.`;
+    }
+    if (exercise.targetDistanceValue !== null && exercise.targetDistanceUnit === null) {
+      return `Elige la unidad de distancia de ${exercise.name}.`;
+    }
+    if (exercise.targetDistanceValue === null && exercise.targetDistanceUnit !== null) {
+      return `Indica la distancia de ${exercise.name} o quita su unidad.`;
+    }
+  }
+  return null;
+}
