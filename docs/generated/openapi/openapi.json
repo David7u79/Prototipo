@@ -416,6 +416,16 @@
               }
             }
           },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
           "401": {
             "description": "",
             "content": {
@@ -434,6 +444,484 @@
         ],
         "tags": [
           "profile"
+        ]
+      }
+    },
+    "/movements": {
+      "get": {
+        "operationId": "MovementsController_list",
+        "parameters": [
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Texto contenido en el nombre",
+            "schema": {
+              "maxLength": 80,
+              "type": "string"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MovementCategory"
+            }
+          },
+          {
+            "name": "equipment",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/Equipment"
+            }
+          },
+          {
+            "name": "muscleGroup",
+            "required": false,
+            "in": "query",
+            "description": "Coincide con músculos principales o secundarios",
+            "schema": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          {
+            "name": "difficulty",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/MovementDifficulty"
+            }
+          },
+          {
+            "name": "recordType",
+            "required": false,
+            "in": "query",
+            "description": "Movimientos que admiten este tipo de marca",
+            "schema": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 10000,
+              "default": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedMovementsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "movements"
+        ]
+      }
+    },
+    "/movements/{slug}": {
+      "get": {
+        "operationId": "MovementsController_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementDetailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "MOVEMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "movements"
+        ]
+      }
+    },
+    "/records": {
+      "get": {
+        "operationId": "RecordsController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Una fila por serie de marcas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordsOverviewResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "records"
+        ]
+      },
+      "post": {
+        "operationId": "RecordsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED, RECORD_TYPE_NOT_ALLOWED o INVALID_RECORD_VALUE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "MOVEMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/records/summary": {
+      "get": {
+        "operationId": "RecordsController_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordsSummaryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/records/{movementSlug}": {
+      "get": {
+        "operationId": "RecordsController_forMovement",
+        "parameters": [
+          {
+            "name": "movementSlug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovementRecordsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "MOVEMENT_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "records"
+        ]
+      }
+    },
+    "/records/{id}": {
+      "patch": {
+        "operationId": "RecordsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRecordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonalRecordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "VALIDATION_FAILED o INVALID_RECORD_VALUE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "RECORD_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "records"
+        ]
+      },
+      "delete": {
+        "operationId": "RecordsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Marca retirada (borrado lógico)"
+          },
+          "401": {
+            "description": "UNAUTHORIZED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "RECORD_NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "records"
         ]
       }
     },
@@ -792,6 +1280,13 @@
           "GENERAL_FITNESS"
         ]
       },
+      "UnitSystem": {
+        "type": "string",
+        "enum": [
+          "METRIC",
+          "IMPERIAL"
+        ]
+      },
       "AthleteProfileResponse": {
         "type": "object",
         "properties": {
@@ -818,6 +1313,32 @@
               }
             ]
           },
+          "preferredUnits": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitSystem"
+              }
+            ]
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
+          "heightCm": {
+            "type": "number",
+            "nullable": true
+          },
+          "weightKg": {
+            "type": "number",
+            "nullable": true,
+            "description": "kg"
+          },
+          "trainingSince": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -833,6 +1354,11 @@
           "displayName",
           "experienceLevel",
           "primaryGoal",
+          "preferredUnits",
+          "birthDate",
+          "heightCm",
+          "weightKg",
+          "trainingSince",
           "createdAt",
           "updatedAt"
         ]
@@ -858,6 +1384,38 @@
                 "$ref": "#/components/schemas/PrimaryGoal"
               }
             ]
+          },
+          "preferredUnits": {
+            "default": "METRIC",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UnitSystem"
+              }
+            ]
+          },
+          "birthDate": {
+            "type": "string",
+            "nullable": true,
+            "format": "date",
+            "example": "1998-04-21"
+          },
+          "heightCm": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 50,
+            "maximum": 272
+          },
+          "weightKg": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 20,
+            "maximum": 400,
+            "description": "Siempre en kg"
+          },
+          "trainingSince": {
+            "type": "string",
+            "nullable": true,
+            "format": "date"
           }
         },
         "required": [
@@ -865,6 +1423,849 @@
           "experienceLevel",
           "primaryGoal"
         ]
+      },
+      "MovementCategory": {
+        "type": "string",
+        "enum": [
+          "WAIST",
+          "UPPER_LEGS",
+          "LOWER_LEGS",
+          "BACK",
+          "CHEST",
+          "SHOULDERS",
+          "UPPER_ARMS",
+          "LOWER_ARMS",
+          "NECK",
+          "CARDIO"
+        ]
+      },
+      "Equipment": {
+        "type": "string",
+        "enum": [
+          "BODY_WEIGHT",
+          "ASSISTED",
+          "WEIGHTED",
+          "BARBELL",
+          "OLYMPIC_BARBELL",
+          "EZ_BARBELL",
+          "TRAP_BAR",
+          "SMITH_MACHINE",
+          "DUMBBELL",
+          "KETTLEBELL",
+          "CABLE",
+          "LEVERAGE_MACHINE",
+          "SLED_MACHINE",
+          "BAND",
+          "RESISTANCE_BAND",
+          "MEDICINE_BALL",
+          "STABILITY_BALL",
+          "BOSU_BALL",
+          "ROPE",
+          "ROLLER",
+          "WHEEL_ROLLER",
+          "HAMMER",
+          "TIRE",
+          "STATIONARY_BIKE",
+          "ELLIPTICAL_MACHINE",
+          "STEPMILL_MACHINE",
+          "SKIERG_MACHINE",
+          "UPPER_BODY_ERGOMETER"
+        ]
+      },
+      "MuscleGroup": {
+        "type": "string",
+        "enum": [
+          "ABS",
+          "OBLIQUES",
+          "CORE",
+          "HIP_FLEXORS",
+          "LOWER_BACK",
+          "UPPER_BACK",
+          "LATS",
+          "TRAPS",
+          "NECK",
+          "CHEST",
+          "SHOULDERS",
+          "SERRATUS_ANTERIOR",
+          "BICEPS",
+          "TRICEPS",
+          "FOREARMS",
+          "GLUTES",
+          "QUADRICEPS",
+          "HAMSTRINGS",
+          "ADDUCTORS",
+          "ABDUCTORS",
+          "CALVES",
+          "ANKLES_AND_FEET",
+          "CARDIOVASCULAR_SYSTEM"
+        ]
+      },
+      "MovementDifficulty": {
+        "type": "string",
+        "enum": [
+          "BEGINNER",
+          "INTERMEDIATE",
+          "ADVANCED"
+        ]
+      },
+      "RecordType": {
+        "type": "string",
+        "enum": [
+          "WEIGHT",
+          "REPS",
+          "DISTANCE",
+          "DURATION",
+          "TIME"
+        ]
+      },
+      "MovementSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "example": "barbell-full-squat"
+          },
+          "name": {
+            "type": "string",
+            "example": "Barbell full squat"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementCategory"
+              }
+            ]
+          },
+          "equipment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Equipment"
+              }
+            ]
+          },
+          "difficulty": {
+            "nullable": true,
+            "description": "Nulo si la fuente no clasifica la dificultad",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementDifficulty"
+              }
+            ]
+          },
+          "primaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "secondaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "recordTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "category",
+          "equipment",
+          "difficulty",
+          "primaryMuscles",
+          "secondaryMuscles",
+          "recordTypes"
+        ]
+      },
+      "PaginatedMovementsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "MovementDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string",
+            "example": "barbell-full-squat"
+          },
+          "name": {
+            "type": "string",
+            "example": "Barbell full squat"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementCategory"
+              }
+            ]
+          },
+          "equipment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Equipment"
+              }
+            ]
+          },
+          "difficulty": {
+            "nullable": true,
+            "description": "Nulo si la fuente no clasifica la dificultad",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementDifficulty"
+              }
+            ]
+          },
+          "primaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "secondaryMuscles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MuscleGroup"
+            }
+          },
+          "recordTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "instructions": {
+            "description": "Pasos de ejecución en español",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "source": {
+            "type": "string",
+            "nullable": true,
+            "example": "hasaneyldrm/exercises-dataset"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "category",
+          "equipment",
+          "difficulty",
+          "primaryMuscles",
+          "secondaryMuscles",
+          "recordTypes",
+          "description",
+          "instructions",
+          "source"
+        ]
+      },
+      "MovementRefResponse": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementCategory"
+              }
+            ]
+          },
+          "equipment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Equipment"
+              }
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "category",
+          "equipment"
+        ]
+      },
+      "RecordUnit": {
+        "type": "string",
+        "enum": [
+          "KILOGRAM",
+          "POUND",
+          "REPETITION",
+          "METER",
+          "KILOMETER",
+          "MILE",
+          "SECOND"
+        ]
+      },
+      "RecordSource": {
+        "type": "string",
+        "enum": [
+          "MANUAL",
+          "WORKOUT"
+        ]
+      },
+      "RecordHistoryEntryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "value": {
+            "type": "number",
+            "description": "Valor tal como se introdujo"
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordUnit"
+              }
+            ]
+          },
+          "normalizedValue": {
+            "type": "number",
+            "description": "kg, repeticiones, metros o segundos"
+          },
+          "repetitions": {
+            "type": "number",
+            "nullable": true
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordSource"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isPersonalBest": {
+            "type": "boolean",
+            "description": "Superó todas las marcas anteriores de su serie al registrarse"
+          }
+        },
+        "required": [
+          "id",
+          "recordType",
+          "value",
+          "unit",
+          "normalizedValue",
+          "repetitions",
+          "performedAt",
+          "notes",
+          "source",
+          "createdAt",
+          "updatedAt",
+          "isPersonalBest"
+        ]
+      },
+      "ChangeResponse": {
+        "type": "object",
+        "properties": {
+          "absolute": {
+            "type": "number",
+            "description": "Diferencia en unidad canónica (nuevo − anterior)"
+          },
+          "percent": {
+            "type": "number",
+            "nullable": true,
+            "description": "Null si el valor anterior es 0"
+          },
+          "improved": {
+            "type": "boolean",
+            "description": "Mejora según la dirección del tipo (en TIME menor es mejor)"
+          }
+        },
+        "required": [
+          "absolute",
+          "percent",
+          "improved"
+        ]
+      },
+      "RecordSeriesResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "WEIGHT:1"
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "repetitions": {
+            "type": "number",
+            "nullable": true
+          },
+          "lowerIsBetter": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "number"
+          },
+          "first": {
+            "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+          },
+          "current": {
+            "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+          },
+          "best": {
+            "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+          },
+          "changeFromPrevious": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          },
+          "bestImprovement": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          },
+          "totalProgress": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "recordType",
+          "repetitions",
+          "lowerIsBetter",
+          "count",
+          "first",
+          "current",
+          "best",
+          "changeFromPrevious",
+          "bestImprovement",
+          "totalProgress"
+        ]
+      },
+      "RecordsOverviewItemResponse": {
+        "type": "object",
+        "properties": {
+          "movement": {
+            "$ref": "#/components/schemas/MovementRefResponse"
+          },
+          "series": {
+            "$ref": "#/components/schemas/RecordSeriesResponse"
+          }
+        },
+        "required": [
+          "movement",
+          "series"
+        ]
+      },
+      "RecordsOverviewResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordsOverviewItemResponse"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "PersonalRecordResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "value": {
+            "type": "number",
+            "description": "Valor tal como se introdujo"
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordUnit"
+              }
+            ]
+          },
+          "normalizedValue": {
+            "type": "number",
+            "description": "kg, repeticiones, metros o segundos"
+          },
+          "repetitions": {
+            "type": "number",
+            "nullable": true
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordSource"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "movement": {
+            "$ref": "#/components/schemas/MovementRefResponse"
+          }
+        },
+        "required": [
+          "id",
+          "recordType",
+          "value",
+          "unit",
+          "normalizedValue",
+          "repetitions",
+          "performedAt",
+          "notes",
+          "source",
+          "createdAt",
+          "updatedAt",
+          "movement"
+        ]
+      },
+      "RecentImprovementResponse": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/PersonalRecordResponse"
+          },
+          "improvement": {
+            "$ref": "#/components/schemas/ChangeResponse"
+          }
+        },
+        "required": [
+          "record",
+          "improvement"
+        ]
+      },
+      "RecordsSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "movementsWithRecords": {
+            "type": "number"
+          },
+          "totalRecords": {
+            "type": "number"
+          },
+          "latestRecord": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PersonalRecordResponse"
+              }
+            ]
+          },
+          "recentImprovement": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecentImprovementResponse"
+              }
+            ]
+          },
+          "recentRecords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalRecordResponse"
+            }
+          }
+        },
+        "required": [
+          "movementsWithRecords",
+          "totalRecords",
+          "latestRecord",
+          "recentImprovement",
+          "recentRecords"
+        ]
+      },
+      "RecordSeriesWithHistoryResponse": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "example": "WEIGHT:1"
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "repetitions": {
+            "type": "number",
+            "nullable": true
+          },
+          "lowerIsBetter": {
+            "type": "boolean"
+          },
+          "count": {
+            "type": "number"
+          },
+          "first": {
+            "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+          },
+          "current": {
+            "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+          },
+          "best": {
+            "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+          },
+          "changeFromPrevious": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          },
+          "bestImprovement": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          },
+          "totalProgress": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordHistoryEntryResponse"
+            }
+          }
+        },
+        "required": [
+          "key",
+          "recordType",
+          "repetitions",
+          "lowerIsBetter",
+          "count",
+          "first",
+          "current",
+          "best",
+          "changeFromPrevious",
+          "bestImprovement",
+          "totalProgress",
+          "history"
+        ]
+      },
+      "MovementRecordsResponse": {
+        "type": "object",
+        "properties": {
+          "movement": {
+            "$ref": "#/components/schemas/MovementSummaryResponse"
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordSeriesWithHistoryResponse"
+            }
+          }
+        },
+        "required": [
+          "movement",
+          "series"
+        ]
+      },
+      "CreateRecordDto": {
+        "type": "object",
+        "properties": {
+          "movementSlug": {
+            "type": "string",
+            "maxLength": 120,
+            "example": "barbell-full-squat"
+          },
+          "recordType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordType"
+              }
+            ]
+          },
+          "value": {
+            "type": "number",
+            "example": 100,
+            "description": "Valor en `unit`, mayor que 0"
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordUnit"
+              }
+            ]
+          },
+          "repetitions": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Obligatorio en WEIGHT (1 = 1RM); null en el resto"
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-05-20"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "movementSlug",
+          "recordType",
+          "value",
+          "unit",
+          "performedAt"
+        ]
+      },
+      "UpdateRecordDto": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "number"
+          },
+          "unit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordUnit"
+              }
+            ]
+          },
+          "repetitions": {
+            "type": "number",
+            "nullable": true
+          },
+          "performedAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          }
+        }
       },
       "LatestReleaseResponse": {
         "type": "object",
