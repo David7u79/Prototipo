@@ -1,49 +1,177 @@
 # 11. Manual de operación
 
-## 11.1 Requisitos e instalación
+## 11.1 Requisitos del sistema e instalación
 
-Instale Node >=22.12, pnpm 11.20 y Docker con PostgreSQL disponible. En la raíz ejecute pnpm install, pnpm db:up y pnpm db:migrate. No versionar archivos .env. API usa DATABASE_URL, TEST_DATABASE_URL, JWT_ACCESS_SECRET, CORS_ORIGINS, GOOGLE_WEB_CLIENT_ID, GOOGLE_EXTRA_AUDIENCES, GEMINI_API_KEY y GEMINI_MODEL. Landing usa PUBLIC_WEB_APP_URL y PUBLIC_API_URL. Móvil usa EXPO_PUBLIC_API_URL y EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID; variables EXPO_PUBLIC se incluyen en el bundle y no deben contener secretos.
+Para ejecutar y operar GarFit en un entorno local de desarrollo o evaluación, el equipo anfitrión debe cumplir con los siguientes requisitos:
 
-## 11.2 Ejecución y base
+- **Node.js:** Versión `>=22.12.0` (probado satisfactoriamente sobre Node 24).
+- **pnpm:** Versión `11.20.0` (gestor de paquetes obligatorio del monorepo; configurado en `packageManager`).
+- **Docker y Docker Compose:** Para la gestión del motor de base de datos relacional PostgreSQL 17.
+- **Navegador Chromium para Playwright:** Para la ejecución del flujo de pruebas E2E y generación de evidencias visuales.
 
-Después de iniciar PostgreSQL, ejecute pnpm db:migrate para aplicar migraciones y pnpm dev para servicios del monorepo. API escucha 4000, web 3000, landing 4321 y Expo 8081; PostgreSQL escucha 5442. Swagger se habilita con SWAGGER_ENABLED=true y se sirve desde la API según setup-app.ts. Si 5442 está ocupado, identifique el proceso o cambie el mapeo de Docker y actualice DATABASE_URL y TEST_DATABASE_URL de forma consistente; no reutilice una base de producción para pruebas.
+### Instalación de dependencias
 
-## 11.3 APK y Android
+Desde la raíz del repositorio, ejecute:
 
-Con API compilable y base disponible, publique mediante:
+```sh
+pnpm install
+```
 
-    pnpm --filter @garfit/api release:publish -- --file ruta/app.apk --version 1.0.0 --version-code 1 --changelog "Cambios"
+Este comando resuelve el árbol de dependencias para todas las aplicaciones (`api`, `web`, `mobile`, `landing`) y paquetes compartidos (`domain`, `movements`, `types`, `validation`, `api-client`, `config`) respetando el bloqueo de versiones en `pnpm-lock.yaml`.
 
-Agregue --draft para no publicar. La landing sólo muestra publicadas. Para Google, cree y configure el cliente web, autorice http://localhost:3000 y defina GOOGLE_WEB_CLIENT_ID; agregue audiencias Android en GOOGLE_EXTRA_AUDIENCES cuando aplique. No se usa client secret. Google móvil requiere Development Build: ejecute pnpm --filter @garfit/mobile prebuild y después pnpm --filter @garfit/mobile android, no Expo Go.
+## 11.2 Configuración de variables de entorno
 
-## 11.4 Diagnóstico
+Copie los archivos de ejemplo en cada espacio de trabajo antes de iniciar los servicios (nunca versione archivos `.env` reales con secretos):
 
-Si Prisma no conecta, confirme contenedor, puerto y URL. Si migraciones fallan, no borre datos sin respaldo; revise la URL y el estado de PostgreSQL. Si Google aparece desactivado, confirme que el client ID se definió en API y móvil. Si el emulador no conecta, use http://10.0.2.2:4000; en dispositivo físico use IP LAN. Si una APK no aparece, compruebe que no se publicó con --draft y que su archivo permanece en el almacenamiento configurado.
+```sh
+cp apps/api/.env.example apps/api/.env
+cp apps/landing/.env.example apps/landing/.env
+cp apps/mobile/.env.example apps/mobile/.env
+```
 
-## 11.5 Procedimiento de verificación local
+| Aplicación | Variable | Descripción y valor de desarrollo típico |
+| --- | --- | --- |
+| `apps/api` | `DATABASE_URL` | Conexión a la base principal: `postgresql://postgres:postgres@localhost:5442/garfit?schema=public` |
+| `apps/api` | `TEST_DATABASE_URL` | Conexión a la base de pruebas: `postgresql://postgres:postgres@localhost:5442/garfit_test?schema=public` |
+| `apps/api` | `JWT_ACCESS_SECRET` | Secreto de firma criptográfica HMAC-SHA256 para tokens de acceso (mínimo 32 caracteres). |
+| `apps/api` | `DEMO_USER_PASSWORD` | Contraseña obligatoria para la siembra del usuario de demostración (`pnpm db:seed:demo`). |
+| `apps/api` | `CORS_ORIGINS` | Orígenes web autorizados: `http://localhost:3000,http://localhost:4321` |
+| `apps/api` | `GOOGLE_WEB_CLIENT_ID` | Identificador de cliente OAuth 2.0 Web para Google (opcional en desarrollo). |
+| `apps/api` | `GEMINI_API_KEY` | Clave secreta para la API de Google Gemini (delimitada exclusivamente al backend). |
+| `apps/landing` | `PUBLIC_WEB_APP_URL` | URL de la aplicación web del atleta: `http://localhost:3000` |
+| `apps/landing` | `PUBLIC_API_URL` | URL de la API para consultar releases: `http://localhost:4000` |
+| `apps/mobile` | `EXPO_PUBLIC_API_URL` | URL accesible desde el emulador: `http://10.0.2.2:4000` (Android) o `http://localhost:4000` (iOS). |
 
-Antes de ejecutar pruebas API, confirme que las variables apuntan a bases diferentes: DATABASE_URL identifica garfit y TEST_DATABASE_URL identifica garfit_test. Inicie la infraestructura con pnpm db:up y aplique las migraciones. Ejecute pnpm test dentro de apps/api; el proceso reinicia datos de la base de prueba. No use una URL de producción ni claves de usuario reales durante esta operación.
+## 11.3 Puesta en marcha de la infraestructura y servicios
 
-Para verificar el contrato documental desde la raíz, ejecute node scripts/docs/generate.mjs y después node scripts/docs/generate.mjs --check. El primer comando genera OpenAPI, ERD, TypeDoc, resumen de cobertura disponible e información de compilación. El segundo falla si OpenAPI o ERD versionados ya no coinciden con las fuentes. Revise los cambios antes de versionarlos; la generación no autoriza aceptar una diferencia sin entenderla.
+### 1. Inicialización de la base de datos
 
-Para trabajar sólo con la web, levante API y ejecute el script dev de apps/web. Abra la aplicación en localhost:3000, registre una cuenta de prueba y complete perfil. Para landing, ejecute su dev y abra localhost:4321; si no hay una release publicada, el resultado esperado es que no se ofrezca descarga. Para móvil, defina EXPO_PUBLIC_API_URL antes de crear el bundle: una dirección localhost no llega directamente a un teléfono físico.
+Inicie el contenedor de PostgreSQL 17 mapeado al puerto local `5442` y aplique las migraciones de Prisma:
 
-## 11.6 Protección de configuración
+```sh
+pnpm db:up
+pnpm db:migrate
+```
 
-JWT_ACCESS_SECRET debe tener longitud suficiente y ser distinto en cada entorno. GOOGLE_WEB_CLIENT_ID es identificador público de OAuth, pero GEMINI_API_KEY no debe aparecer en variables EXPO_PUBLIC ni PUBLIC. CORS_ORIGINS debe contener sólo orígenes permitidos. RELEASES_STORAGE_DIR debe apuntar a un directorio controlado; la aplicación valida claves relativas, pero el operador sigue siendo responsable de permisos y respaldos del directorio.
+*Nota:* `docker-compose.yml` inicializa automáticamente las dos bases de datos requeridas: `garfit` (desarrollo) y `garfit_test` (pruebas automatizadas).
 
-## 11.7 Operación de autenticación
+### 2. Siembra del catálogo de movimientos
 
-Para probar cuenta local desde la web, abra la ruta de registro y use una dirección de prueba. La API normaliza el correo y rechaza una segunda cuenta con la misma dirección aunque cambie la capitalización. Después del registro, complete el perfil desde la zona protegida. Cierre sesión y confirme que la ruta protegida redirige al login. Estas operaciones no requieren una cuenta Google ni una APK publicada.
+Antes de que los atletas puedan registrar marcas personales, la base de datos debe contener el catálogo deportivo estandarizado:
 
-Para habilitar Google, configure primero API y móvil con los identificadores correctos. La API informa proveedores mediante auth/providers; si el valor de Google está desactivado, no intente diagnosticar la interfaz antes de revisar GOOGLE_WEB_CLIENT_ID. El servidor comprueba que el correo de identidad esté verificado. No agregue un client secret al repositorio, a la aplicación web ni a la aplicación móvil; el flujo descrito usa sólo ID token y verificación de servidor.
+```sh
+pnpm db:seed
+```
 
-Las cookies web deben evaluarse en el dominio y protocolo finales. En desarrollo localhost permite observar el flujo, pero una implementación productiva debe configurar HTTPS y orígenes CORS específicos. Si una acción de servidor recibe un error de API, revise primero estado de servicio, URL de API y cookie. No registre el valor de accessToken o refreshToken en consola, capturas o evidencia.
+Este comando compila las dependencias necesarias de la API y ejecuta `apps/api/src/cli/seed-movements.ts`. Carga de manera idempotente **1319 movimientos** transformados en la tabla `Movement` a partir del catálogo inmutable (`packages/movements/data/catalog.json`). Si el comando se ejecuta nuevamente, detecta que los registros ya existen y actualiza su contenido sin duplicar (`0 creados, 1319 actualizados` en ~6 segundos).
 
-## 11.8 Operación de releases
+### 3. Siembra del atleta de demostración (opcional)
 
-Antes de publicar, compruebe que el archivo señalado por --file es una APK preparada para el canal que se desea distribuir. Seleccione una versión SemVer y version-code que no existan para Android; esas combinaciones son únicas en la base. El changelog debe describir cambios reales y no debe contener secretos. El comando almacena el archivo bajo una clave relativa; no edite filePath directamente en la base.
+Para poblar la base de datos con un atleta de prueba equipado con historial cronológico y marcas en múltiples ejercicios:
 
-Después de publicar sin --draft, consulte el endpoint latest/android o la página de descarga. Compare el checksum de cabecera con el registrado al publicar si el procedimiento de distribución exige verificación. Si la consulta responde que no hay release, revise published, publishedAt, plataforma y versionCode en los metadatos antes de repetir la carga. No exponga el directorio de almacenamiento como carpeta pública para eludir el endpoint: eso anula la regla de borradores y el contrato de descarga.
+```sh
+DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo
+```
 
-Si se necesita reemplazar almacenamiento local por otro proveedor, implemente ReleaseStorage y ejecute las pruebas de contrato de rutas antes de cambiar configuración. No basta con copiar archivos: la implementación debe conservar validación de claves, lectura segura, tamaño y comportamiento ante ausencia. Conserve una copia recuperable antes de modificar almacenamiento o migraciones.
+El script genera el usuario `demo@garfit.example` con perfil deportivo y 8 marcas calculadas en sentadilla con barra, press de banca, flexiones y plancha. Este script se bloquea automáticamente si `NODE_ENV === 'production'`.
+
+### 4. Ejecución del entorno de desarrollo
+
+Para iniciar simultáneamente la API NestJS, la aplicación web Next.js y la landing page Astro:
+
+```sh
+pnpm dev
+```
+
+Puertos de escucha asignados:
+- **API NestJS:** `http://localhost:4000` (Swagger disponible en `/api/docs` si `SWAGGER_ENABLED=true`).
+- **Aplicación Web:** `http://localhost:3000`
+- **Landing Page:** `http://localhost:4321`
+
+*Comportamiento de Astro 7:* Cuando la landing page detecta que se ejecuta en una sesión no interactiva o ante agentes de inteligencia artificial, se inicia en segundo plano sin bloquear la terminal; en consolas humanas interactivas, corre en primer plano permitiendo acceder a los atajos de teclado de Astro.
+
+### 5. Ejecución de la aplicación móvil Expo
+
+Debido a que el empaquetador Metro de Expo demanda una consola interactiva para renderizar códigos QR y seleccionar emuladores de desarrollo, la aplicación móvil se inicia en una terminal independiente:
+
+```sh
+pnpm dev:mobile
+```
+
+La consola de Metro escuchará en `http://localhost:8081`.
+
+### 6. Scripts individuales por aplicación
+
+Si se desea operar únicamente un componente específico del monorepo:
+- `pnpm dev:api`: Inicia únicamente la API NestJS y recompila paquetes en modo observación.
+- `pnpm dev:web`: Inicia únicamente la aplicación web del atleta.
+- `pnpm dev:landing`: Inicia únicamente el portal informativo de la landing.
+
+## 11.4 Guía operativa: flujo del atleta en la interfaz web
+
+Para interactuar con el dominio deportivo de la fase 2 a través de la aplicación web (`http://localhost:3000`):
+
+1. **Registro e inicio de sesión:**
+   - Ingrese a `http://localhost:3000/register`.
+   - Complete el nombre, correo electrónico y contraseña (mínimo 8 caracteres).
+   - Tras enviar el formulario, el sistema inicia la sesión de forma transparente mediante cookies `httpOnly` y redirige a la vista obligatoria de perfil.
+2. **Configuración del perfil deportivo:**
+   - En `http://localhost:3000/app/profile`, establezca el nombre público, nivel de experiencia y objetivo principal.
+   - Seleccione el sistema de unidades preferido (`Métrico (kg, cm)` o `Imperial (lb, in)`).
+   - Opcionalmente capture fecha de nacimiento, estatura y peso corporal.
+   - Haga clic en "Guardar perfil".
+3. **Exploración del catálogo de movimientos:**
+   - Navegue a `http://localhost:3000/app/movements`.
+   - Utilice la barra de búsqueda para localizar ejercicios por nombre (p. ej., "barbell full squat").
+   - Utilice los menús desplegables para filtrar por equipamiento (p. ej., "Barra") o región corporal (p. ej., "Piernas").
+   - Haga clic en cualquier tarjeta de ejercicio para abrir su ficha técnica (`/app/movements/:slug`), donde podrá consultar las instrucciones paso a paso en español, músculos involucrados y tipos de marca admitidos.
+4. **Registro de marcas personales:**
+   - Desde la ficha del movimiento, haga clic en el botón "Registrar una marca", o acceda directamente a `http://localhost:3000/app/records/new`.
+   - Si ingresa desde la ruta directa, utilice el buscador interactivo para seleccionar el ejercicio.
+   - Seleccione el tipo de marca correspondiente (p. ej., `Carga (peso)`).
+   - Introduzca el valor numérico en la unidad de su preferencia (p. ej., `100` en `kg`).
+   - Para marcas de peso, capture el número de repeticiones (`1` para 1RM).
+   - Seleccione la fecha en que se realizó el esfuerzo (no se admiten fechas futuras) y añada notas opcionales.
+   - Haga clic en "Guardar marca".
+5. **Consulta de historial y evolución:**
+   - Acceda a `http://localhost:3000/app/records` ("Mis marcas") para ver las tarjetas de resumen de todos los movimientos trabajados.
+   - Haga clic en "Ver historial" sobre un ejercicio (`/app/records/:movementSlug`) para examinar la progresión cronológica, la mejor marca alcanzada, el cambio relativo respecto al intento anterior (+X kg) y la curva visual renderizada en la gráfica SVG.
+6. **Corrección o retiro de una marca:**
+   - Desde el listado del historial, haga clic en "Editar" junto a la marca deseada (`/app/records/:movementSlug/:id/edit`).
+   - Para corregir un error de captura, modifique el valor o unidad y pulse "Guardar cambios".
+   - Para retirar una marca errónea, pulse el botón "Retirar marca". El sistema aplicará borrado lógico (`deletedAt`), excluyendo la marca de los cálculos sin destruir el registro físico.
+
+## 11.5 Generación de evidencias y pruebas de extremo a extremo (E2E)
+
+Para ejecutar la verificación E2E automatizada que reproduce el recorrido completo del atleta y captura evidencia visual auditable:
+
+### 1. Instalación previa de Chromium (sólo la primera vez)
+
+```sh
+pnpm exec playwright install chromium
+```
+
+### 2. Ejecución de la suite de evidencias
+
+Asegúrese de que la base de datos esté activa, el catálogo sembrado (`pnpm db:seed`) y compile los artefactos de producción:
+
+```sh
+pnpm build
+pnpm evidence:web
+```
+
+El script `evidence:web` compila las dependencias de la aplicación web, ejecuta el escenario `athlete-flow.spec.ts` sobre Chromium headless y deposita las capturas generadas en `docs/evidence/generated/`. Las evidencias oficiales consolidadas se preservan de forma inmutable en `docs/evidence/fase-2/capturas/`.
+
+## 11.6 Diagnóstico y resolución de problemas frecuentes
+
+1. **Error: `DATABASE_URL no está definida` o fallo de conexión a PostgreSQL:**
+   - Compruebe que el contenedor esté en ejecución mediante `docker ps`.
+   - Si el puerto 5442 se encuentra en uso por otro proceso, modifique el mapeo en `docker-compose.yml` y ajuste los puertos correspondientes en `.env`.
+2. **Error: `Falta el catálogo: ejecuta pnpm db:seed antes de la semilla demo`:**
+   - Ocurre al intentar registrar marcas o ejecutar `pnpm db:seed:demo` sin haber poblado previamente la tabla `Movement`. Ejecute `pnpm db:seed` para inicializar el catálogo de 1319 movimientos.
+3. **Error: `DEMO_USER_PASSWORD debe tener al menos 8 caracteres`:**
+   - El script `pnpm db:seed:demo` exige una contraseña explícita para el usuario demo. Invoque el comando anteponiendo la variable: `DEMO_USER_PASSWORD="ContraseñaSegura123" pnpm db:seed:demo`.
+4. **Error: `La semilla demo no se puede ejecutar en producción`:**
+   - Protección de seguridad activada cuando `NODE_ENV === 'production'`. La semilla demo está reservada para entornos de desarrollo y evaluación local.
+5. **Fallo de conexión desde el emulador móvil a la API:**
+   - Los emuladores de Android no resuelven `localhost` como la máquina anfitriona. Verifique que `EXPO_PUBLIC_API_URL` apunte a `http://10.0.2.2:4000`. Si utiliza un dispositivo físico conectado a la red local, utilice la dirección IP de su máquina en la red LAN (p. ej., `http://192.168.1.150:4000`).

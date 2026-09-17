@@ -1,16 +1,45 @@
-# Trazabilidad
+# Matriz de trazabilidad
 
-La evidencia de ejecución es [pruebas de fase 1](evidence/fase-1/pruebas-2026-09-16.md).
+La evidencia formal de ejecución se encuentra documentada en los informes inmutables por fase:
+- [Pruebas de fase 1](evidence/fase-1/pruebas-2026-09-16.md)
+- [Pruebas de fase 2](evidence/fase-2/pruebas-2026-09-16.md) y [capturas del flujo E2E](evidence/fase-2/capturas/)
 
-| Requerimiento | Implementación concreta | Prueba | Resultado | Evidencia |
+## 1. Requerimientos implementados (Fase 1 y Fase 2)
+
+| Requerimiento | Implementación concreta (rutas) | Prueba automatizada (`fichero › describe › it`) | Resultado | Evidencia |
 | --- | --- | --- | --- | --- |
-| RF-01 | auth.service.ts; auth.controller.ts | auth.spec.ts › autenticación local › registra el usuario normalizado y devuelve tokens seguros | Pasa (ver evidencia) | pruebas fase 1 |
-| RF-02 | google-identity.verifier.ts; auth.service.ts | google-auth.spec.ts › POST /auth/google › crea y reutiliza la cuenta Google del mismo sub | Pasa (ver evidencia) | pruebas fase 1 |
-| RF-03 | profile.controller.ts | profile.spec.ts › GET y PUT /profile › crea, consulta y actualiza el mismo perfil | Pasa (ver evidencia) | pruebas fase 1 |
-| RF-04 | releases.controller.ts; local-release-storage.ts | releases.spec.ts › releases Android › descarga el APK publicado con cabeceras y bytes correctos | Pasa (ver evidencia) | pruebas fase 1 |
-| RNF-01 | web/lib/auth.ts; mobile/lib/auth.tsx | auth-utils.test.ts › safeNext › only accepts local app routes | Pasa (ver evidencia) | pruebas fase 1 |
-| RNF-02 | auth.service.ts | auth.spec.ts › autenticación local › rota refresh, rechaza el anterior y revoca sesiones al reutilizarlo | Pasa (ver evidencia) | pruebas fase 1 |
-| RNF-03 | types, validation, api-client | validation/index.test.ts › esquemas de validación › acepta registro y normaliza el correo | Pasa (ver evidencia) | pruebas fase 1 |
-| RNF-05 | ai/gemini-ai.provider.ts | Sin prueba automatizada específica | PENDIENTE de evidencia específica | revisión de código |
+| RF-01 | `apps/api/src/auth/auth.service.ts`; `apps/api/src/auth/auth.controller.ts` | `apps/api/test/auth.spec.ts › autenticación local › registra el usuario normalizado y devuelve tokens seguros` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RF-02 | `apps/api/src/auth/google-identity.verifier.ts`; `apps/api/src/auth/auth.service.ts` | `apps/api/test/google-auth.spec.ts › POST /auth/google › crea y reutiliza la cuenta Google del mismo sub` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RF-03 | `apps/api/src/profile/profile.controller.ts`; `apps/api/src/profile/profile.service.ts` | `apps/api/test/profile.spec.ts › GET y PUT /profile › crea, consulta y actualiza el mismo perfil` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RF-04 | `apps/api/src/releases/releases.controller.ts`; `apps/api/src/releases/storage/local-release-storage.ts` | `apps/api/test/releases.spec.ts › releases Android › descarga el APK publicado con cabeceras y bytes correctos` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RF-05 | `apps/api/src/movements/movements.controller.ts`; `apps/api/src/movements/movements.service.ts`; `apps/web/src/app/app/movements/page.tsx` | `apps/api/test/movements.spec.ts › catálogo de movimientos › GET /movements › lista sólo movimientos activos, ordenados por nombre, con el contrato MovementSummary` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); [captura 04](evidence/fase-2/capturas/04-movements.png) |
+| RF-06 | `apps/api/src/movements/movements.controller.ts`; `apps/web/src/app/app/movements/[slug]/page.tsx`; `apps/mobile/src/app/(app)/movements/[slug].tsx` | `apps/api/test/movements.spec.ts › catálogo de movimientos › GET /movements/:slug › devuelve el detalle con instrucciones y fuente` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); [captura 05](evidence/fase-2/capturas/05-movement-detail.png) |
+| RF-07 | `apps/api/src/records/records.controller.ts`; `apps/api/src/records/records.service.ts`; `apps/web/src/app/app/records/new/page.tsx` | `apps/api/test/records.spec.ts › marcas personales › POST /records › registra una marca de peso en kg` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); [captura 06](evidence/fase-2/capturas/06-record-form.png) |
+| RF-08 | `apps/api/src/records/records.controller.ts`; `apps/api/src/records/records.service.ts`; `apps/web/src/app/app/records/[movementSlug]/[id]/edit/page.tsx` | `apps/api/test/records.spec.ts › marcas personales › PATCH /records/:id › corrige valor y unidad recalculando normalizedValue` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RF-09 | `apps/api/src/records/records.controller.ts`; `packages/domain/src/records.ts`; `apps/web/src/app/app/records/[movementSlug]/page.tsx` | `apps/api/test/records.spec.ts › marcas personales › historial y progreso › ordena cronológicamente y calcula mejor, actual y cambios exactos` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); [captura 07](evidence/fase-2/capturas/07-records.png); [captura 08](evidence/fase-2/capturas/08-record-history.png) |
+| RF-10 | `apps/api/src/records/records.controller.ts`; `apps/web/src/app/app/page.tsx`; `apps/mobile/src/app/(app)/(tabs)/index.tsx` | `apps/api/test/records.spec.ts › marcas personales › GET /records y GET /records/summary › resume series por actividad reciente y la mejora más reciente` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); [captura 02](evidence/fase-2/capturas/02-dashboard-empty.png); [captura 09](evidence/fase-2/capturas/09-dashboard.png) |
+| RF-11 | `apps/api/src/profile/profile.service.ts`; `packages/domain/src/rules.ts`; `apps/web/src/app/app/profile/page.tsx` | `apps/api/test/profile-extended.spec.ts › perfil deportivo ampliado › guarda unidades, fechas y medidas con sus tipos` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); [captura 03](evidence/fase-2/capturas/03-profile.png) |
+| RF-12 | `apps/web/src/app/app/**`; `apps/mobile/src/app/(app)/**` | `apps/web/e2e/athlete-flow.spec.ts › atleta registra y consulta sus marcas` | Pasa en web; Móvil PENDIENTE en dispositivo | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md); capturas `01` a `09` |
+| RNF-01 | `apps/web/src/lib/auth.ts`; `apps/mobile/src/lib/auth.tsx` | `apps/web/src/lib/auth-utils.test.ts › safeNext, authErrorMessage › only accepts local app routes` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RNF-02 | `apps/api/src/auth/auth.service.ts` | `apps/api/test/auth.spec.ts › autenticación local › rota refresh, rechaza el anterior y revoca sesiones al reutilizarlo` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RNF-03 | `packages/types`; `packages/validation`; `packages/api-client` | `packages/validation/src/index.test.ts › esquemas de validación › acepta registro y normaliza el correo` | Pasa | [pruebas fase 1](evidence/fase-1/pruebas-2026-09-16.md) |
+| RNF-04 | `scripts/docs/generate.mjs` | `node scripts/docs/generate.mjs --check` | Pasa | verificación automatizada en CI |
+| RNF-05 | `apps/api/src/ai/gemini-ai.provider.ts` | Sin prueba automatizada específica | PENDIENTE de prueba automatizada | revisión arquitectónica de código |
+| RNF-06 | `packages/domain/src/units.ts`; `apps/api/src/records/records.service.ts` | `packages/domain/src/units.test.ts › toCanonical y fromCanonical › convierte libras a kg con la definición internacional y 3 decimales` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-07 | `packages/domain/src/records.ts`; `packages/domain/src/progress-snapshot.ts` | `packages/domain/src/records.test.ts › summarizeSeries › ordena por fecha y calcula mejor, actual, cambios y marcas personales` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-08 | `apps/api/src/records/records.service.ts`; `apps/api/src/profile/profile.service.ts` | `apps/api/test/records-isolation.spec.ts › aislamiento de marcas entre usuarios › otro usuario no ve las marcas en overview, summary ni historial` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-09 | `apps/api/prisma/schema.prisma` (`PersonalRecord.deletedAt`); `apps/api/src/records/records.service.ts` | `apps/api/test/records.spec.ts › marcas personales › DELETE /records/:id (borrado lógico) › retira la marca de historial, overview y summary pero conserva la fila` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-10 | `packages/domain/src/rules.ts`; `apps/api/src/records/dto/create-record.dto.ts`; `apps/api/src/movements/dto/movement-query.dto.ts` | `apps/api/test/records.spec.ts › marcas personales › POST /records › rechaza valores no positivos, con más de 3 decimales o fuera de límites` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-11 | `packages/domain/src/rules.ts`; `packages/movements/src/taxonomy.ts` | `apps/api/test/shared-enums.spec.ts › enums compartidos › coinciden con Prisma` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-12 | `packages/movements/src/source-transform.ts`; `apps/api/src/movements/seed/seed-movements.ts` | `packages/movements/src/movements.test.ts › catálogo generado (datos reales) › corresponde a la fuente fijada y tiene 1319 movimientos con slugs únicos` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
 
-RF-05, RF-06 y RF-07 están planeados y no tienen implementación ni pruebas.
+## 2. Requerimientos planeados (Fase 3: Entrenamientos e Inteligencia Artificial)
+
+Los requerimientos siguientes no cuentan con entidades, endpoints ni pruebas asociadas en la fase 2; se encuentran en estado de especificación conceptual:
+
+| Requerimiento | Descripción | Estado | Justificación |
+| --- | --- | --- | --- |
+| RF-13 | Catálogo y definición de rutinas y entrenamientos estructurados (`Workout`, `WorkoutExercise`, WODs). | Planeado (fase 3) | Pendiente de diseño de esquema de entrenamientos. |
+| RF-14 | Registro de sesiones ejecutadas y resultados de entrenamiento (`WorkoutResult`). | Planeado (fase 3) | Depende del modelado de rutinas (RF-13). |
+| RF-15 | Generación automática de marcas personales derivadas de resultados de entrenamiento (`source: WORKOUT`). | Planeado (fase 3) | El enum `RecordSource.WORKOUT` está preparado en Prisma y dominio; el flujo de extracción automática se implementará en la fase 3. |
+| RF-16 | Asistente conversacional deportivo inteligente con Google Gemini para interpretación de progreso. | Planeado (fase 3) | La estructura de contexto determinista `ProgressSnapshotService` está implementada; la integración con el cliente de Gemini se realizará en la fase 3. |
