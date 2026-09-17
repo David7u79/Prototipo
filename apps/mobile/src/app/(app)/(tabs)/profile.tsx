@@ -6,10 +6,11 @@ import {
   PRIMARY_GOALS,
 } from '@garfit/validation';
 import type { ExperienceLevel, PrimaryGoal, UnitSystem } from '@garfit/types';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Field, Title, uiStyles } from '@/components/ui';
-import { messageFor, useSession } from '@/lib/auth';
+import { api, messageFor, useSession } from '@/lib/auth';
 import { profileCanonicalValue, profileDisplayValue } from '@/lib/presentation';
 
 type ChipProps = {
@@ -32,7 +33,7 @@ function Chip({ label, selected, onPress }: ChipProps) {
 }
 
 export default function ProfileScreen() {
-  const { logout, profile, saveProfile, user } = useSession();
+  const { logout, profile, request, saveProfile, user } = useSession();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>(
     profile?.experienceLevel ?? 'BEGINNER',
@@ -53,6 +54,29 @@ export default function ProfileScreen() {
   const [trainingSince, setTrainingSince] = useState(profile?.trainingSince ?? '');
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [aiConsentGiven, setAiConsentGiven] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      void request(() => api.ai.status())
+        .then((status) => setAiConsentGiven(status.enabled && status.configured && Boolean(status.consentGivenAt)))
+        .catch(() => setAiConsentGiven(false));
+    }, [request]),
+  );
+
+  async function revokeAiConsent() {
+    setAiLoading(true);
+    setError(null);
+    try {
+      await request(() => api.ai.revokeConsent());
+      setAiConsentGiven(false);
+    } catch (cause) {
+      setError(messageFor(cause));
+    } finally {
+      setAiLoading(false);
+    }
+  }
 
   async function submit() {
     const parsed = athleteProfileSchema.safeParse({
@@ -154,6 +178,13 @@ export default function ProfileScreen() {
         disabled={saving}
         onPress={() => void submit()}
       />
+      {aiConsentGiven ? (
+        <Card>
+          <Text style={styles.label}>Análisis con IA</Text>
+          <Text style={uiStyles.muted}>Al revocar tu consentimiento, GarFit dejará de enviar datos deportivos a Google Gemini y no podrás solicitar nuevos análisis hasta aceptarlo otra vez.</Text>
+          <Button label={aiLoading ? 'Revocando…' : 'Revocar consentimiento'} disabled={aiLoading} secondary onPress={() => void revokeAiConsent()} />
+        </Card>
+      ) : null}
       <Button label="Cerrar sesión" secondary onPress={() => void logout()} />
     </ScrollView>
   );

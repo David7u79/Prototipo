@@ -262,6 +262,18 @@ export function messageFor(error: unknown): string {
     if (error.code === 'EMAIL_ALREADY_REGISTERED') return 'Este correo ya está registrado.';
     if (error.code === 'INVALID_CREDENTIALS') return 'Correo o contraseña incorrectos.';
     if (error.code === 'NETWORK_ERROR') return 'No fue posible conectar con el servidor.';
+    if (error.code === 'AI_DISABLED' || error.code === 'AI_NOT_CONFIGURED')
+      return 'Servicio de análisis no configurado.';
+    if (error.code === 'AI_CONSENT_REQUIRED')
+      return 'Necesitas aceptar el consentimiento para solicitar un análisis.';
+    if (error.code === 'AI_PROVIDER_UNAVAILABLE')
+      return 'El proveedor de IA no está disponible. Inténtalo de nuevo más tarde.';
+    if (error.code === 'AI_RATE_LIMITED')
+      return 'Se alcanzó el límite de análisis. Inténtalo de nuevo más tarde.';
+    if (error.code === 'AI_INVALID_RESPONSE')
+      return 'No se pudo procesar la respuesta del análisis. Inténtalo de nuevo.';
+    if (error.code === 'AI_ANALYSIS_FAILED')
+      return 'No se pudo generar el análisis. Inténtalo de nuevo.';
     return error.message;
   }
   return error instanceof Error ? error.message : 'Ocurrió un error inesperado.';

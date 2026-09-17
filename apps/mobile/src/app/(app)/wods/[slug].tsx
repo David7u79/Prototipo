@@ -13,6 +13,7 @@ export default function WodDetailScreen() {
   const [wod, setWod] = useState<WodDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const load = useCallback(async () => {
     if (!slug) return;
     try {
@@ -23,6 +24,13 @@ export default function WodDetailScreen() {
     }
   }, [request, slug]);
   useFocusEffect(useCallback(() => void load(), [load]));
+  useFocusEffect(
+    useCallback(() => {
+      void request(() => api.ai.status())
+        .then((status) => setAiAvailable(status.enabled && status.configured))
+        .catch(() => setAiAvailable(false));
+    }, [request]),
+  );
   async function createWorkoutFromWod() {
     if (!wod) return;
     setCreating(true);
@@ -60,6 +68,16 @@ export default function WodDetailScreen() {
       >
         <Text style={uiStyles.buttonText}>{creating ? 'Creando…' : 'Usar este WOD'}</Text>
       </Pressable>
+      {aiAvailable ? (
+        <Pressable
+          accessibilityLabel="Explicar WOD con IA"
+          accessibilityRole="button"
+          onPress={() => router.push({ pathname: '/(app)/ai', params: { action: 'wod', slug: wod.slug } })}
+          style={uiStyles.button}
+        >
+          <Text style={uiStyles.buttonText}>Explicar WOD</Text>
+        </Pressable>
+      ) : null}
     </ScrollView>
   );
 }

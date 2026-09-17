@@ -16,6 +16,7 @@ export default function MovementDetailScreen() {
   const { request } = useSession();
   const router = useRouter();
   const [movement, setMovement] = useState<MovementDetail | null>(null);
+  const [aiAvailable, setAiAvailable] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (slug)
@@ -23,6 +24,11 @@ export default function MovementDetailScreen() {
         .then(setMovement)
         .catch((cause: unknown) => setError(messageFor(cause)));
   }, [request, slug]);
+  useEffect(() => {
+    void request(() => api.ai.status())
+      .then((status) => setAiAvailable(status.enabled && status.configured))
+      .catch(() => setAiAvailable(false));
+  }, [request]);
   if (error) return <Text>{error}</Text>;
   if (!movement) return <Text>Cargando movimiento…</Text>;
   return (
@@ -56,6 +62,13 @@ export default function MovementDetailScreen() {
           router.push({ pathname: '/(app)/records/new', params: { movement: movement.slug } })
         }
       />
+      {aiAvailable ? (
+        <Button
+          label="Explicar con IA"
+          secondary
+          onPress={() => router.push({ pathname: '/(app)/ai', params: { action: 'movement', slug: movement.slug } })}
+        />
+      ) : null}
     </ScrollView>
   );
 }
