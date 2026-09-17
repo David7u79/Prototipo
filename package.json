@@ -25,7 +25,8 @@
     "db:seed:demo": "turbo run build --filter=@garfit/api^... && pnpm --filter @garfit/api db:seed:demo",
     "evidence:web": "turbo run build --filter=@garfit/web^... && pnpm --filter @garfit/web evidence",
     "docs:generate": "node scripts/docs/generate.mjs",
-    "docs:check": "node scripts/docs/generate.mjs --check"
+    "docs:check": "node scripts/docs/generate.mjs --check",
+    "docs:check-openapi": "node scripts/docs/check-openapi-responses.mjs"
   },
   "devDependencies": {
     "prettier": "^3.9.7",

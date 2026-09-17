@@ -11,7 +11,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { CurrentUser, JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/jwt.strategy.js';
 import {
@@ -21,6 +21,11 @@ import {
   UpdateWorkoutDto,
   WorkoutFiltersDto,
 } from './dto/workout.dto.js';
+import {
+  PaginatedWorkoutsResponse,
+  WorkoutDetailResponse,
+  WorkoutStatsResponse,
+} from './dto/workout-responses.dto.js';
 import { WorkoutsService } from './workouts.service.js';
 
 @ApiTags('workouts')
@@ -29,22 +34,30 @@ import { WorkoutsService } from './workouts.service.js';
 @Controller('workouts')
 export class WorkoutsController {
   constructor(private readonly workouts: WorkoutsService) {}
-  @Get() @ApiOkResponse({ type: Object }) list(
+  @Get() @ApiOkResponse({ type: PaginatedWorkoutsResponse }) list(
     @CurrentUser() user: AuthenticatedUser,
     @Query() filters: WorkoutFiltersDto,
   ) {
     return this.workouts.list(user.id, filters);
   }
-  @Get('stats') @ApiOkResponse({ type: Object }) stats(@CurrentUser() user: AuthenticatedUser) {
+  @Get('stats') @ApiOkResponse({ type: WorkoutStatsResponse }) stats(
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.workouts.stats(user.id);
   }
-  @Post() create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateWorkoutDto) {
+  @Post() @ApiCreatedResponse({ type: WorkoutDetailResponse }) create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateWorkoutDto,
+  ) {
     return this.workouts.create(user.id, dto);
   }
-  @Get(':id') get(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+  @Get(':id') @ApiOkResponse({ type: WorkoutDetailResponse }) get(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
     return this.workouts.get(user.id, id);
   }
-  @Patch(':id') update(
+  @Patch(':id') @ApiOkResponse({ type: WorkoutDetailResponse }) update(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: UpdateWorkoutDto,
@@ -57,17 +70,20 @@ export class WorkoutsController {
   ) {
     return this.workouts.remove(user.id, id);
   }
-  @Post(':id/start') start(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+  @Post(':id/start') @ApiCreatedResponse({ type: WorkoutDetailResponse }) start(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
     return this.workouts.start(user.id, id);
   }
-  @Put(':id/results') results(
+  @Put(':id/results') @ApiOkResponse({ type: WorkoutDetailResponse }) results(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: ResultsDto,
   ) {
     return this.workouts.saveResults(user.id, id, dto);
   }
-  @Post(':id/complete') complete(
+  @Post(':id/complete') @ApiCreatedResponse({ type: WorkoutDetailResponse }) complete(
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
     @Body() dto: CompleteWorkoutDto,
