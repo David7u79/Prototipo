@@ -142,3 +142,98 @@ describe('rutas de recursos', () => {
     });
   });
 });
+
+describe('cliente de IA', () => {
+  it('consulta el estado autenticado del servicio', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({ enabled: true }));
+    const client = createApiClient({ baseUrl: 'http://api', getAccessToken: () => 'token', fetch });
+
+    await client.ai.status();
+
+    expect(fetch).toHaveBeenCalledWith('http://api/ai/status', {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+        Authorization: 'Bearer token',
+      },
+      body: undefined,
+    });
+  });
+
+  it('otorga y revoca el consentimiento con los métodos correctos', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({ consentGivenAt: null }));
+    const client = createApiClient({ baseUrl: 'http://api', getAccessToken: () => 'token', fetch });
+
+    await client.ai.giveConsent();
+    await client.ai.revokeConsent();
+
+    expect(fetch.mock.calls.map(([url, init]) => [url, (init as RequestInit).method])).toEqual([
+      ['http://api/ai/consent', 'POST'],
+      ['http://api/ai/consent', 'DELETE'],
+    ]);
+  });
+
+  it('analiza el progreso con el período solicitado o un cuerpo vacío', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({}));
+    const client = createApiClient({ baseUrl: 'http://api', getAccessToken: () => 'token', fetch });
+
+    await client.ai.analyzeProgress({ periodDays: 60 });
+    await client.ai.analyzeProgress();
+
+    expect(fetch.mock.calls.map(([url, init]) => [url, (init as RequestInit).method, (init as RequestInit).body])).toEqual([
+      ['http://api/ai/analyze/progress', 'POST', '{"periodDays":60}'],
+      ['http://api/ai/analyze/progress', 'POST', '{}'],
+    ]);
+  });
+
+  it('construye y codifica las rutas de análisis y explicación', async () => {
+    const fetch = vi.fn().mockResolvedValue(response({}));
+    const client = createApiClient({ baseUrl: 'http://api', getAccessToken: () => 'token', fetch });
+
+    await client.ai.analyzeWorkout('workout/1');
+    await client.ai.explainWod('back squat/1');
+    await client.ai.explainMovement('back squat/1');
+
+    expect(fetch.mock.calls.map(([url, init]) => [url, (init as RequestInit).method])).toEqual([
+      ['http://api/ai/analyze/workout/workout%2F1', 'POST'],
+      ['http://api/ai/explain/wod/back%20squat%2F1', 'POST'],
+      ['http://api/ai/explain/movement/back%20squat%2F1', 'POST'],
+    ]);
+  });
+
+  it('propaga el consentimiento faltante como ApiError', async () => {
+    const client = createApiClient({
+      baseUrl: 'http://api',
+      fetch: vi
+        .fn()
+        .mockResolvedValue(response({ code: 'AI_CONSENT_REQUIRED', message: 'Falta consentimiento' }, 403)),
+    });
+
+    await expect(client.ai.analyzeProgress()).rejects.toMatchObject({
+      status: 403,
+      code: 'AI_CONSENT_REQUIRED',
+    });
+  });
+
+  it('devuelve sin transformar el análisis y la evidencia de sus observaciones', async () => {
+    const analysis = {
+      cached: true,
+      observations: [
+        {
+          evidence: [{ label: 'Volumen semanal', value: '12000 kg' }],
+        },
+      ],
+    };
+    const client = createApiClient({
+      baseUrl: 'http://api',
+      fetch: vi.fn().mockResolvedValue(response(analysis)),
+    });
+
+    const result = await client.ai.analyzeProgress();
+
+    expect(result.cached).toBe(true);
+    expect(result.observations[0]?.evidence).toEqual([
+      { label: 'Volumen semanal', value: '12000 kg' },
+    ]);
+  });
+});
