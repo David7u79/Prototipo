@@ -33,6 +33,10 @@ test('atleta registra y consulta sus marcas', async ({ page }) => {
   await page.getByLabel('Correo electrónico').fill(email);
   await page.getByLabel('Contraseña').fill(password);
   await page.getByRole('button', { name: /crear/i }).click();
+  // Tras el registro la app lleva a completar el perfil deportivo.
+  await expect(page).toHaveURL(/\/app\/profile$/);
+
+  await page.getByRole('link', { name: 'Inicio' }).click();
   await expect(page).toHaveURL(/\/app$/);
   await screenshot(page, '02-dashboard-empty.png');
 
