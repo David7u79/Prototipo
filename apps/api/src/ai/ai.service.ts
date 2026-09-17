@@ -1,13 +1,25 @@
 import { createHash } from 'node:crypto';
 import {
+  buildMovementContext,
   buildProgressContext,
+  buildWodContext,
+  buildWorkoutContext,
+  EMPTY_SCORE,
   resolveEvidence,
   stableStringify,
+  toCanonical,
+  totalVolumeKg,
   unknownEvidenceIds,
   type AiAnalysisType,
   type AiContextBundle,
   type AiModelOutput,
 } from '@garfit/domain';
+import {
+  EQUIPMENT_LABELS,
+  MOVEMENT_CATEGORY_LABELS,
+  MOVEMENT_DIFFICULTY_LABELS,
+  MUSCLE_GROUP_LABELS,
+} from '@garfit/movements';
 import type { AiAnalysisResponse, AiConsentResponse, AiStatusResponse } from '@garfit/types';
 import { aiModelOutputJsonSchema, aiModelOutputSchema } from '@garfit/validation';
 import { Injectable, Logger } from '@nestjs/common';
@@ -15,9 +27,22 @@ import { ConfigService } from '@nestjs/config';
 import type { Env } from '../common/config/env.js';
 import { ApiException } from '../common/api-exception.filter.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { WorkoutsService } from '../workouts/workouts.service.js';
 import { buildAiUserContent } from './ai-prompt.js';
 import { AiProvider, AiProviderError } from './ai.provider.js';
 import { PROMPT_VERSION, SYSTEM_INSTRUCTION } from './prompts/progress-analysis.js';
+import {
+  PROMPT_VERSION as MOVEMENT_PROMPT_VERSION,
+  SYSTEM_INSTRUCTION as MOVEMENT_SYSTEM_INSTRUCTION,
+} from './prompts/movement-explanation.js';
+import {
+  PROMPT_VERSION as WOD_PROMPT_VERSION,
+  SYSTEM_INSTRUCTION as WOD_SYSTEM_INSTRUCTION,
+} from './prompts/wod-explanation.js';
+import {
+  PROMPT_VERSION as WORKOUT_PROMPT_VERSION,
+  SYSTEM_INSTRUCTION as WORKOUT_SYSTEM_INSTRUCTION,
+} from './prompts/workout-analysis.js';
 import { ProgressSnapshotService } from './progress-snapshot.service.js';
 
 @Injectable()
@@ -28,6 +53,7 @@ export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly snapshots: ProgressSnapshotService,
+    private readonly workouts: WorkoutsService,
     private readonly provider: AiProvider,
     private readonly config: ConfigService<Env, true>,
   ) {}
@@ -77,6 +103,170 @@ export class AiService {
       task: 'Analiza el progreso del periodo y ofrece observaciones y sugerencias prudentes.',
       targetId: null,
       periodDays,
+      context,
+    });
+  }
+
+  async analyzeWorkout(userId: string, workoutId: string): Promise<AiAnalysisResponse> {
+    const workout = await this.workouts.get(userId, workoutId);
+    if (workout.status !== 'COMPLETED') {
+      throw new ApiException(
+        409,
+        'WORKOUT_INVALID_STATE',
+        'El entrenamiento debe estar completado',
+      );
+    }
+    const movementIds = workout.exercises.map((exercise) => exercise.movement.slug);
+    const previousRows = await this.prisma.workout.findMany({
+      where: {
+        userId,
+        deletedAt: null,
+        status: 'COMPLETED',
+        performedOn: { lt: new Date(`${workout.performedOn!}T00:00:00.000Z`) },
+        exercises: { some: { movement: { slug: { in: movementIds } } } },
+      },
+      include: { exercises: { include: { movement: true, results: true } } },
+      orderBy: [{ performedOn: 'desc' }, { createdAt: 'desc' }],
+    });
+    const previousWorkouts = new Map<
+      string,
+      { movementName: string; performedOn: string; volumeKg: number }
+    >();
+    for (const row of previousRows) {
+      for (const exercise of row.exercises) {
+        if (
+          !movementIds.includes(exercise.movement.slug) ||
+          previousWorkouts.has(exercise.movement.slug)
+        ) {
+          continue;
+        }
+        previousWorkouts.set(exercise.movement.slug, {
+          movementName: exercise.movement.name,
+          performedOn: row.performedOn!.toISOString().slice(0, 10),
+          volumeKg: totalVolumeKg(
+            exercise.results.map((result) => ({
+              reps: result.reps,
+              loadKg: result.loadKg === null ? null : Number(result.loadKg),
+            })),
+          ),
+        });
+      }
+    }
+    const context = buildWorkoutContext({
+      name: workout.name,
+      description: workout.description,
+      notes: workout.notes,
+      workoutType: workout.workoutType,
+      performedOn: workout.performedOn!,
+      score: workout.score ?? EMPTY_SCORE,
+      exercises: workout.exercises.map((exercise) => ({
+        position: exercise.position,
+        movementSlug: exercise.movement.slug,
+        movementName: exercise.movement.name,
+        notes: exercise.notes,
+        sets: exercise.results.map((result) => ({
+          setNumber: result.setNumber,
+          reps: result.reps,
+          loadKg: result.loadKg,
+          distanceMeters: result.distanceMeters,
+          durationSeconds: result.durationSeconds,
+        })),
+      })),
+      personalRecords: workout.personalRecords.map(({ record, previousBest }) => ({
+        movementSlug: record.movement.slug,
+        movementName: record.movement.name,
+        recordType: record.recordType,
+        repetitions: record.repetitions,
+        distanceMeters: record.distanceMeters,
+        value: record.normalizedValue,
+        previousBest,
+      })),
+      previousWorkouts: [...previousWorkouts].map(([movementSlug, previous]) => ({
+        movementSlug,
+        ...previous,
+      })),
+    });
+    return this.process({
+      userId,
+      type: 'WORKOUT_ANALYSIS',
+      promptVersion: WORKOUT_PROMPT_VERSION,
+      systemInstruction: WORKOUT_SYSTEM_INSTRUCTION,
+      task: 'Analiza este entrenamiento completado usando exclusivamente los hechos recibidos.',
+      targetId: workoutId,
+      periodDays: null,
+      context,
+    });
+  }
+
+  async explainWod(userId: string, slug: string): Promise<AiAnalysisResponse> {
+    const wod = await this.prisma.wod.findFirst({
+      where: { slug, OR: [{ ownerId: null }, { ownerId: userId }] },
+      include: { exercises: { include: { movement: true }, orderBy: { position: 'asc' } } },
+    });
+    if (!wod) throw new ApiException(404, 'WOD_NOT_FOUND', 'No encontramos ese WOD');
+    const context = buildWodContext({
+      name: wod.name,
+      description: wod.description,
+      workoutType: wod.workoutType,
+      isBenchmark: wod.isBenchmark,
+      durationSeconds: wod.durationSeconds,
+      rounds: wod.rounds,
+      intervalSeconds: wod.intervalSeconds,
+      repScheme: wod.repScheme,
+      exercises: wod.exercises.map((exercise) => ({
+        position: exercise.position,
+        movementSlug: exercise.movement.slug,
+        movementName: exercise.movement.name,
+        equipment: EQUIPMENT_LABELS[exercise.movement.equipment],
+        reps: exercise.reps,
+        loadKg:
+          exercise.loadValue === null || exercise.loadUnit === null
+            ? null
+            : toCanonical(Number(exercise.loadValue), exercise.loadUnit),
+        distanceMeters:
+          exercise.distanceValue === null || exercise.distanceUnit === null
+            ? null
+            : toCanonical(Number(exercise.distanceValue), exercise.distanceUnit),
+        durationSeconds: exercise.durationSeconds,
+        notes: exercise.notes,
+      })),
+    });
+    return this.process({
+      userId,
+      type: 'WOD_EXPLANATION',
+      promptVersion: WOD_PROMPT_VERSION,
+      systemInstruction: WOD_SYSTEM_INSTRUCTION,
+      task: 'Explica este WOD usando exclusivamente los hechos recibidos.',
+      targetId: slug,
+      periodDays: null,
+      context,
+    });
+  }
+
+  async explainMovement(userId: string, slug: string): Promise<AiAnalysisResponse> {
+    const movement = await this.prisma.movement.findFirst({ where: { slug, isActive: true } });
+    if (!movement) {
+      throw new ApiException(404, 'MOVEMENT_NOT_FOUND', 'No encontramos ese movimiento');
+    }
+    const context = buildMovementContext({
+      name: movement.name,
+      description: movement.description,
+      category: MOVEMENT_CATEGORY_LABELS[movement.category],
+      equipment: EQUIPMENT_LABELS[movement.equipment],
+      difficulty: movement.difficulty ? MOVEMENT_DIFFICULTY_LABELS[movement.difficulty] : null,
+      primaryMuscles: movement.primaryMuscles.map((muscle) => MUSCLE_GROUP_LABELS[muscle]),
+      secondaryMuscles: movement.secondaryMuscles.map((muscle) => MUSCLE_GROUP_LABELS[muscle]),
+      instructions: movement.instructions,
+      recordTypes: movement.recordTypes,
+    });
+    return this.process({
+      userId,
+      type: 'MOVEMENT_EXPLANATION',
+      promptVersion: MOVEMENT_PROMPT_VERSION,
+      systemInstruction: MOVEMENT_SYSTEM_INSTRUCTION,
+      task: 'Explica este movimiento usando exclusivamente los datos del catálogo recibidos.',
+      targetId: slug,
+      periodDays: null,
       context,
     });
   }

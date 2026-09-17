@@ -744,6 +744,113 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiErrorResponse"
       tags: *a14
+  /ai/status:
+    get:
+      operationId: AiController_status
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiStatusResponse"
+      security: &a15
+        - bearer: []
+      tags: &a16
+        - ai
+  /ai/consent:
+    post:
+      operationId: AiController_consent
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiConsentResponse"
+      security: *a15
+      tags: *a16
+    delete:
+      operationId: AiController_revoke
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiConsentResponse"
+      security: *a15
+      tags: *a16
+  /ai/analyze/progress:
+    post:
+      operationId: AiController_progress
+      parameters: []
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAnalysisResponse"
+      security: *a15
+      tags: *a16
+  /ai/analyze/workout/{workoutId}:
+    post:
+      operationId: AiController_analyzeWorkout
+      parameters:
+        - name: workoutId
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAnalysisResponse"
+      security: *a15
+      tags: *a16
+  /ai/explain/wod/{slug}:
+    post:
+      operationId: AiController_explainWod
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAnalysisResponse"
+      security: *a15
+      tags: *a16
+  /ai/explain/movement/{slug}:
+    post:
+      operationId: AiController_explainMovement
+      parameters:
+        - name: slug
+          required: true
+          in: path
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiAnalysisResponse"
+      security: *a15
+      tags: *a16
 info:
   title: GarFit API
   description: "API central de GarFit: autenticación, perfil del atleta y releases."
@@ -1311,7 +1418,7 @@ components:
           nullable: true
         distanceUnit:
           type: string
-          enum: &a15
+          enum: &a17
             - METER
             - KILOMETER
             - MILE
@@ -1488,7 +1595,7 @@ components:
           nullable: true
         distanceUnit:
           type: string
-          enum: *a15
+          enum: *a17
           nullable: true
         distanceMeters:
           type: number
@@ -1641,7 +1748,7 @@ components:
         - series
     DistanceUnit:
       type: string
-      enum: *a15
+      enum: *a17
     CreateRecordDto:
       type: object
       properties:
@@ -1714,7 +1821,7 @@ components:
           maxLength: 500
     WorkoutType:
       type: string
-      enum: &a16
+      enum: &a18
         - STRENGTH
         - FOR_TIME
         - AMRAP
@@ -1921,7 +2028,7 @@ components:
           type: object
         workoutType:
           type: string
-          enum: *a16
+          enum: *a18
         durationSeconds:
           type: object
         rounds:
@@ -2389,3 +2496,181 @@ components:
         - downloadUrl
         - sha256
         - changelog
+    AiProviderName:
+      type: string
+      enum:
+        - GEMINI
+        - FAKE
+    AiStatusResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        configured:
+          type: boolean
+        provider:
+          allOf:
+            - $ref: "#/components/schemas/AiProviderName"
+        model:
+          type: string
+        consentGivenAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - enabled
+        - configured
+        - provider
+        - model
+        - consentGivenAt
+    AiConsentResponse:
+      type: object
+      properties:
+        consentGivenAt:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+        - consentGivenAt
+    AiAnalysisType:
+      type: string
+      enum:
+        - PROGRESS_ANALYSIS
+        - WORKOUT_ANALYSIS
+        - WOD_EXPLANATION
+        - MOVEMENT_EXPLANATION
+    AiAnalysisStatus:
+      type: string
+      enum:
+        - COMPLETED
+        - INSUFFICIENT_DATA
+    AiEvidenceCategory:
+      type: string
+      enum:
+        - PROFILE
+        - ACTIVITY
+        - PERSONAL_RECORD
+        - VOLUME
+        - WORKOUT
+        - HISTORY
+        - WOD
+        - MOVEMENT
+    AiEvidenceFactResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        category:
+          allOf:
+            - $ref: "#/components/schemas/AiEvidenceCategory"
+        label:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: number
+        unit:
+          type: string
+        occurredAt:
+          type: string
+          format: date
+      required:
+        - id
+        - category
+        - label
+        - value
+    AiAnalysisItemResponse:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        evidence:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiEvidenceFactResponse"
+      required:
+        - title
+        - description
+        - evidence
+    AiDataUsedResponse:
+      type: object
+      properties:
+        label:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: number
+      required:
+        - label
+        - value
+    AiAnalysisResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          nullable: true
+        type:
+          allOf:
+            - $ref: "#/components/schemas/AiAnalysisType"
+        status:
+          allOf:
+            - $ref: "#/components/schemas/AiAnalysisStatus"
+        cached:
+          type: boolean
+        provider:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/AiProviderName"
+        model:
+          type: string
+          nullable: true
+        promptVersion:
+          type: string
+          nullable: true
+        generatedAt:
+          type: string
+          format: date-time
+        periodDays:
+          type: number
+          nullable: true
+        summary:
+          type: string
+        observations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAnalysisItemResponse"
+        suggestions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiAnalysisItemResponse"
+        limitations:
+          type: array
+          items:
+            type: string
+        missingData:
+          type: array
+          items:
+            type: string
+        dataUsed:
+          type: array
+          items:
+            $ref: "#/components/schemas/AiDataUsedResponse"
+      required:
+        - id
+        - type
+        - status
+        - cached
+        - provider
+        - model
+        - promptVersion
+        - generatedAt
+        - periodDays
+        - summary
+        - observations
+        - suggestions
+        - limitations
+        - missingData
+        - dataUsed
