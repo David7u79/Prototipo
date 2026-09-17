@@ -35,6 +35,7 @@ export default function TrainScreen() {
     <ScrollView contentContainerStyle={{ gap: 14, padding: 20 }}>
       <Title>Entrenar</Title>
       <Action label="Nuevo entrenamiento" onPress={() => router.push('/(app)/workouts/new')} />
+      <Action label="Desde un WOD" onPress={() => router.push('/(app)/wods')} secondary />
       <Text style={uiStyles.muted}>Continúa donde lo dejaste</Text>
       {loading ? <ActivityIndicator /> : null}
       {error ? <Text>{error}</Text> : null}

@@ -1,4 +1,4 @@
-import { displayUnitFor, type RecordType } from '@garfit/domain';
+import { displayUnitFor, type DistanceUnit, type RecordType } from '@garfit/domain';
 import { RECORD_TYPE_LABELS, createRecordSchema } from '@garfit/validation';
 import type { MovementDetail } from '@garfit/types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -21,6 +21,8 @@ export default function NewRecordScreen() {
   const [movement, setMovement] = useState<MovementDetail | null>(null);
   const [type, setType] = useState<RecordType | null>(null);
   const [value, setValue] = useState('');
+  const [distanceValue, setDistanceValue] = useState('');
+  const [distanceUnit, setDistanceUnit] = useState<DistanceUnit>('KILOMETER');
   const [repetitions, setRepetitions] = useState('1');
   const [performedAt, setPerformedAt] = useState(today());
   const [notes, setNotes] = useState('');
@@ -45,6 +47,8 @@ export default function NewRecordScreen() {
       value: parsedValue,
       unit,
       repetitions: type === 'WEIGHT' ? Number(repetitions) : null,
+      distanceValue: type === 'TIME' ? parseRecordValue('DISTANCE', distanceValue) : null,
+      distanceUnit: type === 'TIME' ? distanceUnit : null,
       performedAt,
       notes: notes.trim() || null,
     });
@@ -105,6 +109,28 @@ export default function NewRecordScreen() {
           />
         </>
       ) : null}
+      {type === 'TIME' ? (
+        <>
+          <Text>Distancia cronometrada</Text>
+          <Field
+            accessibilityLabel="Distancia cronometrada"
+            value={distanceValue}
+            onChangeText={setDistanceValue}
+            keyboardType="decimal-pad"
+            placeholder="5"
+          />
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(['METER', 'KILOMETER', 'MILE'] as const).map((candidate) => (
+              <Button
+                key={candidate}
+                label={distanceLabel(candidate)}
+                onPress={() => setDistanceUnit(candidate)}
+                secondary={distanceUnit !== candidate}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
       <Text>Fecha</Text>
       <Field
         accessibilityLabel="Fecha"
@@ -132,4 +158,8 @@ export default function NewRecordScreen() {
       />
     </ScrollView>
   );
+}
+
+function distanceLabel(unit: DistanceUnit): string {
+  return unit === 'METER' ? 'm' : unit === 'KILOMETER' ? 'km' : 'mi';
 }

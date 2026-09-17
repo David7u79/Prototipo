@@ -16,6 +16,8 @@ export default function AppLayout() {
         options={{ title: 'Nuevo entrenamiento', headerShown: true }}
       />
       <Stack.Screen name="workouts/[id]" options={{ title: 'Entrenamiento', headerShown: true }} />
+      <Stack.Screen name="wods/index" options={{ title: 'WODs', headerShown: true }} />
+      <Stack.Screen name="wods/[slug]" options={{ title: 'WOD', headerShown: true }} />
     </Stack>
   );
 }

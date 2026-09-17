@@ -1,4 +1,4 @@
-import type { RecordsSummaryResponse } from '@garfit/types';
+import type { RecordsSummaryResponse, WorkoutStatsResponse } from '@garfit/types';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
@@ -19,6 +19,7 @@ export default function HomeScreen() {
   const { loadProfile, profile, request, user } = useSession();
   const router = useRouter();
   const [data, setData] = useState<RecordsSummaryResponse | null>(null);
+  const [workoutStats, setWorkoutStats] = useState<WorkoutStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +33,13 @@ export default function HomeScreen() {
       }
       setError(null);
       try {
-        const [summary] = await Promise.all([
+        const [summary, stats] = await Promise.all([
           request(() => api.records.summary()),
+          request(() => api.workouts.stats()),
           loadProfile().catch(() => null),
         ]);
         setData(summary);
+        setWorkoutStats(stats);
       } catch (cause) {
         setError(messageFor(cause));
       } finally {
@@ -182,15 +185,13 @@ export default function HomeScreen() {
             </Pressable>
           ) : null}
 
-          <View
-            accessible={true}
-            accessibilityLabel="Entrenamientos: disponible en la próxima fase"
-          >
-            <Card>
-              <Text style={styles.cardTitle}>Entrenamientos</Text>
-              <Text style={uiStyles.muted}>Disponible en la próxima fase.</Text>
-            </Card>
-          </View>
+          {workoutStats ? (
+            <WorkoutSummary
+              stats={workoutStats}
+              onOpen={(id) => router.push(`/(app)/workouts/${id}`)}
+              onRegister={() => router.push('/(app)/workouts/new')}
+            />
+          ) : null}
 
           {hasNoData ? (
             <View
@@ -247,6 +248,65 @@ export default function HomeScreen() {
         </>
       ) : null}
     </ScrollView>
+  );
+}
+
+function WorkoutSummary({
+  stats,
+  onOpen,
+  onRegister,
+}: {
+  stats: WorkoutStatsResponse;
+  onOpen: (id: string) => void;
+  onRegister: () => void;
+}) {
+  if (stats.totalCompleted === 0) {
+    return (
+      <Card>
+        <Text style={styles.cardTitle}>Entrenamientos</Text>
+        <Text style={uiStyles.muted}>Aún no has registrado entrenamientos.</Text>
+        <Pressable
+          accessibilityLabel="Registrar entrenamiento"
+          accessibilityRole="button"
+          onPress={onRegister}
+          style={uiStyles.button}
+        >
+          <Text style={uiStyles.buttonText}>Registrar entrenamiento</Text>
+        </Pressable>
+      </Card>
+    );
+  }
+  return (
+    <>
+      <Card>
+        <Text style={styles.cardTitle}>Esta semana</Text>
+        <Text style={styles.cardValue}>{stats.last7Days}</Text>
+      </Card>
+      <Card>
+        <Text style={styles.cardTitle}>Este mes</Text>
+        <Text style={styles.cardValue}>{stats.last30Days}</Text>
+      </Card>
+      <Card>
+        <Text style={styles.cardTitle}>Marcas desde entrenamientos (30 días)</Text>
+        <Text style={styles.cardValue}>{stats.personalRecordsFromWorkoutsLast30Days}</Text>
+      </Card>
+      {stats.lastWorkout ? (
+        <Pressable
+          accessibilityLabel={`Abrir último entrenamiento ${stats.lastWorkout.name}`}
+          accessibilityRole="button"
+          onPress={() => onOpen(stats.lastWorkout?.id ?? '')}
+        >
+          <Card>
+            <Text style={styles.cardTitle}>Último entrenamiento</Text>
+            <Text style={uiStyles.muted}>
+              {`${stats.lastWorkout.name} · ${stats.lastWorkout.headline ?? 'Sin resultado'} · ${
+                stats.lastWorkout.performedOn ?? 'Sin fecha'
+              }`}
+            </Text>
+          </Card>
+        </Pressable>
+      ) : null}
+    </>
   );
 }
 
