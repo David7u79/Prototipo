@@ -34,11 +34,7 @@ export interface AiGenerationResult {
  * (tiempo de espera, 5xx, red); nunca con credenciales inválidas, cuota agotada o petición mala.
  */
 export type AiProviderErrorKind =
-  | 'TIMEOUT'
-  | 'UNAVAILABLE'
-  | 'RATE_LIMITED'
-  | 'AUTH'
-  | 'BAD_REQUEST';
+  'TIMEOUT' | 'UNAVAILABLE' | 'RATE_LIMITED' | 'AUTH' | 'BAD_REQUEST';
 
 export class AiProviderError extends Error {
   constructor(

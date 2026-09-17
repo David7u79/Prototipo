@@ -19,7 +19,12 @@ export interface Env {
   /** Vacío = `storage/releases` en la raíz del repositorio. */
   RELEASES_STORAGE_DIR: string | null;
   GEMINI_API_KEY: string | null;
-  GEMINI_MODEL: string | null;
+  GEMINI_MODEL: string;
+  GEMINI_ENABLED: boolean;
+  AI_PROVIDER: 'gemini' | 'fake';
+  AI_TIMEOUT_MS: number;
+  AI_RATE_LIMIT_PER_MINUTE: number;
+  AI_RATE_LIMIT_PER_DAY: number;
 }
 
 const MIN_SECRET_LENGTH = 32;
@@ -55,8 +60,14 @@ export function validateEnvironment(raw: Record<string, unknown>): Env {
   }
 
   const port = positiveInt('PORT', 4000);
+  const nodeEnv = text('NODE_ENV') ?? 'development';
+  const provider = text('AI_PROVIDER') ?? 'gemini';
+  if (provider !== 'gemini' && provider !== 'fake')
+    throw new Error('AI_PROVIDER debe ser gemini o fake');
+  if (provider === 'fake' && nodeEnv === 'production')
+    throw new Error('AI_PROVIDER=fake no está permitido en producción');
   return {
-    NODE_ENV: text('NODE_ENV') ?? 'development',
+    NODE_ENV: nodeEnv,
     PORT: port,
     DATABASE_URL: required('DATABASE_URL'),
     PUBLIC_API_URL: (text('PUBLIC_API_URL') ?? `http://localhost:${port}`).replace(/\/+$/, ''),
@@ -69,6 +80,11 @@ export function validateEnvironment(raw: Record<string, unknown>): Env {
     GOOGLE_EXTRA_AUDIENCES: list('GOOGLE_EXTRA_AUDIENCES'),
     RELEASES_STORAGE_DIR: text('RELEASES_STORAGE_DIR'),
     GEMINI_API_KEY: text('GEMINI_API_KEY'),
-    GEMINI_MODEL: text('GEMINI_MODEL'),
+    GEMINI_MODEL: text('GEMINI_MODEL') ?? 'gemini-3.8-flash',
+    GEMINI_ENABLED: text('GEMINI_ENABLED') !== 'false',
+    AI_PROVIDER: provider,
+    AI_TIMEOUT_MS: positiveInt('AI_TIMEOUT_MS', 25000),
+    AI_RATE_LIMIT_PER_MINUTE: positiveInt('AI_RATE_LIMIT_PER_MINUTE', 5),
+    AI_RATE_LIMIT_PER_DAY: positiveInt('AI_RATE_LIMIT_PER_DAY', 100),
   };
 }
