@@ -4,6 +4,12 @@ import type { PrismaService } from '../src/prisma/prisma.service.js';
 
 export const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
 
+type CreatedWorkout = {
+  id: string;
+  exercises: { id: string }[];
+  [key: string]: unknown;
+};
+
 let userCounter = 0;
 
 /** Registra un usuario nuevo y devuelve su access token. */
@@ -115,4 +121,71 @@ export async function seedTestMovements(prisma: PrismaService): Promise<void> {
 /** Fecha `YYYY-MM-DD` de hace `days` días. */
 export function daysAgo(days: number): string {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
+/** Crea un borrador libre con los campos que exige la prescripción. */
+export function workoutDraft(
+  name: string,
+  workoutType: 'STRENGTH' | 'FOR_TIME' | 'AMRAP' | 'CARDIO' = 'STRENGTH',
+  movementSlug = 'barbell-full-squat',
+  extra: object = {},
+) {
+  return {
+    name,
+    workoutType,
+    description: null,
+    notes: null,
+    durationSeconds: workoutType === 'AMRAP' ? 600 : null,
+    rounds: null,
+    intervalSeconds: null,
+    repScheme: [],
+    exercises: [
+      {
+        movementSlug,
+        targetSets: null,
+        targetReps: null,
+        targetLoadValue: null,
+        targetLoadUnit: null,
+        targetDistanceValue: null,
+        targetDistanceUnit: null,
+        targetDurationSeconds: null,
+        restSeconds: null,
+        notes: null,
+      },
+    ],
+    ...extra,
+  };
+}
+
+/** Crea un entrenamiento y devuelve su detalle. */
+export async function createWorkout(
+  app: INestApplication,
+  token: string,
+  body: object,
+): Promise<CreatedWorkout> {
+  const response = await request(app.getHttpServer())
+    .post('/workouts')
+    .set(bearer(token))
+    .send(body)
+    .expect(201);
+  return response.body;
+}
+
+/** Completa un entrenamiento incluyendo resultados en la misma petición. */
+export function completeWorkout(
+  app: INestApplication,
+  token: string,
+  workoutId: string,
+  results: object,
+  performedOn?: string,
+) {
+  return request(app.getHttpServer())
+    .post(`/workouts/${workoutId}/complete`)
+    .set(bearer(token))
+    .send({ results, ...(performedOn ? { performedOn } : {}) });
+}
+
+/** Resultado con una sola serie, útil para fuerza y cardio. */
+export function oneSet(exerciseId: string, set: object, score: object | null = null) {
+  return { exercises: [{ exerciseId, sets: [set] }], score };
 }
