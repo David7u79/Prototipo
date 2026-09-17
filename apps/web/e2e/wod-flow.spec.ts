@@ -1,5 +1,19 @@
 import { expect, test, type Page } from '@playwright/test';
 
+const evidence = '../../docs/evidence/fase-4/capturas';
+
+async function screenshot(page: Page, name: string) {
+  await page.screenshot({
+    path: `${evidence}/${name}`,
+    fullPage: false,
+    mask: [
+      page.locator('input[type="email"]'),
+      page.locator('input[name="email"]'),
+      page.getByText(/@/),
+    ],
+  });
+}
+
 async function registerAndCreateProfile(page: Page) {
   const suffix = Date.now();
   const email = `wod-${suffix}@example.com`;
@@ -26,6 +40,7 @@ test('crear y explicar WOD personal', async ({ page }) => {
   await page.getByLabel('Buscar movimiento').fill('run');
   await page.getByRole('button', { name: /run/i }).first().click();
   await page.getByLabel('Repeticiones').fill('400');
+  await screenshot(page, 'wod-new.png');
   await page.getByRole('button', { name: 'Guardar WOD' }).click();
 
   await expect(page.getByRole('heading', { name: 'WOD personal' })).toBeVisible();
@@ -39,4 +54,5 @@ test('crear y explicar WOD personal', async ({ page }) => {
   await expect(observation.getByRole('heading')).toBeVisible();
   await observation.getByText('Evidencia', { exact: true }).click();
   await expect(observation.getByRole('listitem', { name: /^Hecho:/ }).first()).toBeVisible();
+  await screenshot(page, 'ai-wod-explanation.png');
 });

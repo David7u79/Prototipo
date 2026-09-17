@@ -49,6 +49,33 @@ describe('AiAnalysis', () => {
     expect(markup).toContain('Datos que faltan');
     expect(markup).toContain('Completa al menos un entrenamiento de fuerza.');
   });
+
+  it('formatea correctamente fechas ISO con marca de tiempo', () => {
+    const markup = renderToStaticMarkup(
+      <AiAnalysis
+        analysis={{
+          id: 'test-id',
+          type: 'WOD_EXPLANATION',
+          status: 'COMPLETED',
+          cached: false,
+          provider: 'FAKE',
+          model: 'fake',
+          promptVersion: '1.0',
+          generatedAt: '2026-09-17T18:52:25.123Z',
+          periodDays: null,
+          summary: 'Explicación del WOD',
+          observations: [],
+          suggestions: [],
+          limitations: [],
+          missingData: [],
+          dataUsed: [],
+        }}
+      />,
+    );
+
+    expect(markup).toContain('Explicación del WOD');
+    expect(markup).toMatch(/17-sep|17 sept/i);
+  });
 });
 
 it('identifica un resultado recuperado de caché', () => {
