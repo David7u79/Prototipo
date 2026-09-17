@@ -14,3 +14,5 @@ No existe endpoint de IA: `GeminiAiProvider` rechaza como no implementado. En la
 futura, PRs, porcentajes y estadísticas se calcularán en código determinista; Gemini sólo
 interpretará, explicará o redactará. `GEMINI_API_KEY` y `GEMINI_MODEL` son exclusivos del
 servidor y nunca llegan a clientes.
+
+El diagrama describe una propuesta, no tráfico activo. Su decisión principal es conservar cálculos y secretos en API; el riesgo futuro es enviar más contexto del necesario a un tercero. Antes de habilitarlo deberán definirse consentimiento, minimización y pruebas.

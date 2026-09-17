@@ -1,11 +1,11 @@
 # Información de compilación
 
-- Fecha: 2026-09-16T23:48:11.503Z
-- Commit: 1becc5b7c2cb8677d4d89ccac38c469890db6013
+- Fecha: 2026-09-17T00:02:34.883Z
+- Commit: 5edd3bc402e2df4b33fa6565aac83906ebfa6518
 - Rama: ai/docs
 - Cambios sin commit: sí
 - Node: v24.19.0
-- pnpm: PENDIENTE
+- pnpm: 11.20.0
 - Última migración: 20260916230349_init
 - SHA-256 corto de schema.prisma: 0fcd18fd1751
 

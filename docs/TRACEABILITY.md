@@ -1,21 +1,16 @@
 # Trazabilidad
 
-| Requerimiento | Módulo / implementación | Prueba | Resultado | Evidencia |
+La evidencia de ejecución es [pruebas de fase 1](evidence/fase-1/pruebas-2026-09-16.md).
+
+| Requerimiento | Implementación concreta | Prueba | Resultado | Evidencia |
 | --- | --- | --- | --- | --- |
-| RF-01 | `apps/api/src/auth/auth.service.ts` | `apps/api/test/auth.spec.ts` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RF-02 | `apps/api/src/auth/google-identity.verifier.ts` | `apps/api/test/google-auth.spec.ts` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RF-03 | `apps/api/src/profile/profile.controller.ts` | `apps/api/test/profile.spec.ts` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RF-04 | `apps/api/src/releases/releases.controller.ts` | `apps/api/test/releases.spec.ts` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RNF-01 | `apps/web/src`, `apps/mobile/src` | Pruebas de integración manual | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RNF-02 | `apps/api/src/auth/auth.service.ts` | `apps/api/test/auth.spec.ts` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RNF-03 | `packages/types/src/index.ts` | `packages/validation/src/index.test.ts` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RNF-04 | `scripts/docs/generate.mjs` | `node scripts/docs/generate.mjs --check` | PENDIENTE de ejecución registrada | `docs/evidence/` |
-| RNF-05 | `apps/api/src/ai/gemini-ai.provider.ts` | Revisión de configuración | PENDIENTE de ejecución registrada | `docs/evidence/` |
+| RF-01 | auth.service.ts; auth.controller.ts | auth.spec.ts › autenticación local › registra el usuario normalizado y devuelve tokens seguros | Pasa (ver evidencia) | pruebas fase 1 |
+| RF-02 | google-identity.verifier.ts; auth.service.ts | google-auth.spec.ts › POST /auth/google › crea y reutiliza la cuenta Google del mismo sub | Pasa (ver evidencia) | pruebas fase 1 |
+| RF-03 | profile.controller.ts | profile.spec.ts › GET y PUT /profile › crea, consulta y actualiza el mismo perfil | Pasa (ver evidencia) | pruebas fase 1 |
+| RF-04 | releases.controller.ts; local-release-storage.ts | releases.spec.ts › releases Android › descarga el APK publicado con cabeceras y bytes correctos | Pasa (ver evidencia) | pruebas fase 1 |
+| RNF-01 | web/lib/auth.ts; mobile/lib/auth.tsx | auth-utils.test.ts › safeNext › only accepts local app routes | Pasa (ver evidencia) | pruebas fase 1 |
+| RNF-02 | auth.service.ts | auth.spec.ts › autenticación local › rota refresh, rechaza el anterior y revoca sesiones al reutilizarlo | Pasa (ver evidencia) | pruebas fase 1 |
+| RNF-03 | types, validation, api-client | validation/index.test.ts › esquemas de validación › acepta registro y normaliza el correo | Pasa (ver evidencia) | pruebas fase 1 |
+| RNF-05 | ai/gemini-ai.provider.ts | Sin prueba automatizada específica | PENDIENTE de evidencia específica | revisión de código |
 
-## Planeado
-
-| Requerimiento | Estado | Pruebas |
-| --- | --- | --- |
-| RF-05 Registro de movimientos, entrenamientos y resultados | Planeado | Sin pruebas |
-| RF-06 PRs, historial, estadísticas y evolución | Planeado | Sin pruebas |
-| RF-07 Asistente IA | Planeado | Sin pruebas |
+RF-05, RF-06 y RF-07 están planeados y no tienen implementación ni pruebas.

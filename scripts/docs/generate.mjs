@@ -6,17 +6,20 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const isWindows = process.platform === 'win32';
-const pnpm = isWindows ? 'pnpm.cmd' : 'pnpm';
+const pnpm = isWindows ? 'cmd.exe' : 'pnpm';
 const check = process.argv.includes('--check');
 const failures = [];
 
+function pnpmArgs(args) {
+  return isWindows ? ['/d', '/s', '/c', 'pnpm', ...args] : args;
+}
 function run(label, command, args, cwd = root) {
   console.log(`Documentación: ${label}`);
   try {
     execFileSync(command, args, {
       cwd,
       stdio: 'inherit',
-      shell: isWindows && command.endsWith('.cmd'),
+      shell: false,
     });
   } catch {
     failures.push(label);
@@ -106,7 +109,7 @@ function writeBuildInfo() {
 
 function gitPnpmVersion() {
   try {
-    return execFileSync(pnpm, ['--version'], { cwd: root, encoding: 'utf8' }).trim();
+    return execFileSync(pnpm, pnpmArgs(['--version']), { cwd: root, encoding: 'utf8' }).trim();
   } catch {
     return 'PENDIENTE';
   }
@@ -114,8 +117,8 @@ function gitPnpmVersion() {
 
 mkdirSync(join(root, 'docs/generated/openapi'), { recursive: true });
 mkdirSync(join(root, 'docs/generated/database'), { recursive: true });
-run('OpenAPI', pnpm, ['--filter', '@garfit/api', 'openapi:export']);
-run('ERD Prisma', pnpm, ['--filter', '@garfit/api', 'prisma:generate']);
+run('OpenAPI', pnpm, pnpmArgs(['--filter', '@garfit/api', 'openapi:export']));
+run('ERD Prisma', pnpm, pnpmArgs(['--filter', '@garfit/api', 'prisma:generate']));
 run('TypeDoc', process.execPath, [join(root, 'node_modules/typedoc/bin/typedoc')]);
 if (!check) {
   writeCoverage();
