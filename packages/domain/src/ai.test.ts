@@ -9,7 +9,9 @@ import {
   seriesSlug,
   stableStringify,
   unknownEvidenceIds,
+  wodPerformanceFacts,
 } from './ai.js';
+import { compareWodPerformance } from './comparisons.js';
 import { buildProgressSnapshot } from './progress-snapshot.js';
 import type { RecordEntry } from './records.js';
 
@@ -406,5 +408,91 @@ describe('resolución de evidencia', () => {
       'b',
       'a',
     ]);
+  });
+});
+
+describe('hechos de comparación para IA', () => {
+  it('incluye la comparación de entrenamientos del periodo sin repetir identificadores', () => {
+    const data = snapshot();
+    const facts = buildProgressContext(data).facts;
+    expect(facts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'period:30d:workouts:current',
+          value: data.periodComparison.current.workouts,
+        }),
+        expect.objectContaining({
+          id: 'period:30d:workouts:previous',
+          value: data.periodComparison.previous.workouts,
+        }),
+        expect.objectContaining({
+          id: 'period:30d:workouts:change',
+          value: data.periodComparison.change.workouts.absolute,
+        }),
+      ]),
+    );
+    expect(facts.map((fact) => fact.id)).toHaveLength(new Set(facts.map((fact) => fact.id)).size);
+  });
+
+  it('expone el rendimiento de WOD con displays y mejora absoluta', () => {
+    const performance = compareWodPerformance('FOR_TIME', [
+      {
+        workoutId: 'primero',
+        performedOn: '2026-06-01',
+        score: { ...score, timeSeconds: 312 },
+        sets: [],
+      },
+      {
+        workoutId: 'último',
+        performedOn: '2026-06-02',
+        score: { ...score, timeSeconds: 288 },
+        sets: [],
+      },
+    ]);
+    const facts = wodPerformanceFacts('fran', 'Fran', performance);
+    expect(facts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'wod:fran:attempts', value: performance.attempts }),
+        expect.objectContaining({ id: 'wod:fran:best', value: '4:48' }),
+        expect.objectContaining({ id: 'wod:fran:latest', value: '4:48' }),
+        expect.objectContaining({ id: 'wod:fran:previous', value: '5:12' }),
+        expect.objectContaining({ id: 'wod:fran:improvement', value: 24 }),
+        expect.objectContaining({ id: 'wod:fran:improvement-percent', value: 7.69 }),
+      ]),
+    );
+  });
+
+  it('no produce hechos de WOD sin comparación o sin intentos', () => {
+    expect(wodPerformanceFacts('fran', 'Fran', compareWodPerformance('EMOM', []))).toEqual([]);
+    expect(wodPerformanceFacts('fran', 'Fran', compareWodPerformance('FOR_TIME', []))).toEqual([]);
+  });
+
+  it('incluye los hechos de WOD sólo cuando el entrenamiento tiene WOD', () => {
+    const performance = compareWodPerformance('FOR_TIME', [
+      {
+        workoutId: 'uno',
+        performedOn: '2026-06-01',
+        score: { ...score, timeSeconds: 300 },
+        sets: [],
+      },
+    ]);
+    const input = {
+      name: 'Fran',
+      description: null,
+      notes: null,
+      workoutType: 'FOR_TIME' as const,
+      performedOn: '2026-06-01',
+      score: { ...score, timeSeconds: 300 },
+      exercises: [],
+      personalRecords: [],
+      previousWorkouts: [],
+    };
+    const withWod = buildWorkoutContext({
+      ...input,
+      wod: { slug: 'fran', name: 'Fran', performance },
+    });
+    const withoutWod = buildWorkoutContext({ ...input, wod: null });
+    expect(withWod.facts.some((fact) => fact.id.startsWith('wod:fran:'))).toBe(true);
+    expect(withoutWod.facts.some((fact) => fact.id.startsWith('wod:'))).toBe(false);
   });
 });
