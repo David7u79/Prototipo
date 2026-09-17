@@ -500,3 +500,36 @@ En móvil, la pantalla `/(app)/ai` se abre desde las acciones de detalle «Anali
 ![Figura 11.8. Creación de WOD](../evidence/fase-4/capturas/wod-new.png)
 
 *Figura 11.8. Creación de WOD personal desde web.*
+
+## 11.10 Uso de la distribución y comparaciones de fase 5
+
+1. Abra la landing de GarFit y elija la descarga Android de la release publicada. Revise versión, fecha, notas, tamaño y SHA-256 antes de descargar.
+2. Abra el APK descargado. Android pedirá aceptar la advertencia para instalar desde esa fuente; habilite el permiso para el navegador o gestor de archivos y continúe sólo si reconoce el origen.
+3. En la información de la aplicación compruebe la versión 0.5.0. Para una verificación técnica, calcule SHA-256 del archivo y contraste `e4eabfe20c7dd44d4ef0ca6d448b2ff98f03caf13e4ae7559166cb8f95846bd5`.
+4. En Análisis, abra el historial para consultar un resultado previo; hacerlo no solicita un nuevo análisis. Use la acción de borrado de una entrada o del historial completo cuando corresponda.
+5. En el detalle de un WOD, lea intentos, mejor, último y cambio. Si no existe una comparación numérica, lea el motivo mostrado en lugar de inferir una mejora.
+6. En estadísticas de entrenamientos, contraste el periodo actual con el anterior. Los cambios son descriptivos y no son una calificación deportiva.
+
+![Figura 11.1. Historial de análisis guardados.](../evidence/fase-5/capturas/ai-history.png)
+
+*Figura 11.1. Consulta del historial de análisis de IA.*
+
+![Figura 11.2. Detalle de un análisis guardado.](../evidence/fase-5/capturas/ai-history-detail.png)
+
+*Figura 11.2. Un análisis abierto conserva sus hechos y no regenera una respuesta.*
+
+![Figura 11.3. Comparación de rendimiento de WOD.](../evidence/fase-5/capturas/wod-performance.png)
+
+*Figura 11.3. Visualización de intentos y cambio en un WOD.*
+
+![Figura 11.4. Comparación de periodos.](../evidence/fase-5/capturas/period-comparison.png)
+
+*Figura 11.4. Comparación descriptiva entre ventanas de entrenamiento.*
+
+![Figura 11.5. Descarga Android.](../evidence/fase-5/capturas/android-download.png)
+
+*Figura 11.5. Landing con descarga, integridad y QR estable.*
+
+![Figura 11.6. Información de la release.](../evidence/fase-5/capturas/android-release-info.png)
+
+*Figura 11.6. Metadatos de la release Android publicada.*

@@ -64,3 +64,9 @@ La transición hacia la fase 3 requerirá mantener la disciplina arquitectónica
 La siguiente fase debe probar la integración con una clave real de Gemini en un entorno autorizado y registrar el resultado sin publicar secretos. También debe incorporar historial de análisis, comparación de WODs y un chat acotado que conserve consentimiento, contexto mínimo, salida estructurada y evidencia verificable.
 
 La verificación en dispositivo Android es prioritaria. Permanecen como deuda el aviso de `pg` durante la semilla demo, cobertura unitaria baja de web, límite de IA por instancia que requerirá almacén compartido al escalar, falta de historial y ausencia de un control para regenerar un análisis cuando los datos no cambian. Ninguno de estos puntos debe resolverse debilitando la regla de que GarFit calcula y el modelo interpreta.
+
+## 12.10 Fase 6 condicionada
+
+Antes de ampliar el alcance debe cerrarse la validación de Gemini con credencial real, una instalación en dispositivo Android y Google OAuth con credenciales. También se debe decidir la firma de publicación, la URL de API para dispositivos y la persistencia distribuida del límite de IA.
+
+Con esas condiciones, la fase 6 podrá explorar un chat acotado con las mismas garantías de evidencia, preguntas sobre análisis del historial, generación asistida de WOD, objetivos, notificaciones y un actualizador Android. Cada capacidad deberá conservar cálculos deterministas, consentimiento, límites, borrado controlado y pruebas verificables; no se adoptará como extensión automática del prototipo actual.
