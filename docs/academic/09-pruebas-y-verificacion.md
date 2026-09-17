@@ -65,6 +65,22 @@ La suite E2E automatiza la navegación real de un atleta sobre la plataforma int
 
 ## 9.4 Procedimiento de ejecución y verificación documental
 
+## 9.5 Verificación acumulada de la fase 3
+
+La API se probó contra PostgreSQL de integración. El inventario siguiente identifica escenarios por nombre real, para que el lector pueda reproducirlos sin inferir pruebas inexistentes.
+
+| Fichero | Escenarios verificados |
+| --- | --- |
+| `apps/api/test/workouts.spec.ts` | `workouts` › creación libre, copia desde WOD, validación, aislamiento, inicio, resultados, filtros y borrado lógico. |
+| `apps/api/test/workout-records.spec.ts` | `marcas derivadas de workouts` › mejoras, RM, cardio TIME/DISTANCE, completitud e idempotencia concurrente. |
+| `apps/api/test/wods.spec.ts` | `WODs` › benchmarks, WOD privado aislado y validación. |
+| `apps/api/test/workout-stats.spec.ts` | `GET /workouts/stats` › ventanas, volumen y exclusión de borradores. |
+| `packages/domain/src/workouts.test.ts` | prescripciones, canonicalización, volumen, score, candidatos, TIME por distancia y ventanas. |
+| `packages/validation/src/schemas.test.ts` | esquemas de entrenamiento: WOD, entrenamiento, series y score. |
+| `apps/web/e2e/workout-flow.spec.ts` | `athlete-flow workout-flow`: alta, fuerza, dos mejoras, historial, origen, dashboard y `FOR_TIME`. |
+
+Las pruebas detectaron que la primera versión de `complete` no era transaccional, que el detalle devolvía marcas y conteos fijos, que faltaba `origin`, que `setNumber` duplicado generaba 500, que la creación de WOD rechazaba opcionales, que un test permitía alterar marcas derivadas y que las Server Actions capturaban `NEXT_REDIRECT`. Todos fueron corregidos antes del cierre. La prueba en dispositivo móvil permanece PENDIENTE.
+
 Para reproducir la suite de verificación completa en un entorno local:
 
 ```sh

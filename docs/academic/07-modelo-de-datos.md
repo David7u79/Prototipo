@@ -178,6 +178,21 @@ La entidad `PersonalRecord` almacena cada marca deportiva registrada por un atle
 
 ## 7.6 Enumeraciones del dominio deportivo
 
+## 7.7 Extensión de fase 3: WODs, sesiones y resultados
+
+El ERD generado se consulta en [erd.svg](../generated/database/erd.svg). Las tablas siguientes describen atributos persistidos; sus valores se ajustan a la validación de dominio y no se sustituyen por texto libre.
+
+| Entidad | Atributos relevantes | Propósito |
+| --- | --- | --- |
+| `Wod` | `slug`, `name`, `workoutType`, `durationSeconds`, `rounds`, `intervalSeconds`, `repScheme`, `isBenchmark`, `source`, `ownerId` | Plantilla pública o privada. |
+| `WodExercise` | `wodId`, `movementId`, `position`, `reps`, `loadValue`, `loadUnit`, `distanceValue`, `distanceUnit`, `durationSeconds`, `notes` | Prescripción ordenada del WOD. |
+| `Workout` | `userId`, `wodId`, `name`, `workoutType`, `status`, parámetros globales, `performedOn`, `startedAt`, `completedAt`, `deletedAt` | Sesión personal y su ciclo de vida. |
+| `WorkoutExercise` | `workoutId`, `movementId`, `position`, objetivos de serie, `restSeconds`, `notes` | Copia o composición de la sesión. |
+| `WorkoutResult` | `workoutExerciseId`, `setNumber`, `reps`, carga y kg canónicos, distancia y metros canónicos, `durationSeconds` | Resultado por serie. |
+| `WorkoutScore` | `workoutId`, `timeSeconds`, `repsAtTimeCap`, `rounds`, `extraReps`, `completed` | Score global uno a uno. |
+
+`PersonalRecord` añade `distanceValue`, `distanceUnit`, `distanceMeters` y `workoutResultId`. La restricción `@@unique([workoutResultId, recordType])` evita duplicar una marca derivada; los índices por usuario, estado, fecha y movimiento sostienen historial, estadísticas y aislamiento. `WorkoutType` contiene `STRENGTH`, `FOR_TIME`, `AMRAP`, `EMOM`, `CARDIO` y `CUSTOM`; `WorkoutStatus` contiene `DRAFT`, `IN_PROGRESS` y `COMPLETED`.
+
 El esquema define ocho enumeraciones especializadas que delimitan de forma estricta los valores admitidos:
 
 1. **`UnitSystem`:** `METRIC` (sistema métrico: kg, cm, m, km), `IMPERIAL` (sistema imperial: lb, in, mi).

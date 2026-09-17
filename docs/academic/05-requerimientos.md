@@ -154,6 +154,33 @@ Los siguientes requerimientos forman parte del alcance proyectado para la fase 3
 
 ## 5.6 Delimitación y exclusiones del alcance (fuera de alcance)
 
+## 5.7 Requerimientos implementados en la fase 3: entrenamientos y WODs
+
+La tercera fase incorpora sesiones personales estructuradas. Un WOD es una plantilla reutilizable; un Workout es la sesión individual del atleta y conserva una copia de la prescripción cuando nace de un WOD. No se modelan clases, entrenadores ni gimnasios.
+
+| ID | Requerimiento y criterio de aceptación verificable | Estado |
+| --- | --- | --- |
+| RF-13 | Crear un Workout libre, con tipo, prescripción global y hasta 30 ejercicios ordenados; al guardarlo, la API conserva el orden y los objetivos. | Implementado y verificado. |
+| RF-14 | Crear un Workout desde un WOD; la sesión debe copiar la prescripción y rechazar un WOD inexistente. | Implementado y verificado. |
+| RF-15 | Iniciar un borrador y registrar resultados por serie (repeticiones, carga, distancia o duración); la estructura queda fija en `IN_PROGRESS`. | Implementado y verificado. |
+| RF-16 | Registrar el score global aplicable: tiempo o repeticiones al límite en `FOR_TIME`, rondas y repeticiones en `AMRAP`, y completado en `EMOM`. | Implementado y verificado. |
+| RF-17 | Completar la sesión y mostrar detalle, volumen, score y marcas derivadas; un `FOR_TIME` sin score no se completa. | Implementado y verificado. |
+| RF-18 | Crear marcas automáticas sólo por mejora estricta, con origen; una marca `WORKOUT` no admite edición ni retiro desde marcas. | Implementado y verificado. |
+| RF-19 | Consultar historial paginado y filtrable, detalle y estadísticas de 7/30 días, omitiendo borradores y eliminados. | Implementado y verificado. |
+| RF-20 | Listar WODs benchmark y crear WOD privado aislado por atleta. | Implementado y verificado. |
+| RF-21 | Calificar `TIME` por distancia: 5 km y 10 km son series distintas; el tiempo exige distancia. | Implementado y verificado. |
+| RF-22 | Operar el flujo en web y móvil. La web fue verificada E2E; la ejecución en dispositivo móvil queda PENDIENTE por falta de emulador o dispositivo. | Parcialmente verificado. |
+
+### 5.7.1 Requerimientos no funcionales de la fase 3
+
+| ID | Criterio de aceptación verificable | Estado |
+| --- | --- | --- |
+| RNF-13 | `complete` ejecuta resultados, transición, cálculo y marcas en una transacción; repetirlo devuelve el mismo resultado. | Implementado y verificado. |
+| RNF-14 | Dos completados concurrentes del mismo usuario no generan marcas duplicadas. | Implementado y verificado. |
+| RNF-15 | Un Workout `COMPLETED` es inmutable; al borrarlo se aplica borrado lógico al Workout y sus marcas derivadas, conservando origen. | Implementado y verificado. |
+| RNF-16 | Los cálculos de volumen, score, candidatos, estadísticas y progreso son deterministas y no dependen de IA. | Implementado y verificado. |
+| RNF-17 | Límites de carga útil, ejercicios, series, fechas y unidades se validan en cliente y API; los recursos se aíslan por `userId`. | Implementado y verificado. |
+
 Con el propósito de mantener el rigor y la viabilidad del proyecto de titulación, se ratifica que GarFit está enfocado exclusivamente en el progreso personal del atleta. Quedan explícitamente fuera del alcance del prototipo:
 - Módulos de administración comercial para gimnasios (facturación, control de cuotas, membresías, pasarelas de pago recurrentes o puntos de venta / POS).
 - Control de acceso físico, biometría dactilar o integración con torniquetes mecánicos.

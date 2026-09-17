@@ -164,6 +164,16 @@ El script `evidence:web` compila las dependencias de la aplicación web, ejecuta
 
 ## 11.6 Diagnóstico y resolución de problemas frecuentes
 
+## 11.7 Operación de entrenamientos y WODs (fase 3)
+
+Después de ejecutar `pnpm db:seed`, el catálogo incluye los movimientos curados y los seis WODs benchmark. Para una demostración con sesiones ya cerradas se usa `DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo`. El recorrido web comienza en **Entrenamientos**: seleccione **Nuevo entrenamiento**, escriba nombre y tipo, busque movimientos, complete la prescripción por tipo y guarde. Para partir de plantilla, abra **WODs**, consulte un benchmark o WOD propio y cree la sesión desde esa prescripción.
+
+En el detalle de un borrador seleccione **Empezar**. Registre cada serie con sus repeticiones y, cuando aplique, carga, distancia o duración. En `FOR_TIME` capture el tiempo o las repeticiones al límite; en `AMRAP`, rondas y repeticiones; en `EMOM`, el indicador de completado. Seleccione **Completar** sólo después de proporcionar el resultado exigido. El sistema fija la sesión y calcula volumen, score y marcas de forma automática.
+
+Una tarjeta **Primera marca** indica que no había una mejor marca comparable. Una presentación como **115 → 120 kg** indica mejora; el enlace **Origen** lleva a la sesión y serie que la generó. La leyenda **Gestionada por entrenamiento** explica por qué no se muestran Editar ni Retirar: para corregir una serie completada se elimina el entrenamiento, que retira lógicamente sus marcas derivadas, y se registra de nuevo. En **Historial** se filtra por estado y se abre el detalle; el panel de inicio muestra actividad, volumen y sesiones recientes.
+
+La app móvil ofrece el mismo flujo desde las pestañas Entrenar, Historial e Inicio y las rutas de WODs y Workouts. Su compilación y validación estática concluyeron correctamente, pero la operación en dispositivo permanece PENDIENTE. Las capturas del recorrido web son: ![Lista](../evidence/fase-3/capturas/10-workouts-list.png), ![Constructor](../evidence/fase-3/capturas/11-workout-builder.png), ![Activo](../evidence/fase-3/capturas/12-workout-active.png), ![Completado](../evidence/fase-3/capturas/13-workout-completed.png), ![Marca](../evidence/fase-3/capturas/15-workout-pr.png) y ![Dashboard](../evidence/fase-3/capturas/17-dashboard-workouts.png).
+
 1. **Error: `DATABASE_URL no está definida` o fallo de conexión a PostgreSQL:**
    - Compruebe que el contenedor esté en ejecución mediante `docker ps`.
    - Si el puerto 5442 se encuentra en uso por otro proceso, modifique el mapeo en `docker-compose.yml` y ajuste los puertos correspondientes en `.env`.

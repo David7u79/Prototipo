@@ -41,13 +41,13 @@ Dentro de `apps/api/src`, la funcionalidad deportiva se encapsula en dos módulo
 
 1. **Módulo `movements`:**
    - `MovementsController` expone los endpoints de lectura pública autenticada: `GET /movements` (listado con filtros y paginación) y `GET /movements/:slug` (detalle anatómico e instrucciones).
-   - `MovementsService` construye consultas eficientes en Prisma aplicando filtros combinados por búsqueda de texto (`contains` insensible a mayúsculas sobre `name`), categoría, equipamiento, dificultad, tipo de marca admitido (`has`) y grupos musculares (mediante operador `hasSome` sobre músculos primarios o secundarios). Garantiza que sólo se retornen movimientos con `isActive: true`.
-   - `MovementMapper` transforma los modelos de la base de datos a los contratos públicos `MovementSummary` y `MovementDetail`.
+   - `MovementsService` construye consultas eficientes en Prisma aplicando filtros combinados por búsqueda de texto, categoría, equipamiento, dificultad, tipo de marca admitido y grupos musculares primarios o secundarios. Garantiza que sólo se retornen movimientos con `isActive: true`.
+   - El módulo transforma los modelos de la base de datos a los contratos públicos `MovementSummary` y `MovementDetail`.
    - `seed-movements.ts` ejecuta la sincronización por lotes (`batchSize = 200`) de forma idempotente mediante transacciones `upsert` sobre el `slug`, desactivando (sin eliminar) los movimientos de la fuente que ya no figuren en el catálogo.
 2. **Módulo `records`:**
    - `RecordsController` expone las operaciones sobre marcas personales: creación (`POST /records`), listado paginado (`GET /records`), resumen deportivo (`GET /records/summary`), historial detallado por movimiento (`GET /records/:movementSlug`), corrección de atributos (`PATCH /records/:id`) y retiro lógico (`DELETE /records/:id`).
    - `RecordsService` orquestador de persistencia y reglas: verifica que el movimiento exista y esté activo, valida que el tipo de marca pertenezca a los `recordTypes` permitidos, exige `repetitions` únicamente para marcas de peso, calcula el `normalizedValue` en el servidor y restringe todas las operaciones al usuario autenticado. Para el cálculo del historial y resúmenes, delega el ordenamiento y cómputo de métricas directamente en las funciones puras `summarizeAll` y `summarizeSeries` de `@garfit/domain`.
-   - `RecordsMapper` traduce entidades de Prisma a DTOs de salida y formatea respuestas normalizadas.
+   - El módulo traduce entidades de Prisma a DTOs de salida y formatea respuestas normalizadas.
 
 ## 6.4 Mecanismo de doble validación y límites de confianza
 
@@ -76,6 +76,32 @@ flowchart TD
 - **Consistencia de reglas:** Tanto los esquemas Zod del cliente como los decoradores de `class-validator` en la API consumen exactamente las mismas constantes numéricas y patrones de expresiones regulares exportados por `@garfit/domain` (`SLUG_PATTERN`, `RECORD_LIMITS`, `RECORD_REPETITIONS_LIMITS`, `ISO_DATE_PATTERN`).
 
 ## 6.5 Flujos de información y ciclo de vida de marcas
+
+## 6.6 Diseño de entrenamientos de la fase 3
+
+`Wod` representa una plantilla pública de benchmark o una plantilla privada; `Workout` representa exclusivamente una sesión del atleta. El segundo puede referenciar el WOD de origen, pero copia sus ejercicios para que una modificación posterior de la plantilla no modifique la evidencia histórica. `WorkoutResult` almacena una serie ejecutada; `WorkoutScore`, en relación uno a uno, almacena el resultado global que no pertenece a una serie.
+
+El ciclo de vida es `DRAFT` (estructura editable), `IN_PROGRESS` (estructura fija y resultados editables) y `COMPLETED` (inmutable). La prescripción se valida por modalidad en `validatePrescription`; fuerza, cardio y personalizado se resumen desde series, mientras que `FOR_TIME`, `AMRAP` y `EMOM` requieren el score pertinente.
+
+### 6.6.1 Secuencia de completar y derivar marcas
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente
+    participant A as WorkoutsService
+    participant D as PostgreSQL
+    participant R as @garfit/domain
+    C->>A: complete(id, resultados y score)
+    A->>D: transacción y pg_advisory_xact_lock(userId)
+    A->>D: transición condicional a COMPLETED
+    A->>R: normaliza resultados y recordCandidates
+    R-->>A: candidatos deterministas
+    A->>D: selectNewRecords y PersonalRecord WORKOUT
+    D-->>A: detalle y marcas derivadas
+    A-->>C: Workout completado idempotente
+```
+
+La decisión completa, incluida la comparación estricta y el calificador de distancia de `TIME`, consta en [ADR 0008](../adr/0008-workout-result-model.md). La visión conceptual del atleta se amplía en [athlete-domain.md](../architecture/athlete-domain.md).
 
 El ciclo de vida de una marca personal transcurre a través de una secuencia determinista que preserva el valor histórico:
 

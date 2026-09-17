@@ -1,4 +1,4 @@
-# Dominio del atleta (fase 2)
+# Dominio del atleta (fases 2 y 3)
 
 Este documento describe el núcleo deportivo implementado en la fase 2: el atleta, su perfil,
 el catálogo de movimientos y las marcas personales con su progreso. Refleja el código de
@@ -12,6 +12,13 @@ erDiagram
     User ||--o| AthleteProfile : "tiene"
     User ||--o{ PersonalRecord : "registra"
     Movement ||--o{ PersonalRecord : "se mide en"
+    User ||--o{ Workout : "realiza"
+    User ||--o{ Wod : "puede crear"
+    Wod ||--o{ WodExercise : "prescribe"
+    Workout ||--o{ WorkoutExercise : "contiene"
+    WorkoutExercise ||--o{ WorkoutResult : "registra"
+    Workout ||--o| WorkoutScore : "resume"
+    WorkoutResult ||--o{ PersonalRecord : "origina"
 
     AthleteProfile {
         UnitSystem preferredUnits
@@ -82,6 +89,10 @@ Los cambios se expresan en unidad canónica con su porcentaje (nulo si la base e
 indicador `improved`. Ninguno de estos cálculos usa IA.
 
 ## Catálogo de movimientos
+
+## Entrenamientos y marcas derivadas (fase 3)
+
+Un `Wod` es una plantilla pública o privada; un `Workout` es una sesión personal que conserva la copia de la prescripción. Sus resultados por serie pueden generar `PersonalRecord` de origen `WORKOUT` al completar. La comparación es estricta y `TIME` se agrupa por `distanceMeters`; por ello un tiempo de 5 km no se compara con uno de 10 km. La transacción conserva el origen y, si se elimina la sesión, retira lógicamente sus marcas. El detalle normativo se encuentra en [ADR 0008](../adr/0008-workout-result-model.md), sin duplicar el ERD.
 
 ```mermaid
 flowchart LR

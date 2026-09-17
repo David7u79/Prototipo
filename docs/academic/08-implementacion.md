@@ -5,8 +5,8 @@
 La implementación de la fase 2 en el backend extiende la arquitectura modular de NestJS 12 incorporando los módulos especializados en el dominio deportivo, adaptando perfiles y orquestando tareas CLI:
 
 - **Módulo de movimientos (`apps/api/src/movements`):**
-  - `movements.controller.ts`: Expone `GET /movements` con el decorador `@UseGuards(JwtAuthGuard)`, admitiendo parámetros de consulta validados mediante `MovementQueryDto`. Expone asimismo `GET /movements/:slug` para la recuperación de fichas individuales.
-  - `movements.service.ts`: Construye dinámicamente el objeto `where` de Prisma filtrando por `isActive: true`. Ejecuta búsquedas con el operador `contains` (con modo `insensitive`) sobre el campo `name`, resuelve filtros de enumeraciones directas (`category`, `equipment`, `difficulty`), evalúa la presencia de tipos de marca con el operador de arrays `has` sobre `recordTypes`, y cruza grupos musculares mediante `hasSome` sobre `primaryMuscles` y `secondaryMuscles`.
+  - `movements.controller.ts`: Expone `GET /movements` con el decorador `@UseGuards(JwtAuthGuard)`, admitiendo parámetros de consulta validados. Expone asimismo `GET /movements/:slug` para la recuperación de fichas individuales.
+  - `movements.service.ts`: Construye dinámicamente el objeto `where` de Prisma filtrando por `isActive: true`. Ejecuta búsquedas por `name`, resuelve filtros directos de `category`, `equipment` y `difficulty`, evalúa tipos admitidos en `recordTypes` y grupos musculares primarios o secundarios.
   - `dto/movement-query.dto.ts`: Define las restricciones de entrada: `search` (máximo 80 caracteres), `category`, `equipment`, `recordType`, `difficulty`, `muscle` y parámetros de paginación (`page` mínimo 1, `limit` entre 1 y 50).
   - `movement.mapper.ts`: Proyecta los campos de base de datos a las interfaces públicas `MovementSummary` y `MovementDetail`.
 - **Módulo de marcas personales (`apps/api/src/records`):**
@@ -39,7 +39,7 @@ El código de negocio central reside en bibliotecas independientes dentro de `pa
 - **`@garfit/validation` (`packages/validation/src`):**
   - Expone esquemas de Zod reutilizables para clientes (`createRecordSchema`, `updateRecordSchema`, `athleteProfileSchema`, `loginSchema`, `registerSchema`).
 - **`@garfit/api-client` (`packages/api-client/src`):**
-  - Cliente de consumo HTTP tipado con métodos asíncronos para movimientos (`listMovements`, `getMovement`), marcas (`listRecords`, `getRecordSummary`, `getMovementHistory`, `createRecord`, `updateRecord`, `deleteRecord`) y perfil deportivo (`getProfile`, `updateProfile`).
+  - Cliente de consumo HTTP tipado con métodos asíncronos para movimientos, marcas (`list`, `summary`, `forMovement`, `create`, `update`, `remove`) y perfil deportivo (`ProfileService.get`, `ProfileService.upsert`).
 
 ## 8.3 Aplicación web (`apps/web`)
 
@@ -105,6 +105,14 @@ flowchart LR
 4. **Semilla de demostración (`pnpm db:seed:demo`):** Ejecuta `seed-demo.ts` para pruebas manuales y presentaciones académicas. Requiere que la variable `DEMO_USER_PASSWORD` se encuentre definida con un mínimo de 8 caracteres y aborta la ejecución si `NODE_ENV === 'production'`. Crea el usuario `demo@garfit.example` con contraseña segura, perfil intermedio y 8 marcas históricas distribuidas cronológicamente en sentadilla con barra (100, 105 y 110 kg), press de banca (75 y 80 kg), flexiones de pecho (30 y 38 repeticiones) y plancha abdominal (60 segundos).
 
 ## 8.6 Entorno de ejecución y scripts de desarrollo
+
+## 8.7 Implementación de la fase 3
+
+El núcleo está en `packages/domain/src/workouts.ts`: valida prescripciones y resultados, normaliza unidades, calcula volumen y score, deriva candidatos y selecciona mejoras estrictas. `records.ts` incorpora el calificador `distanceMeters` a las series `TIME`; `progress-snapshot.ts` resume entrenamientos, volumen y tendencias sin utilizar IA.
+
+La API implementa rutas y servicios en `apps/api/src/workouts/workouts.controller.ts`, `workouts.service.ts`, `workouts.mapper.ts` y `dto/workout.dto.ts`; los WODs están en `apps/api/src/wods/`. La finalización se protege mediante transacción, bloqueo asesor por `userId` y transición condicional. `apps/api/src/records/records.service.ts` expone el origen y rechaza operar una marca gestionada por entrenamiento.
+
+La web utiliza `apps/web/src/app/app/workouts/` para listado, constructor, detalle y edición, y `apps/web/src/app/app/wods/` para consulta de plantillas. En móvil, `apps/mobile/src/app/(app)/workouts/`, `wods/` y las pestañas `train.tsx`, `history.tsx` e `index.tsx` consumen los mismos contratos. La semilla incorpora 1319 movimientos del dataset, siete curados de origen `garfit` y seis benchmarks: fran, grace, helen, diane, karen y cindy.
 
 El proyecto emplea scripts de orquestación centralizados en la raíz del monorepo mediante Turborepo y pnpm:
 
