@@ -53,7 +53,15 @@ export type RecordType = (typeof RECORD_TYPES)[number];
 export const RECORD_SOURCES = ['MANUAL', 'WORKOUT'] as const;
 export type RecordSource = (typeof RECORD_SOURCES)[number];
 
-export const RECORD_UNITS = ['KILOGRAM', 'POUND', 'REPETITION', 'METER', 'KILOMETER', 'MILE', 'SECOND'] as const;
+export const RECORD_UNITS = [
+  'KILOGRAM',
+  'POUND',
+  'REPETITION',
+  'METER',
+  'KILOMETER',
+  'MILE',
+  'SECOND',
+] as const;
 export type RecordUnit = (typeof RECORD_UNITS)[number];
 
 /** Unidades aceptadas para cada tipo de marca. La primera es la canónica. */

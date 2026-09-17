@@ -103,7 +103,8 @@ export function summarizeSeries(entries: readonly RecordEntry[]): RecordSeriesSu
   let best: RecordEntry | undefined;
   let previousBest: RecordEntry | undefined;
   const history: HistoryPoint[] = ordered.map((entry) => {
-    const isPersonalBest = !best || isBetter(recordType, entry.normalizedValue, best.normalizedValue);
+    const isPersonalBest =
+      !best || isBetter(recordType, entry.normalizedValue, best.normalizedValue);
     if (isPersonalBest) {
       previousBest = best;
       best = entry;

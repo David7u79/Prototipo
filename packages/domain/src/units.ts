@@ -24,10 +24,15 @@ export function isUnitAllowed(recordType: RecordType, unit: RecordUnit): boolean
   return UNITS_BY_RECORD_TYPE[recordType].includes(unit);
 }
 
-/** Redondea a `decimals` decimales evitando errores de coma flotante típicos (1.005 → 1.01). */
+/**
+ * Redondea a `decimals` decimales, con los empates alejándose de cero (6.25 → 6.3 y
+ * −6.25 → −6.3) para que una mejora y un empeoramiento simétricos se muestren igual.
+ * Compensa errores de coma flotante típicos (1.005 → 1.01).
+ */
 export function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals;
-  return Math.round((value + Number.EPSILON) * factor) / factor;
+  const rounded = Math.round((Math.abs(value) + Number.EPSILON) * factor) / factor;
+  return value < 0 ? -rounded : rounded;
 }
 
 /**
