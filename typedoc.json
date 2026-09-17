@@ -1,0 +1,12 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "packages/types/src/index.ts",
+    "packages/validation/src/index.ts",
+    "packages/api-client/src/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "out": "docs/generated/typedoc",
+  "excludePrivate": true,
+  "tsconfig": "tsconfig.typedoc.json"
+}
