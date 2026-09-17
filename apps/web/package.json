@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run src --passWithNoTests",
     "test:coverage": "vitest run src --coverage --passWithNoTests --coverage.include=src --coverage.reporter=text --coverage.reporter=json-summary",
-    "evidence": "playwright test e2e/athlete-flow.spec.ts"
+    "evidence": "playwright test"
   },
   "dependencies": {
     "@garfit/api-client": "workspace:*",
