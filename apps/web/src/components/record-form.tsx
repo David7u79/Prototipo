@@ -23,6 +23,8 @@ type Props = {
     value: number;
     unit: RecordUnit;
     repetitions: number | null;
+    distanceValue: number | null;
+    distanceUnit: 'METER' | 'KILOMETER' | 'MILE' | null;
     performedAt: string;
     notes: string | null;
   };
@@ -41,6 +43,12 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
     <form action={action} className="mt-6 space-y-4 rounded-2xl border border-line bg-panel p-5">
       <input name="movementSlug" type="hidden" value={movementSlug} />
       {record && <input name="id" type="hidden" value={record.id} />}
+      {record && (
+        <input name="existingDistanceValue" type="hidden" value={record.distanceValue ?? ''} />
+      )}
+      {record && (
+        <input name="existingDistanceUnit" type="hidden" value={record.distanceUnit ?? ''} />
+      )}
       <div>
         <label className="mb-1 block text-sm font-medium" htmlFor="recordType">
           Tipo de marca
@@ -109,6 +117,40 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
             type="number"
           />
           <FieldError messages={state.errors.repetitions} name="repetitions" />
+        </div>
+      )}
+      {recordType === 'TIME' && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium" htmlFor="distanceValue">
+              Distancia
+            </label>
+            <input
+              defaultValue={record?.distanceValue ?? ''}
+              id="distanceValue"
+              inputMode="decimal"
+              min="0"
+              name="distanceValue"
+              required
+              type="number"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium" htmlFor="distanceUnit">
+              Unidad de distancia
+            </label>
+            <select
+              defaultValue={record?.distanceUnit ?? 'KILOMETER'}
+              id="distanceUnit"
+              name="distanceUnit"
+            >
+              {(['METER', 'KILOMETER', 'MILE'] as const).map((unit) => (
+                <option key={unit} value={unit}>
+                  {RECORD_UNIT_LABELS[unit]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
       <div>

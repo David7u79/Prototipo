@@ -29,8 +29,8 @@ export async function saveProfile(_state: ProfileState, formData: FormData): Pro
     primaryGoal: formData.get('primaryGoal'),
     preferredUnits,
     birthDate: formData.get('birthDate') || null,
-    heightCm: toProfileMetric(formData.get('height'), preferredUnits, profileUnitFactors.cm, 1),
-    weightKg: toProfileMetric(formData.get('weight'), preferredUnits, profileUnitFactors.kg, 2),
+    heightCm: toProfileMetric(formData.get('height'), preferredUnits, profileUnitFactors.cm),
+    weightKg: toProfileMetric(formData.get('weight'), preferredUnits, profileUnitFactors.kg),
     trainingSince: formData.get('trainingSince') || null,
   });
 
@@ -79,6 +79,8 @@ function recordFields(formData: FormData) {
     value: recordInputValue(recordType, String(formData.get('value') ?? '')),
     unit: formData.get('unit'),
     repetitions,
+    distanceValue: recordType === 'TIME' ? Number(formData.get('distanceValue')) : null,
+    distanceUnit: recordType === 'TIME' ? formData.get('distanceUnit') : null,
     performedAt: formData.get('performedAt'),
     notes: formData.get('notes') || null,
   };
@@ -103,8 +105,8 @@ export async function updateRecord(_state: RecordState, formData: FormData): Pro
   // ponytail: la edición web aún no expone la distancia; la fase 3 la añade en el formulario.
   const parsed = updateRecordSchemaFor({
     recordType,
-    distanceValue: null,
-    distanceUnit: null,
+    distanceValue: nullableNumber(formData.get('existingDistanceValue')),
+    distanceUnit: nullableDistanceUnit(formData.get('existingDistanceUnit')),
   }).safeParse({
     ...recordFields(formData),
     movementSlug: undefined,
@@ -130,4 +132,14 @@ export async function removeRecord(formData: FormData): Promise<void> {
   revalidatePath('/app/records');
   revalidatePath(`/app/records/${movementSlug}`);
   redirect(`/app/records/${movementSlug}`);
+}
+
+function nullableNumber(value: FormDataEntryValue | null): number | null {
+  if (!value) return null;
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function nullableDistanceUnit(value: FormDataEntryValue | null) {
+  return value === 'METER' || value === 'KILOMETER' || value === 'MILE' ? value : null;
 }

@@ -118,42 +118,65 @@ export default async function RecordHistoryPage({ params, searchParams }: Props)
                   {series.history.map((entry) => (
                     <tr className="border-t border-line" key={entry.id}>
                       <td>{entry.performedAt}</td>
-                      <td>{formatValue(series.recordType, entry.normalizedValue, units)}</td>
-                      <td>{entry.isPersonalBest ? 'Mejor marca' : ''}</td>
-                      <td>{entry.notes ?? ''}</td>
                       <td>
-                        <Link
-                          className="underline"
-                          href={`/app/records/${movementSlug}/${entry.id}/edit`}
-                        >
-                          Editar
-                        </Link>
-                        {confirm === entry.id ? (
-                          <form action={removeRecord} className="mt-2">
-                            <input name="id" type="hidden" value={entry.id} />
-                            <input name="movementSlug" type="hidden" value={movementSlug} />
-                            <p className="text-sm text-amber-700">
-                              Esta marca dejará de contar en tu historial
-                            </p>
-                            <div className="mt-1 flex items-center gap-2">
-                              <button className="font-semibold text-red-700 underline">
-                                Confirmar retiro
-                              </button>
-                              <Link
-                                className="text-sm text-muted underline"
-                                href={`/app/records/${movementSlug}`}
-                              >
-                                Cancelar
-                              </Link>
-                            </div>
-                          </form>
-                        ) : (
+                        {formatValue(series.recordType, entry.normalizedValue, units)}
+                        {series.recordType === 'TIME' && entry.distanceMeters
+                          ? ` · ${formatValue('DISTANCE', entry.distanceMeters, units)}`
+                          : ''}
+                      </td>
+                      <td>{entry.isPersonalBest ? 'Mejor marca' : ''}</td>
+                      <td>
+                        {entry.notes ?? ''}
+                        {entry.origin && (
                           <Link
-                            className="ml-2 underline"
-                            href={`/app/records/${movementSlug}?confirm=${entry.id}`}
+                            className="block underline"
+                            href={`/app/workouts/${entry.origin.workoutId}`}
                           >
-                            Retirar
+                            Origen: {entry.origin.workoutName}
+                            {' · '}
+                            {entry.origin.performedOn} · Serie {entry.origin.setNumber}
                           </Link>
+                        )}
+                      </td>
+                      <td>
+                        {entry.source === 'WORKOUT' ? (
+                          <span className="text-muted">Gestionada por entrenamiento</span>
+                        ) : (
+                          <>
+                            <Link
+                              className="underline"
+                              href={`/app/records/${movementSlug}/${entry.id}/edit`}
+                            >
+                              Editar
+                            </Link>
+                            {confirm === entry.id ? (
+                              <form action={removeRecord} className="mt-2">
+                                <input name="id" type="hidden" value={entry.id} />
+                                <input name="movementSlug" type="hidden" value={movementSlug} />
+                                <p className="text-sm text-amber-700">
+                                  Esta marca dejará de contar en tu historial
+                                </p>
+                                <div className="mt-1 flex items-center gap-2">
+                                  <button className="font-semibold text-red-700 underline">
+                                    Confirmar retiro
+                                  </button>
+                                  <Link
+                                    className="text-sm text-muted underline"
+                                    href={`/app/records/${movementSlug}`}
+                                  >
+                                    Cancelar
+                                  </Link>
+                                </div>
+                              </form>
+                            ) : (
+                              <Link
+                                className="ml-2 underline"
+                                href={`/app/records/${movementSlug}?confirm=${entry.id}`}
+                              >
+                                Retirar
+                              </Link>
+                            )}
+                          </>
                         )}
                       </td>
                     </tr>
