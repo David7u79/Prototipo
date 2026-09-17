@@ -111,3 +111,11 @@ El ciclo de vida de una marca personal transcurre a través de una secuencia det
 4. **Corrección:** Si el usuario cometió un error tipográfico en el valor o la unidad, emite un `PATCH /records/:id`. La API exige enviar `value` y `unit` de forma conjunta y recalcula `normalizedValue`.
 5. **Retiro:** Si el atleta elimina una marca, la API actualiza `deletedAt` con la fecha y hora actual. La fila permanece en la base de datos garantizando auditabilidad, pero deja de ser visible para los cálculos de progreso.
 6. **Extracción para IA:** El servicio `ProgressSnapshotService` consulta las marcas activas y el perfil del atleta, compilando una estructura estructurada y libre de juicios de valor (`AthleteProgressSnapshot`) lista para ser consumida en la fase 3 por el proveedor de Gemini sin exponer la base de datos ni requerir inferencias numéricas al modelo.
+
+## 6.7 Capa interpretativa de IA (fase 4)
+
+La capa de IA se sitúa después de los servicios deterministas de progreso, entrenamientos y catálogo. No reemplaza reglas de dominio: recibe hechos ya calculados, genera una interpretación estructurada y devuelve sólo referencias a esos hechos. El diseño conserva una única frontera externa en la API mediante `AiProvider`; así, el proveedor real y el simulado satisfacen el mismo contrato sin propagar dependencias a clientes o dominio.
+
+El ciclo de aceptación construye un contexto mínimo, busca una respuesta con hash estable, solicita al proveedor sólo si procede y valida tanto el esquema como cada cita de evidencia. Una respuesta inválida no llega a la interfaz. La persistencia almacena exclusivamente resultado validado, hechos remitidos y metadatos de auditoría.
+
+La decisión y sus consecuencias se documentan en [ADR 0009](../adr/0009-ai-analysis-architecture.md). El orden operativo, incluidos consentimiento, insuficiencia de datos, caché y límite de uso, se muestra en [flujo de IA](../architecture/ai-flow.md).

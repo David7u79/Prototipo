@@ -210,3 +210,20 @@ El esquema define ocho enumeraciones especializadas que delimitan de forma estri
 8. **`MovementDifficulty`:** `BEGINNER`, `INTERMEDIATE`, `ADVANCED`.
 
 Todas las enumeraciones de Prisma se sincronizan bidireccionalmente con los tipos de TypeScript de `@garfit/domain` y `@garfit/movements`, verificándose mediante la prueba de integración `apps/api/test/shared-enums.spec.ts`.
+
+## 7.8 Persistencia del análisis explicativo (fase 4)
+
+El consentimiento pertenece al usuario porque una explicación de catálogo no requiere perfil deportivo. El campo `aiConsentAt` es nulo mientras no exista consentimiento y conserva la fecha de aceptación; su eliminación al revocar impide nuevos envíos. Los análisis válidos son locales y se eliminan con la cuenta por la relación dependiente.
+
+| Atributo de `AiAnalysis` | Finalidad |
+| --- | --- |
+| `id`, `userId`, `type` y `targetId` | Identifican propietario, operación y recurso analizado. |
+| `periodDays` | Distingue el intervalo de un análisis de progreso. |
+| `provider`, `model` y `promptVersion` | Hacen reproducible el contexto tecnológico. |
+| `contextHash` | Localiza respuesta equivalente sin nueva llamada externa. |
+| `status` y `responseJson` | Conservan salida validada, hechos y resumen usado. |
+| `inputTokens`, `outputTokens`, `durationMs` y `createdAt` | Registran telemetría disponible y generación. |
+
+Los enums `AiAnalysisType` distinguen progreso, entrenamiento, explicación de WOD y explicación de movimiento; `AiAnalysisStatus` distingue resultado completado de datos insuficientes. El índice compuesto por usuario, hash, versión de instrucción y modelo sostiene la caché y evita compartir una respuesta entre atletas.
+
+No se persisten clave del proveedor ni prompt completo. La salida se guarda sólo después de validación, junto con hechos calculados; el registro permite auditoría sin convertir secretos o instrucciones completas en datos de aplicación.

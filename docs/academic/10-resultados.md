@@ -131,3 +131,13 @@ En concordancia con los principios del trabajo de titulación, se declara explí
 > 4. **Pruebas de rendimiento bajo concurrencia:** No se han ejecutado pruebas de estrés (K6, JMeter) para evaluar el comportamiento de la API y PostgreSQL bajo alta concurrencia de atletas.
 > 
 > *Responsables del seguimiento:* Tesista y director de tesis.
+
+## 10.6 Resultados de la fase 4
+
+La fase 4 cerró con 238 pruebas: API 120, dominio 55, web 30, validación 14, movimientos 10 y cliente API 9. La cobertura de líneas fue API 94.61 %, dominio 93.78 %, movimientos 100 %, validación 93.39 %, cliente API 79.45 % y web 10.71 %. Playwright ejecutó cuatro flujos con el proveedor simulado y sin Internet: atleta, entrenamiento, IA y WOD.
+
+La comprobación de API con el proveedor simulado confirmó que sin consentimiento se recibe `AI_CONSENT_REQUIRED`; sin datos se obtiene `INSUFFICIENT_DATA` sin llamada al proveedor; con datos aparecen observaciones y evidencia resuelta; y una segunda petición idéntica indica caché. También se verificaron las explicaciones de WOD y movimiento. La semilla demo usa cinco entrenamientos completados dentro de los últimos 28 días y cinco marcas manuales.
+
+Durante la fase se corrigieron: salida con esquema JSON vacío, validación casera en lugar de Zod, importaciones ausentes que impedían iniciar API, timeout informado como respuesta inválida, extracción fallida de contexto por el proveedor simulado, fecha ISO que rompía web, etiqueta accesible truncada y fechas fijas de semilla que dejaban vacío el progreso.
+
+Permanecen PENDIENTES la prueba real con Gemini, pues el smoke devolvió `SKIPPED — GEMINI_API_KEY not configured`, y la validación en dispositivo Android, pues no había dispositivo ni emulador. También quedan la advertencia de `pg` en la semilla concurrente, cobertura unitaria web baja, límite por instancia sin almacén compartido, ausencia de historial y falta de botón para forzar regeneración.

@@ -226,3 +226,19 @@ El proyecto emplea scripts de orquestación centralizados en la raíz del monore
 - `pnpm dev:mobile`: Inicia el empaquetador Metro de Expo para la aplicación móvil en el puerto 8081. Este script se separa deliberadamente de `pnpm dev` debido a que el CLI de Expo demanda una terminal interactiva para el escaneo de códigos QR y selección de emuladores.
 - `pnpm dev:api`, `pnpm dev:web`, `pnpm dev:landing`: Scripts granulares para levantar servicios individuales cuando se requiere aislar el consumo de recursos de cómputo.
 - *Comportamiento de Astro 7 en landing:* El servidor de desarrollo de Astro 7 detecta automáticamente si la sesión de ejecución proviene de un entorno no interactivo o agente de inteligencia artificial, ejecutándose de forma desatendida en segundo plano; en una consola humana tradicional, permanece en primer plano proporcionando atajos de teclado interactivos.
+
+## 8.8 Implementación de la fase 4: análisis explicativo
+
+### 8.8.1 Dominio, validación y contratos
+
+El dominio concentra los hechos de evidencia, identificadores estables, serialización estable y contextos por operación en `packages/domain/src/ai.ts`. Los contextos de progreso, entrenamiento, WOD y movimiento acotan datos y determinan cuándo no hay material suficiente. El paquete de validación define el esquema de salida estructurada y su JSON Schema; los contratos de clientes incorporan las respuestas y códigos de IA.
+
+### 8.8.2 API y proveedor
+
+La API expone las rutas de estado, consentimiento, análisis de progreso, análisis de entrenamiento y explicaciones de WOD y movimiento desde el controlador de IA. El servicio construye contexto, consulta caché, aplica límites, normaliza errores, realiza un único reintento correctivo y persiste sólo salidas válidas. Las instrucciones se encuentran versionadas por operación en la carpeta de prompts. La abstracción `AiProvider` permite usar Gemini o el doble determinista sin red.
+
+### 8.8.3 Clientes y semilla de demostración
+
+La web presenta la pantalla de IA en `apps/web/src/app/app/ai/page.tsx` y utiliza acciones de servidor para consentimiento y operaciones. Sus componentes muestran observaciones, evidencia y el aviso de análisis anterior. La ruta `apps/web/src/app/app/wods/new/page.tsx` habilita creación de WOD personal. El cliente móvil incorpora la pantalla de IA y utiliza el mismo contrato HTTP.
+
+La semilla demo crea el atleta `demo@garfit.example` con cinco entrenamientos completados en los últimos 28 días, marcas de sentadilla y carrera, además de cinco marcas manuales. Las fechas son relativas para que el análisis de progreso no dependa del calendario. La validación en dispositivo Android queda PENDIENTE; typecheck, lint y exportación Android sí fueron comprobados.

@@ -49,3 +49,21 @@ Prisma ofrece un modelo y migraciones centralizadas, pero toda modificación de 
 Next.js y Expo resuelven necesidades de interfaz distintas. La decisión de separar aplicaciones reduce compromisos de UX, pero duplica superficies que deben probarse: manejo de sesión, presentación de errores y formularios. La web reduce exposición de token con cookies httpOnly; la app usa SecureStore por las capacidades del dispositivo. Ninguna de las dos estrategias debe interpretarse como garantía total frente a un dispositivo comprometido.
 
 La factibilidad técnica se considera suficiente para una fase de prototipo porque los comandos y pruebas pueden ejecutarse en el entorno definido. Antes de crecer en dominio o desplegar, se deberá convertir cada riesgo anterior en una decisión con responsable, criterios y evidencia. La disponibilidad local no equivale a disponibilidad de producción.
+ 
+## 4.7 Factibilidad técnica de la fase 4
+
+La fase 4 es técnicamente factible porque la API integra el SDK `@google/genai` en una única frontera de servidor. El modelo se selecciona mediante configuración y el valor predeterminado es `gemini-3.8-flash`; esta elección evita acoplar el dominio a un nombre de modelo. La API para desarrolladores admite salida estructurada mediante JSON Schema, que GarFit solicita y valida nuevamente en el backend antes de persistir una respuesta.
+
+La centralización es una condición de seguridad y mantenibilidad: la clave no llega a web ni a móvil, y la sustitución del proveedor no modifica los cálculos deterministas. El proveedor simulado permitió verificar el flujo sin Internet. La prueba con una clave real de Gemini permanece PENDIENTE, por lo que la factibilidad demostrada corresponde al contrato, la integración aislada y el recorrido simulado, no a una afirmación de disponibilidad externa.
+
+## 4.8 Consideración económica de la fase 4
+
+Durante el prototipo se utiliza el nivel gratuito disponible del proveedor. No se consignan precios, cuotas ni proyecciones porque cambian y no fueron objeto de una contratación ni de una medición económica. Antes de cualquier despliegue deberá revisarse la documentación oficial del proveedor para confirmar modelos disponibles, límites y condiciones vigentes.
+
+| Rubro de IA | Criterio de decisión | Estado |
+| --- | --- | --- |
+| Consumo del proveedor | Nivel gratuito disponible durante el prototipo | Usado sin estimar costo |
+| Precio y cuota | Consulta vigente en documentación oficial | PENDIENTE antes de producción |
+| Control de consumo | Límite por atleta e instancia y caché por contexto | Implementado |
+
+La referencia del proveedor se añade al capítulo 14; no sustituye una cotización formal ni garantiza permanencia de condiciones.

@@ -186,3 +186,19 @@ Con el propósito de mantener el rigor y la viabilidad del proyecto de titulaci�
 - Control de acceso físico, biometría dactilar o integración con torniquetes mecánicos.
 - Sistemas de reservación de clases grupales y gestión de agendas para entrenadores personales.
 - Tablas de clasificación globales (leaderboards públicos), redes sociales de entrenamiento o características de software multi-gimnasio en la nube (SaaS comercial).
+
+## 5.6 Requerimientos incorporados en la fase 4
+
+Los requerimientos de IA no convierten al modelo en autoridad deportiva. El análisis de progreso se limita a periodos admitidos y el análisis de entrenamiento exige una sesión completada. Las explicaciones de WOD y movimiento reutilizan datos de catálogo; la creación de WOD personal desde web complementa la preparación de contenido, no es una acción del modelo.
+
+| ID | Tipo | Descripción y criterio verificable | Prioridad | Estado |
+| --- | --- | --- | --- | --- |
+| RF-18 | Funcional | El atleta concede y revoca explícitamente el envío de datos deportivos al proveedor; sin consentimiento se rechazan las operaciones y la revocación impide nuevos envíos. | Alta | Implementado fase 4 |
+| RF-19 | Funcional | El atleta solicita análisis de progreso por periodo y de un entrenamiento completado; recibe observaciones, sugerencias y evidencia trazable, o datos insuficientes sin llamada externa. | Alta | Implementado fase 4 |
+| RF-20 | Funcional | El atleta solicita explicación de un WOD y de un movimiento, y crea un WOD personal desde la web; las rutas resuelven sólo recursos accesibles. | Media | Implementado fase 4 |
+| RF-21 | Funcional | El atleta consulta el estado del servicio e inspecciona los datos que respaldan cada respuesta, sin exponer credenciales. | Alta | Implementado fase 4 |
+| RNF-18 | No funcional | La IA interpreta y no calcula: toda cifra procede de hechos deterministas y la salida estructurada se valida antes de mostrarla. | Alta | Implementado fase 4 |
+| RNF-19 | No funcional | Las citas se verifican contra evidencia, se minimiza el contexto y se mantiene aislamiento por usuario. | Alta | Implementado fase 4 |
+| RNF-20 | No funcional | Hay timeout, un único reintento, límite de uso por instancia, caché por hash y respuesta controlada sin proveedor configurado. | Alta | Implementado fase 4 |
+
+El estado del servicio comunica si la integración está habilitada y configurada sin revelar credenciales. La evidencia es inspeccionable: las referencias devueltas se resuelven contra hechos elaborados por GarFit. Un análisis idéntico puede aparecer como análisis anterior cuando se reutiliza la caché, evitando una nueva llamada para los mismos datos.

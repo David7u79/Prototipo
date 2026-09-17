@@ -153,3 +153,11 @@ pnpm --filter @garfit/api release:publish -- --file ruta/app.apk \
 ```
 
 El parámetro `--draft` conserva el archivo sin visibilidad pública. La landing page y los clientes consultan únicamente la versión publicada con el mayor `versionCode`.
+
+## Estado de la fase 4: análisis explicativo con IA
+
+La fase 4 incorpora análisis de progreso y entrenamiento, explicación de WOD y movimiento, evidencia inspeccionable y creación de WOD personal desde la web. La IA requiere consentimiento explícito y revocable; GarFit calcula los hechos deportivos y el modelo sólo los interpreta. Sin clave del proveedor, el servicio de IA informa que no está configurado y el resto de la plataforma continúa funcionando.
+
+Las variables de configuración son `GEMINI_ENABLED`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_PROVIDER`, `AI_TIMEOUT_MS`, `AI_RATE_LIMIT_PER_MINUTE` y `AI_RATE_LIMIT_PER_DAY`. El proveedor simulado permite pruebas locales; la comprobación real con Gemini permanece PENDIENTE porque no hay clave configurada. Este repositorio sigue siendo un prototipo académico y no constituye una aplicación oficial de la Universidad Autónoma de Tlaxcala.
+
+Consulte el [flujo de IA](docs/architecture/ai-flow.md), el [ADR 0009](docs/adr/0009-ai-analysis-architecture.md) y la [evidencia de fase 4](docs/evidence/fase-4/pruebas-2026-09-17.md).

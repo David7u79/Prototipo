@@ -37,3 +37,5 @@ La documentación del código complementa estas referencias. En particular, los 
 > **PENDIENTE:** integrar bibliografía académica, normativa de protección de datos y fuentes de investigación deportiva que correspondan al marco teórico; responsable: tesista y asesoría.
 
 La fecha de consulta deberá archivarse con la versión final.
+
+Google. (2026). *Gemini API documentation*. https://ai.google.dev/gemini-api/docs
