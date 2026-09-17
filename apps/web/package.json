@@ -8,8 +8,9 @@
     "start": "next start --port 3000",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests --coverage.reporter=text --coverage.reporter=json-summary"
+    "test": "vitest run src --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests --coverage.reporter=text --coverage.reporter=json-summary",
+    "evidence": "playwright test e2e/athlete-flow.spec.ts"
   },
   "dependencies": {
     "@garfit/api-client": "workspace:*",

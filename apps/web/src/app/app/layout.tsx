@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { logoutAction } from '@/app/app-actions';
 
 type NavigationItem = {
-  href?: '/app' | '/app/profile';
+  href?: '/app' | '/app/profile' | '/app/movements' | '/app/records';
   label: string;
 };
 
@@ -12,9 +12,9 @@ const navigation: NavigationItem[] = [
   { href: '/app/profile', label: 'Perfil' },
   { label: 'Entrenamientos' },
   { label: 'Historial' },
-  { label: 'Marcas' },
+  { href: '/app/records', label: 'Marcas' },
   { label: 'Progreso' },
-  { label: 'Movimientos' },
+  { href: '/app/movements', label: 'Movimientos' },
   { label: 'Asistente IA' },
 ];
 
