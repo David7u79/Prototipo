@@ -31,3 +31,6 @@ apps/mobile/ios/
 # Reportes pesados regenerables
 docs/generated/typedoc/
 docs/generated/coverage/html/
+# Capturas de `pnpm evidence:web`: se regeneran en cada ejecución. Las que respaldan un
+# resultado académico se copian a docs/evidence/fase-N/ (versionado) junto con su fecha y commit.
+docs/evidence/generated/

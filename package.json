@@ -7,7 +7,11 @@
     "node": ">=22.12"
   },
   "scripts": {
-    "dev": "turbo run dev",
+    "dev": "turbo run dev --filter=!@garfit/mobile",
+    "dev:api": "turbo run dev --filter=@garfit/api...",
+    "dev:web": "turbo run dev --filter=@garfit/web...",
+    "dev:landing": "turbo run dev --filter=@garfit/landing...",
+    "dev:mobile": "turbo run build --filter=@garfit/mobile^... && pnpm --filter @garfit/mobile dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
@@ -17,6 +21,9 @@
     "format:check": "prettier --check .",
     "db:up": "docker compose up -d postgres",
     "db:migrate": "pnpm --filter @garfit/api prisma:migrate",
+    "db:seed": "turbo run build --filter=@garfit/api^... && pnpm --filter @garfit/api db:seed",
+    "db:seed:demo": "turbo run build --filter=@garfit/api^... && pnpm --filter @garfit/api db:seed:demo",
+    "evidence:web": "turbo run build --filter=@garfit/web^... && pnpm --filter @garfit/web evidence",
     "docs:generate": "node scripts/docs/generate.mjs",
     "docs:check": "node scripts/docs/generate.mjs --check"
   },
