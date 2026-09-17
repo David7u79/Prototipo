@@ -13,15 +13,16 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "astro": "^7.3.3",
     "@garfit/api-client": "workspace:*",
     "@garfit/types": "workspace:*",
     "@tailwindcss/vite": "^4.3.3",
+    "astro": "^7.3.3",
     "tailwindcss": "^4.3.3"
   },
   "private": true,
   "devDependencies": {
     "@astrojs/check": "^0.9",
+    "qrcode-generator": "2.0.4",
     "typescript": "~6.0.3"
   }
 }
