@@ -318,17 +318,17 @@ export class WorkoutsService {
         'El ejercicio no pertenece al entrenamiento',
       );
     if (dto.exercises.length !== new Set(dto.exercises.map((item) => item.exerciseId)).size) {
-      throw new ApiException(400, 'VALIDATION_FAILED', 'El ejercicio se enviÃ³ mÃ¡s de una vez');
+      throw new ApiException(400, 'VALIDATION_FAILED', 'El ejercicio se envió más de una vez');
     }
     const sets = dto.exercises.flatMap((item) => item.sets);
     if (sets.length > 300) {
-      throw new ApiException(400, 'VALIDATION_FAILED', 'Se excediÃ³ el lÃ­mite de series');
+      throw new ApiException(400, 'VALIDATION_FAILED', 'Se excedió el límite de series');
     }
     const resultKeys = dto.exercises.flatMap((exercise) =>
       exercise.sets.map((set) => `${exercise.exerciseId}:${set.setNumber}`),
     );
     if (resultKeys.length !== new Set(resultKeys).size) {
-      throw new ApiException(400, 'VALIDATION_FAILED', 'El nÃºmero de serie debe ser Ãºnico');
+      throw new ApiException(400, 'VALIDATION_FAILED', 'El número de serie debe ser único');
     }
     const score = dto.score ?? EMPTY_SCORE;
     const errors = validateScore(workout.workoutType, score);
@@ -413,7 +413,7 @@ export class WorkoutsService {
   }
   private async owned(userId: string, id: string, client: DbClient = this.prisma) {
     if (!UUID_PATTERN.test(id)) {
-      throw new ApiException(400, 'VALIDATION_FAILED', 'El identificador no es vÃ¡lido');
+      throw new ApiException(400, 'VALIDATION_FAILED', 'El identificador no es válido');
     }
     const row = await client.workout.findFirst({
       where: { id, userId, deletedAt: null },
