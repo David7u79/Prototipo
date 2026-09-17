@@ -56,7 +56,31 @@ La fase 4 es técnicamente factible porque la API integra el SDK `@google/genai`
 
 La centralización es una condición de seguridad y mantenibilidad: la clave no llega a web ni a móvil, y la sustitución del proveedor no modifica los cálculos deterministas. El proveedor simulado permitió verificar el flujo sin Internet. La prueba con una clave real de Gemini permanece PENDIENTE, por lo que la factibilidad demostrada corresponde al contrato, la integración aislada y el recorrido simulado, no a una afirmación de disponibilidad externa.
 
-## 4.8 Consideración económica de la fase 4
+## 4.8 Factibilidad técnica, operativa y económica de la fase 4
+
+La integración utiliza el SDK oficial `@google/genai` porque concentra el contrato del proveedor, la autenticación mediante clave y la solicitud de generación en una dependencia mantenida para esa API. Sin embargo, el SDK no se propaga al dominio ni a los clientes: sólo `gemini-ai.provider.ts` lo conoce. La frontera abstracta `AiProvider` expresa las operaciones necesarias, normaliza sus fallos y permite sustituir la implementación sin modificar los constructores de contexto, las reglas de evidencia ni las rutas HTTP. Esta separación también acota la dependencia de un proveedor externo: una indisponibilidad, cambio contractual o migración queda localizada en el adaptador y no convierte a Gemini en fuente de verdad deportiva.
+
+Se solicita salida estructurada mediante JSON Schema para que el proveedor produzca el contrato de resumen, observaciones, sugerencias, limitaciones e identificadores de evidencia que GarFit puede validar. El backend vuelve a validar el JSON con Zod y rechaza identificadores que no pertenezcan al contexto; por ello, la generación no tiene permiso para introducir números como si fueran cálculos propios. La decisión favorece trazabilidad, tratamiento predecible en web y móvil y almacenamiento seguro de la respuesta, aunque no convierte el texto interpretativo en diagnóstico.
+
+Para este prototipo se descartaron RAG, agentes, búsqueda web y ajuste fino. RAG no era necesario porque el contexto relevante ya procede de registros, entrenamientos y catálogo estructurados en la base de datos; un agente no añade valor a cuatro operaciones delimitadas y dificultaría predecir herramientas y costo; la búsqueda web introduciría fuentes cambiantes, sin validación académica ni relación directa con los datos del atleta; y el ajuste fino requeriría un corpus anotado, evaluación y gobernanza que el alcance no posee. El diseño actual envía sólo hechos mínimos, deterministas y acotados para cada operación.
+
+Operativamente, GarFit puede funcionar sin clave de Gemini: el estado comunica «Servicio de análisis no configurado.» y el resto de las funciones no depende del asistente. Para desarrollo y pruebas sin red, `FakeAiProvider` satisface la misma abstracción, devuelve respuestas controlables y permite verificar consentimiento, caché, límites, presentación y manejo de errores. La disponibilidad demostrada es, por tanto, la del flujo local y de su contrato; una prueba con una clave real y un dispositivo físico sigue siendo evidencia PENDIENTE.
+
+En el prototipo se considera el nivel gratuito disponible del proveedor, sin afirmar precios, cuotas ni capacidad garantizada. Los límites, modelos y condiciones pueden cambiar; antes de un despliegue se debe consultar la documentación oficial ya referida en `docs/academic/14-referencias.md`, confirmar las condiciones vigentes y establecer presupuestos, alertas y una política de continuidad. La frontera `AiProvider`, los límites por atleta y la caché reducen exposición a consumo y dependencia, pero no eliminan el riesgo operativo de un servicio externo.
+
+| Dimensión | Decisión verificable | Alcance y límite |
+| --- | --- | --- |
+| Técnica | SDK oficial aislado por `AiProvider` y JSON Schema validado con Zod. | Sustituible por adaptador; no acredita disponibilidad externa. |
+| Operativa | Estado degradado y proveedor simulado sin red. | La IA no opera sin configuración; el resto del sistema sí. |
+| Económica | Nivel gratuito durante el prototipo, caché y límites por atleta. | No se infieren precios ni cuotas; deben revisarse condiciones oficiales vigentes. |
+
+La dependencia permanece también bajo control operativo mediante `AI_TIMEOUT_MS`: una solicitud externa no debe bloquear indefinidamente al atleta. La caché evita repetir peticiones para el mismo contexto, y los límites por minuto y día contienen tanto errores de uso accidental como una carga elevada durante una demostración. Tales mecanismos son controles de prototipo; para producción se requerirían métricas persistentes, alertas y una política de recuperación ante indisponibilidad.
+
+En consecuencia, la viabilidad económica no se deduce de que exista un nivel gratuito. Depende del volumen real, del modelo finalmente elegido y de las condiciones vigentes al desplegar. La documentación oficial citada es la referencia para reevaluar ese supuesto antes de comprometer presupuesto institucional.
+
+La eventual sustitución de proveedor exige implementar y probar un nuevo adaptador, pero no recalcular los hechos ni rediseñar las pantallas. Esa separación conserva la inversión ya realizada en dominio y contratos.
+
+## 4.9 Consideración económica de la fase 4
 
 Durante el prototipo se utiliza el nivel gratuito disponible del proveedor. No se consignan precios, cuotas ni proyecciones porque cambian y no fueron objeto de una contratación ni de una medición económica. Antes de cualquier despliegue deberá revisarse la documentación oficial del proveedor para confirmar modelos disponibles, límites y condiciones vigentes.
 

@@ -407,6 +407,68 @@ Las capturas de esta sección se tomaron con el proveedor simulado; ilustran el 
 6. Desde la creación de WOD personal puede preparar una rutina web propia; después puede pedir explicación del WOD guardado.
 7. Para revocar permiso, use la acción de revocación. Desde ese momento no se realizan nuevas solicitudes al proveedor.
 
+### 11.8.1 Requisitos previos del servicio
+
+El responsable técnico debe configurar en la API `GEMINI_API_KEY`, `GEMINI_ENABLED`, `AI_PROVIDER`, `AI_TIMEOUT_MS`, `AI_RATE_LIMIT_PER_MINUTE` y `AI_RATE_LIMIT_PER_DAY`. La clave acredita la llamada a Gemini; `GEMINI_ENABLED` habilita o deshabilita el servicio; `AI_PROVIDER` selecciona `gemini` o `fake`; el tiempo máximo acota la espera, y los dos límites controlan solicitudes por minuto y por día para cada atleta. El proveedor `fake` está destinado a desarrollo y no se admite en producción.
+
+Cuando la pantalla no obtiene un estado disponible, o éste indica que el servicio está desactivado o sin configurar, en `/app/ai` se muestra literalmente «Servicio de análisis no configurado.». No se presenta el consentimiento ni las acciones de IA; las demás funciones de GarFit permanecen operables.
+
+### 11.8.2 Consentimiento en la web
+
+1. Inicie sesión y abra la ruta `/app/ai`.
+2. Lea el aviso: «GarFit utiliza Google Gemini para generar análisis. Al solicitar un análisis, los datos deportivos necesarios para esa operación se enviarán al proveedor de IA. No se envían tus credenciales de acceso.»
+3. Seleccione «Aceptar y continuar» para registrar el consentimiento, o «Cancelar» para volver a la pantalla anterior sin solicitar ningún análisis.
+
+### 11.8.3 Analizar el progreso
+
+1. En el panel «Analizar mi progreso», abra el selector «Periodo» y elija «30 días», «60 días» o «90 días».
+2. Pulse «Analizar mi progreso» y espere a que termine la solicitud.
+3. Lea «Resumen» como síntesis prudente; «Observaciones» como interpretaciones respaldadas por hechos; «Sugerencias» como recomendaciones no clínicas; «Datos utilizados» como relación transparente de entradas; y «Limitaciones» como alcance o cautelas de la respuesta. Si no existe material suficiente, el resultado informa que no hay datos suficientes y lista los datos pendientes en vez de simular una conclusión.
+
+### 11.8.4 Leer la evidencia
+
+Cada elemento de «Observaciones» y «Sugerencias» que tenga respaldo incorpora el desplegable «Evidencia». Ábralo para consultar cada hecho con su `label`, su valor, la unidad cuando existe y la fecha cuando existe. Por ejemplo, un hecho de marca puede identificar una serie comparable mediante `pr:back-squat:weight-5rm:best`; el identificador no es una conclusión clínica, sino una referencia estable al dato.
+
+Los valores no los calcula Gemini: GarFit los obtiene de perfil, entrenamientos, marcas, WODs o catálogo, los conserva como hechos verificables y sólo permite que el modelo los cite. Por ello, la evidencia permite comprobar la afirmación contra datos deterministas de la aplicación y no contra un cálculo opaco del modelo.
+
+### 11.8.5 Analizar un entrenamiento completado
+
+Desde `/app/ai`, localice «Analizar mi último entrenamiento», confirme el nombre del último entrenamiento completado y pulse «Analizar mi último entrenamiento». También puede abrir el detalle de un entrenamiento completado y usar «Analizar entrenamiento»; ese botón dirige a `/app/ai?workoutId=<id>` y conserva el entrenamiento elegido. Un entrenamiento en borrador no es analizable: el servicio exige estado `COMPLETED` y comunica que el entrenamiento debe estar completado.
+
+### 11.8.6 Explicar un WOD y un movimiento
+
+En `/app/ai`, seleccione un elemento en «Explicar un WOD» y pulse «Explicar un WOD», o elija uno en «Explicar un movimiento» y pulse «Explicar un movimiento». Como acceso contextual, el detalle de WOD ofrece «Explicar WOD» y el detalle del movimiento ofrece «Explicar con IA»; ambos llevan a `/app/ai` con el `slug` respectivo. La explicación interpreta exclusivamente la prescripción del WOD o la ficha del catálogo recibida por GarFit.
+
+### 11.8.7 Crear un WOD personal
+
+1. Abra `/app/wods/new`, donde aparece «Nuevo WOD», y complete «Nombre», «Tipo» y, si corresponde, «Descripción», «Esquema», «Rondas» y «Duración (s)».
+2. En «Movimientos», escriba al menos dos caracteres en «Buscar movimiento» y seleccione el movimiento de la lista devuelta.
+3. Para cada movimiento, capture los valores aplicables de «Repeticiones», «Carga», «Unidad de carga», «Distancia», «Unidad de distancia», «Duración (s)» y «Notas». Use «Quitar» si desea excluir una fila.
+4. Pulse «Guardar WOD». Una vez guardado, abra su detalle y utilice «Explicar WOD» si requiere la interpretación explicativa.
+
+### 11.8.8 «Análisis anterior»
+
+La etiqueta «Análisis anterior» indica una respuesta recuperada de caché, no una nueva llamada al proveedor. Se reutiliza únicamente si coinciden el conjunto de datos deterministas, la operación y su objetivo, el periodo cuando aplica, el modelo y la versión de la instrucción. Un cambio en los datos, en el modelo o en la versión de instrucción cambia la clave y regenera la respuesta. No existe un botón para forzar la generación: esa ausencia evita consumo innecesario y conserva la trazabilidad entre una respuesta y sus hechos.
+
+### 11.8.9 Revocar el consentimiento
+
+Abra `/app/profile`; si existe consentimiento, en «Análisis con IA» pulse «Revocar consentimiento». La pantalla advierte: «Al revocar el consentimiento, GarFit dejará de enviar tus datos deportivos al proveedor para nuevos análisis.». La revocación impide nuevas solicitudes; no convierte en nuevos análisis ni borra retroactivamente los datos ya registrados por el sistema.
+
+### 11.8.10 Uso en la aplicación móvil
+
+En móvil, la pantalla `/(app)/ai` se abre desde las acciones de detalle «Analizar entrenamiento», «Explicar WOD» o «Explicar con IA», y permite también iniciar el progreso o analizar el último entrenamiento. Conserva el mismo consentimiento, contrato y mensajes de servicio. A diferencia de la web, presenta los periodos «30 días», «60 días» y «90 días» como botones y sólo expone en su pantalla principal progreso y último entrenamiento; las explicaciones se abren desde sus detalles. La validación en dispositivo real sigue **PENDIENTE**.
+
+### 11.8.11 Problemas frecuentes
+
+| Mensaje que ve el atleta | Causa operativa |
+| --- | --- |
+| «Servicio de análisis no configurado.» | `GEMINI_ENABLED` está desactivado, falta configuración del proveedor o la pantalla no puede obtener el estado. |
+| «Necesitas aceptar el consentimiento para continuar.» / «Necesitas aceptar el consentimiento para solicitar un análisis.» | No se registró el consentimiento antes de la solicitud. |
+| «El proveedor de IA no está disponible. Inténtalo más tarde.» / «El proveedor de IA no está disponible. Inténtalo de nuevo más tarde.» | El proveedor no respondió, la red falló o agotó el tiempo de espera. |
+| «Se alcanzó el límite de solicitudes. Inténtalo más tarde.» / «Se alcanzó el límite de análisis. Inténtalo de nuevo más tarde.» | Se alcanzó `AI_RATE_LIMIT_PER_MINUTE`, `AI_RATE_LIMIT_PER_DAY` o un límite informado por el proveedor. |
+| «El proveedor devolvió una respuesta no válida.» / «No se pudo procesar la respuesta del análisis. Inténtalo de nuevo.» | La salida no pudo validarse como JSON estructurado o citó evidencia inexistente. |
+| «No hay datos suficientes para generar una respuesta.» | El contexto no alcanzó la regla de datos suficientes; GarFit no llama al proveedor y muestra los datos pendientes. |
+
 ![Figura 11.1. Consentimiento de IA](../evidence/fase-4/capturas/ai-consent.png)
 
 *Figura 11.1. Diálogo de consentimiento explícito.*

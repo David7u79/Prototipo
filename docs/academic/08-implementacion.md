@@ -237,7 +237,46 @@ El dominio concentra los hechos de evidencia, identificadores estables, serializ
 
 La API expone las rutas de estado, consentimiento, análisis de progreso, análisis de entrenamiento y explicaciones de WOD y movimiento desde el controlador de IA. El servicio construye contexto, consulta caché, aplica límites, normaliza errores, realiza un único reintento correctivo y persiste sólo salidas válidas. Las instrucciones se encuentran versionadas por operación en la carpeta de prompts. La abstracción `AiProvider` permite usar Gemini o el doble determinista sin red.
 
-### 8.8.3 Clientes y semilla de demostración
+### 8.8.3 Detalle de dominio, API y proveedores
+
+`packages/domain/src/ai.ts` fija la regla «GarFit calcula; el modelo interpreta». Cada hecho tiene un identificador determinista: por ejemplo, `pr:back-squat:weight-5rm:best` identifica la mejor serie de sentadilla de cinco repeticiones, `volume:back-squat:last-30-days` una agregación de volumen y `recent-workout:2026-01-15:name` un dato de una sesión reciente. El modelo recibe identificadores, no autoridad para inventar valores; al devolverlos, la API resuelve de nuevo `label`, valor, unidad y fecha desde los hechos originales.
+
+La función `stableStringify` ordena las claves, omite valores indefinidos y serializa fechas en ISO. Así, un contexto semánticamente igual produce la misma cadena y puede calcularse un hash reproducible para caché. El dominio separa los contextos de `PROGRESS_ANALYSIS`, `WORKOUT_ANALYSIS`, `WOD_EXPLANATION` y `MOVEMENT_EXPLANATION`, aplicando límites de series, movimientos por volumen, entrenamientos recientes, instrucciones y longitud textual. Cada constructor decide `sufficient`; cuando es falso, el servicio devuelve `INSUFFICIENT_DATA` sin invocar al proveedor.
+
+`packages/validation` define con Zod la salida `AiModelOutput` y deriva el JSON Schema que se entrega al proveedor. `packages/types` y `packages/api-client` trasladan los contratos `AiStatusResponse`, consentimiento y análisis a las dos interfaces. Esta doble validación —schema solicitado y parseo de Zod en la API— evita confiar en que una respuesta externa conserve la forma exigida.
+
+El controlador `apps/api/src/ai/ai.controller.ts` agrupa seis patrones de ruta autenticados:
+
+| Ruta | Método | Entrada | Respuesta |
+| --- | --- | --- | --- |
+| `/ai/status` | `GET` | Ninguna | Estado, proveedor, modelo y `consentGivenAt`. |
+| `/ai/consent` | `POST` / `DELETE` | Ninguna | Fecha de consentimiento otorgado o revocado. |
+| `/ai/analyze/progress` | `POST` | Cuerpo con `periodDays`: 30, 60 o 90. | `AiAnalysisResponse` de progreso. |
+| `/ai/analyze/workout/:workoutId` | `POST` | Identificador de entrenamiento. | `AiAnalysisResponse` del entrenamiento completado. |
+| `/ai/explain/wod/:slug` | `POST` | `slug` de WOD. | `AiAnalysisResponse` de explicación. |
+| `/ai/explain/movement/:slug` | `POST` | `slug` de movimiento. | `AiAnalysisResponse` de explicación. |
+
+En `apps/api/src/ai/ai.service.ts`, el orden de comprobación es deliberado: primero disponibilidad (`GEMINI_ENABLED` y configuración), después consentimiento, después suficiencia de datos, caché, límite del atleta y finalmente generación. Esto evita enviar contexto sin permiso, consumir cuota para un resultado que el dominio sabe insuficiente o cobrar una reutilización. La clave SHA-256 incluye operación, objetivo, periodo, versión de instrucción, hechos y datos utilizados; la consulta de caché añade además modelo y versión. Por tanto, un cambio de hechos, modelo o prompt invalida la coincidencia de forma natural.
+
+El límite en memoria se cuenta por `userId` dentro de una ventana de minuto y de 24 horas, mediante `AI_RATE_LIMIT_PER_MINUTE` y `AI_RATE_LIMIT_PER_DAY`. Los códigos normalizados conservan semántica HTTP: `AI_DISABLED` y `AI_NOT_CONFIGURED` usan 503; `AI_CONSENT_REQUIRED`, 403; `AI_RATE_LIMITED`, 429; `AI_PROVIDER_UNAVAILABLE`, 503; `AI_INVALID_RESPONSE`, 502; y `AI_ANALYSIS_FAILED`, 500. El servicio hace a lo sumo un reintento correctivo cuando la salida no es JSON válido, no cumple el esquema o refiere evidencia inexistente.
+
+`gemini-ai.provider.ts` es el único adaptador que importa `@google/genai`. Construye `GoogleGenAI` con `GEMINI_API_KEY`, aplica `AI_TIMEOUT_MS`, solicita `responseJsonSchema` y transforma tiempo de espera, red, autenticación, cuota y errores HTTP a `AiProviderError`. Configura `retryOptions: { attempts: 1 }` para desactivar reintentos automáticos del SDK: así el único reintento queda bajo control de `AiService` y puede incluir la corrección de formato. `fake-ai.provider.ts` implementa la misma frontera `AiProvider`, usa modelo `fake` y permite pruebas deterministas sin red; `AI_PROVIDER=fake` está prohibido en producción.
+
+Las instrucciones se encuentran en `apps/api/src/ai/prompts/`, una por operación y con versiones explícitas. Su versión integra la clave de caché, de modo que modificar una instrucción no reutiliza un análisis redactado con una regla anterior. La carpeta no sustituye reglas del dominio: indica al modelo que use los hechos recibidos y que cite sus identificadores.
+
+La persistencia conserva el `contextHash`, proveedor, modelo, versión de prompt, estado, duración y una copia de la salida validada junto con sus hechos y «Datos utilizados». Esta composición permite distinguir una respuesta recuperada de la caché de una generación nueva y auditar qué información exacta respaldaba el texto en el momento de crearlo. El hash no contiene una instrucción libre del usuario: `buildAiUserContent` serializa el contexto estable y trata cualquier texto aportado como dato recortado.
+
+El control de errores del proveedor separa la cuota externa de los errores de autenticación y de petición. Un 429 se mapea inmediatamente a `AI_RATE_LIMITED`; los errores de autorización o petición fallan sin reintento; y los de red, 5xx o tiempo de espera son reintentables sólo dentro del ciclo controlado. Esta clasificación permite a las interfaces ofrecer mensajes comprensibles sin exponer una clave, una URL del proveedor o detalles internos del SDK.
+
+El cliente HTTP no construye prompts ni conserva secretos: se limita a enviar los parámetros tipados a las seis rutas y a recibir la respuesta normalizada. La decisión mantiene el consentimiento y la autorización en la API, donde se puede asociar cada solicitud al atleta autenticado.
+
+La web obtiene estado antes de cargar listas de movimientos, WODs y entrenamientos; así evita peticiones accesorias si el servicio no está disponible. El móvil refresca el mismo estado al enfocar la pantalla y presenta «Reintentar» para recargar después de un error recuperable.
+
+En conjunto, la implementación evita que una respuesta de IA sea un registro deportivo primario. Los cálculos, identificadores y controles de acceso se resuelven antes y después de la llamada externa; el proveedor aporta solamente lenguaje interpretativo dentro del esquema aceptado.
+
+La separación favorece además pruebas unitarias del dominio sin inicializar NestJS, navegador, dispositivo ni red. El proveedor se verifica como adaptador y el resto del sistema conserva contratos reproducibles.
+
+### 8.8.4 Clientes y semilla de demostración
 
 La web presenta la pantalla de IA en `apps/web/src/app/app/ai/page.tsx` y utiliza acciones de servidor para consentimiento y operaciones. Sus componentes muestran observaciones, evidencia y el aviso de análisis anterior. La ruta `apps/web/src/app/app/wods/new/page.tsx` habilita creación de WOD personal. El cliente móvil incorpora la pantalla de IA y utiliza el mismo contrato HTTP.
 
