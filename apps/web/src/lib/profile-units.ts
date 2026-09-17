@@ -1,19 +1,17 @@
-import { roundTo, type UnitSystem } from '@garfit/domain';
-
-const KG_PER_LB = 0.45359237;
-const CM_PER_IN = 2.54;
+import { cmToIn, inToCm, kgToLb, lbToKg, type UnitSystem } from '@garfit/domain';
 
 export function toProfileMetric(
   value: FormDataEntryValue | null,
   system: UnitSystem,
   factor: number,
-  decimals?: number,
+  _decimals?: number,
 ): number | null {
+  void _decimals;
   if (value === null || value === '') return null;
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return Number.NaN;
-  const converted = system === 'IMPERIAL' ? numeric * factor : numeric;
-  return decimals !== undefined ? roundTo(converted, decimals) : converted;
+  if (system !== 'IMPERIAL') return numeric;
+  return factor === profileUnitFactors.kg ? lbToKg(numeric) : inToCm(numeric);
 }
 
 export function profileFormValues(
@@ -23,9 +21,9 @@ export function profileFormValues(
   const height = profile?.heightCm ?? null;
   const weight = profile?.weightKg ?? null;
   return {
-    height: height === null ? '' : system === 'IMPERIAL' ? roundTo(height / CM_PER_IN, 1) : height,
-    weight: weight === null ? '' : system === 'IMPERIAL' ? roundTo(weight / KG_PER_LB, 1) : weight,
+    height: height === null ? '' : system === 'IMPERIAL' ? cmToIn(height) : height,
+    weight: weight === null ? '' : system === 'IMPERIAL' ? kgToLb(weight) : weight,
   };
 }
 
-export const profileUnitFactors = { kg: KG_PER_LB, cm: CM_PER_IN };
+export const profileUnitFactors = { kg: 1, cm: 2 };

@@ -14,6 +14,7 @@ async function dashboardData() {
         throw error;
       }),
       api.records.summary(),
+      api.workouts.stats(),
     ]);
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) redirect('/login');
@@ -21,7 +22,7 @@ async function dashboardData() {
   }
 }
 export default async function Dashboard() {
-  const [user, profile, summary] = await dashboardData();
+  const [user, profile, summary, workoutStats] = await dashboardData();
   const units = profile?.preferredUnits ?? 'METRIC';
   const movementsWithRecords = summary?.movementsWithRecords ?? 0;
   const totalRecords = summary?.totalRecords ?? 0;
@@ -44,8 +45,12 @@ export default async function Dashboard() {
       )}
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <article className="rounded-2xl border border-line bg-panel p-5">
-          <h2 className="font-semibold">Entrenamientos</h2>
-          <p className="mt-3 text-sm text-muted">Disponible en la próxima fase</p>
+          <h2 className="font-semibold">Esta semana</h2>
+          <p className="mt-3 text-2xl font-bold">{workoutStats.last7Days}</p>
+        </article>
+        <article className="rounded-2xl border border-line bg-panel p-5">
+          <h2 className="font-semibold">Este mes</h2>
+          <p className="mt-3 text-2xl font-bold">{workoutStats.last30Days}</p>
         </article>
         <article className="rounded-2xl border border-line bg-panel p-5">
           <h2 className="font-semibold">Movimientos con marca</h2>
@@ -54,6 +59,25 @@ export default async function Dashboard() {
         <article className="rounded-2xl border border-line bg-panel p-5">
           <h2 className="font-semibold">Marcas registradas</h2>
           <p className="mt-3 text-2xl font-bold">{totalRecords}</p>
+        </article>
+      </div>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <article className="rounded-2xl border border-line bg-panel p-5">
+          <h2 className="font-semibold">Último entrenamiento</h2>
+          {workoutStats.lastWorkout ? (
+            <Link className="underline" href={`/app/workouts/${workoutStats.lastWorkout.id}`}>
+              {workoutStats.lastWorkout.name} ·{' '}
+              {workoutStats.lastWorkout.headline ?? 'Sin resultado'}
+            </Link>
+          ) : (
+            <Link className="underline" href="/app/workouts/new">
+              Registrar entrenamiento
+            </Link>
+          )}
+        </article>
+        <article className="rounded-2xl border border-line bg-panel p-5">
+          <h2 className="font-semibold">Marcas desde entrenamientos (30 días)</h2>
+          <p className="text-2xl font-bold">{workoutStats.personalRecordsFromWorkoutsLast30Days}</p>
         </article>
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">

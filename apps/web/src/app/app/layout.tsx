@@ -3,15 +3,15 @@ import type { ReactNode } from 'react';
 import { logoutAction } from '@/app/app-actions';
 
 type NavigationItem = {
-  href?: '/app' | '/app/profile' | '/app/movements' | '/app/records';
+  href?: string;
   label: string;
 };
 
 const navigation: NavigationItem[] = [
   { href: '/app', label: 'Inicio' },
   { href: '/app/profile', label: 'Perfil' },
-  { label: 'Entrenamientos' },
-  { label: 'Historial' },
+  { href: '/app/workouts', label: 'Entrenamientos' },
+  { href: '/app/workouts?status=COMPLETED', label: 'Historial' },
   { href: '/app/records', label: 'Marcas' },
   { label: 'Progreso' },
   { href: '/app/movements', label: 'Movimientos' },
