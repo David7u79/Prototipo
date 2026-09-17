@@ -2,7 +2,7 @@
   "expo": {
     "name": "GarFit",
     "slug": "garfit",
-    "version": "1.0.0",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "garfit",
@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.garfit.app",
+      "versionCode": 5,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
