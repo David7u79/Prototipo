@@ -1,6 +1,10 @@
 import {
   displayUnitFor,
   formatRecordValue,
+  cmToIn,
+  inToCm,
+  kgToLb,
+  lbToKg,
   parseDuration,
   type RecordType,
   type UnitSystem,
@@ -29,7 +33,7 @@ export function profileDisplayValue(
 ) {
   if (value === null) return '';
   const converted =
-    unit === 'IMPERIAL' ? (kind === 'weight' ? value / 0.45359237 : value / 2.54) : value;
+    unit === 'IMPERIAL' ? (kind === 'weight' ? kgToLb(value) : cmToIn(value)) : value;
   return String(Math.round(converted * 10) / 10);
 }
 
@@ -38,7 +42,7 @@ export function profileCanonicalValue(value: string, unit: UnitSystem, kind: 'we
   const numberValue = Number(value.replace(',', '.'));
   if (!Number.isFinite(numberValue)) return Number.NaN;
   if (unit !== 'IMPERIAL') return numberValue;
-  return kind === 'weight' ? numberValue * 0.45359237 : numberValue * 2.54;
+  return kind === 'weight' ? lbToKg(numberValue) : inToCm(numberValue);
 }
 
 export function apiMessage(error: ApiError | { code?: string; message: string }): string {
@@ -51,6 +55,11 @@ export function apiMessage(error: ApiError | { code?: string; message: string })
     PROFILE_NOT_FOUND: 'Completa tu perfil deportivo.',
     UNAUTHORIZED: 'Tu sesión venció. Vuelve a iniciar sesión.',
     NETWORK_ERROR: 'No fue posible conectar con el servidor.',
+    WORKOUT_NOT_FOUND: 'No encontramos este entrenamiento.',
+    WORKOUT_INVALID_STATE: 'Esta acción no está disponible en el estado actual.',
+    WORKOUT_INCOMPLETE: 'Faltan series o el resultado global para completar.',
+    WOD_NOT_FOUND: 'No encontramos este WOD.',
+    RECORD_MANAGED_BY_WORKOUT: 'Esta marca se gestiona desde su entrenamiento.',
   };
   return messages[error.code ?? ''] ?? error.message;
 }

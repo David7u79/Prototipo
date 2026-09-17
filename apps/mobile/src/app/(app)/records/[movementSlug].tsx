@@ -1,13 +1,26 @@
 import type { MovementRecordsResponse, RecordHistoryEntry } from '@garfit/types';
 import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { Card, Title } from '@/components/ui';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { evolutionWidth, formatChange, formatValue } from '@/lib/presentation';
 
-function seriesLabel(type: string, repetitions: number | null): string {
+function seriesLabel(
+  type: string,
+  repetitions: number | null,
+  distanceMeters: number | null,
+): string {
+  if (type === 'TIME' && distanceMeters) return `Tiempo · ${formatDistance(distanceMeters)}`;
   return repetitions ? `${type} · ${repetitions} reps` : type;
+}
+
+function formatDistance(meters: number): string {
+  return meters >= 1000 && meters % 1000 === 0 ? `${meters / 1000} km` : `${meters} m`;
+}
+
+function originLabel(origin: NonNullable<RecordHistoryEntry['origin']>): string {
+  return `Origen: ${origin.workoutName} · ${origin.performedOn} · Serie ${origin.setNumber}`;
 }
 
 function changeLabel(
@@ -27,6 +40,7 @@ function evolutionSummary(first: string, current: string, count: number): string
 export default function RecordHistoryScreen() {
   const { movementSlug } = useLocalSearchParams<{ movementSlug: string }>();
   const { profile, request } = useSession();
+  const router = useRouter();
   const [data, setData] = useState<MovementRecordsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -75,7 +89,9 @@ export default function RecordHistoryScreen() {
           const summary = evolutionSummary(firstValue, currentValue, series.count);
           return (
             <Card key={series.key}>
-              <Text>{seriesLabel(series.recordType, series.repetitions)}</Text>
+              <Text>
+                {seriesLabel(series.recordType, series.repetitions, series.distanceMeters)}
+              </Text>
               <Text>{`Mejor: ${bestValue}`}</Text>
               <Text>{`Actual: ${currentValue}`}</Text>
               {series.changeFromPrevious ? (
@@ -113,20 +129,31 @@ export default function RecordHistoryScreen() {
                   />
                 ))}
               </View>
-              {series.history.map((entry) => (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`Retirar marca del ${entry.performedAt}`}
-                  key={`record-${entry.id}`}
-                  onPress={() => remove(entry)}
-                >
-                  <Text>{`${entry.performedAt} · ${formatValue(
-                    series.recordType,
-                    entry.normalizedValue,
-                    system,
-                  )}${entry.isPersonalBest ? ' · Mejor marca' : ''} · Retirar`}</Text>
-                </Pressable>
-              ))}
+              {series.history.map((entry) =>
+                entry.source === 'WORKOUT' && entry.origin ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Abrir entrenamiento ${entry.origin.workoutName}`}
+                    key={`record-${entry.id}`}
+                    onPress={() => router.push(`/(app)/workouts/${entry.origin?.workoutId}`)}
+                  >
+                    <Text>{originLabel(entry.origin)}</Text>
+                  </Pressable>
+                ) : (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Retirar marca del ${entry.performedAt}`}
+                    key={`record-${entry.id}`}
+                    onPress={() => remove(entry)}
+                  >
+                    <Text>{`${entry.performedAt} · ${formatValue(
+                      series.recordType,
+                      entry.normalizedValue,
+                      system,
+                    )}${entry.isPersonalBest ? ' · Mejor marca' : ''} · Retirar`}</Text>
+                  </Pressable>
+                ),
+              )}
             </Card>
           );
         })

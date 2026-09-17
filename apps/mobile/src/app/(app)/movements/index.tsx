@@ -5,17 +5,19 @@ import {
   MOVEMENT_CATEGORY_LABELS,
 } from '@garfit/movements';
 import type { Equipment, MovementCategory, MovementSummary } from '@garfit/types';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { Card, Field, Screen, uiStyles } from '@/components/ui';
 import { api, messageFor, useSession } from '@/lib/auth';
+import { selectMovement } from '@/lib/movement-picker';
 
 const PAGE_SIZE = 20;
 
 export default function MovementsScreen() {
   const { request } = useSession();
   const router = useRouter();
+  const { select } = useLocalSearchParams<{ select?: string }>();
   const [items, setItems] = useState<MovementSummary[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<MovementCategory | undefined>();
@@ -94,8 +96,15 @@ export default function MovementsScreen() {
         renderItem={({ item }) => (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`Ver ${item.name}`}
-            onPress={() => router.push(`/(app)/movements/${item.slug}`)}
+            accessibilityLabel={select === '1' ? `Agregar ${item.name}` : `Ver ${item.name}`}
+            onPress={() => {
+              if (select === '1') {
+                selectMovement(item.slug);
+                router.back();
+                return;
+              }
+              router.push(`/(app)/movements/${item.slug}`);
+            }}
           >
             <Card>
               <Text>{item.name}</Text>
