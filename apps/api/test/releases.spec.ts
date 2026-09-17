@@ -92,6 +92,24 @@ describe('releases Android', () => {
     expect(response.headers['content-disposition']).toContain('attachment');
     expect(response.headers['x-checksum-sha256']).toBe(item.sha256);
     expect(response.body).toEqual(Buffer.from('apk-1.0.0'));
+    expect(createHash('sha256').update(response.body).digest('hex')).toBe(item.sha256);
+  });
+  it('descarga la última publicada y no sirve borradores como última', async () => {
+    await request(ctx.app.getHttpServer()).get('/releases/android/latest/download').expect(404);
+    await release({ version: '1.0.0', code: 1 });
+    const latest = await release({ version: '2.0.0', code: 2 });
+    await release({ version: '3.0.0', code: 3, published: false });
+    const response = await request(ctx.app.getHttpServer())
+      .get('/releases/android/latest/download')
+      .buffer(true)
+      .parse((response, callback) => {
+        const chunks: Buffer[] = [];
+        response.on('data', (chunk: Buffer) => chunks.push(chunk));
+        response.on('end', () => callback(null, Buffer.concat(chunks)));
+      })
+      .expect(200);
+    expect(response.headers['x-checksum-sha256']).toBe(latest.sha256);
+    expect(response.body).toEqual(Buffer.from('apk-2.0.0'));
   });
   it('valida la versión y oculta inexistentes, borradores y archivos ausentes', async () => {
     for (const version of ['1.0', '..%2F..%2Fetc']) {
@@ -100,6 +118,10 @@ describe('releases Android', () => {
           .code,
       ).toBe('VALIDATION_FAILED');
     }
+    const traversal = await request(ctx.app.getHttpServer()).get(
+      '/releases/android/../../secret/download',
+    );
+    expect([400, 404]).toContain(traversal.status);
     expect(
       (await request(ctx.app.getHttpServer()).get('/releases/android/9.0.0/download')).body.code,
     ).toBe('RELEASE_NOT_FOUND');
