@@ -11,6 +11,10 @@ import {
   wodFiltersSchema,
   workoutResultsSchema,
   workoutScoreInputSchema,
+  AI_OUTPUT_LIMITS,
+  aiModelOutputJsonSchema,
+  aiModelOutputSchema,
+  aiProgressRequestSchema,
 } from './index.js';
 
 const profile = { displayName: 'Ana', experienceLevel: 'BEGINNER', primaryGoal: 'STRENGTH' };
@@ -162,5 +166,72 @@ describe('esquemas de entrenamiento', () => {
     });
     expect(workoutScoreInputSchema.safeParse({ extra: true }).success).toBe(false);
     expect(completeWorkoutSchema.safeParse({ performedOn: '2100-01-01' }).success).toBe(false);
+  });
+});
+
+describe('esquemas de IA', () => {
+  const output = {
+    status: 'COMPLETED',
+    summary: 'Resumen útil',
+    observations: [
+      {
+        title: 'Progreso',
+        description: 'La sentadilla mejoró.',
+        evidenceIds: ['pr:squat:weight-1rm:best'],
+      },
+    ],
+    suggestions: [
+      { title: 'Siguiente paso', description: 'Mantén la progresión.', evidenceIds: [] },
+    ],
+    limitations: ['Pocos entrenamientos'],
+    missingData: ['RPE'],
+  };
+
+  it('acepta una salida válida y rechaza estructura, estado, evidencia y textos inválidos', () => {
+    expect(aiModelOutputSchema.safeParse(output).success).toBe(true);
+    expect(aiModelOutputSchema.safeParse({ ...output, extra: true }).success).toBe(false);
+    expect(aiModelOutputSchema.safeParse({ ...output, status: 'PENDING' }).success).toBe(false);
+    expect(
+      aiModelOutputSchema.safeParse({
+        ...output,
+        observations: [{ ...output.observations[0], evidenceIds: [] }],
+      }).success,
+    ).toBe(false);
+    expect(
+      aiModelOutputSchema.safeParse({
+        ...output,
+        observations: Array.from(
+          { length: AI_OUTPUT_LIMITS.observations + 1 },
+          () => output.observations[0],
+        ),
+      }).success,
+    ).toBe(false);
+    expect(aiModelOutputSchema.safeParse({ ...output, summary: ' ' }).success).toBe(false);
+    expect(
+      aiModelOutputSchema.safeParse({
+        ...output,
+        summary: 'x'.repeat(AI_OUTPUT_LIMITS.summary + 1),
+      }).success,
+    ).toBe(false);
+  });
+
+  it('expone un JSON Schema estricto con las propiedades de salida esperadas', () => {
+    expect(aiModelOutputJsonSchema).toMatchObject({ type: 'object', additionalProperties: false });
+    expect(Object.keys(aiModelOutputJsonSchema.properties ?? {}).sort()).toEqual([
+      'limitations',
+      'missingData',
+      'observations',
+      'status',
+      'suggestions',
+      'summary',
+    ]);
+  });
+
+  it('aplica 30 días por defecto y sólo admite los periodos de IA configurados', () => {
+    expect(aiProgressRequestSchema.parse({}).periodDays).toBe(30);
+    expect(aiProgressRequestSchema.parse({ periodDays: 60 }).periodDays).toBe(60);
+    expect(aiProgressRequestSchema.parse({ periodDays: 90 }).periodDays).toBe(90);
+    expect(aiProgressRequestSchema.safeParse({ periodDays: 45 }).success).toBe(false);
+    expect(aiProgressRequestSchema.safeParse({ periodDays: '30' }).success).toBe(false);
   });
 });
