@@ -8,6 +8,9 @@
  * @packageDocumentation
  */
 import {
+  type AiAnalysisType,
+  AI_PERIOD_DAYS,
+  DEFAULT_AI_PERIOD_DAYS,
   DISTANCE_UNITS,
   LOAD_UNITS,
   UUID_PATTERN,
@@ -636,4 +639,71 @@ export const WORKOUT_STATUS_LABELS: Record<(typeof WORKOUT_STATUSES)[number], st
   DRAFT: 'Borrador',
   IN_PROGRESS: 'En curso',
   COMPLETED: 'Completado',
+};
+
+/* ---------------------------------------------------------------------------------------- */
+/* IA explicativa (fase 4)                                                                   */
+/* ---------------------------------------------------------------------------------------- */
+
+/** Límites de la salida estructurada que se exige al modelo. */
+export const AI_OUTPUT_LIMITS = {
+  summary: 800,
+  title: 120,
+  description: 600,
+  observations: 6,
+  suggestions: 4,
+  evidencePerItem: 8,
+  notes: 5,
+  noteLength: 300,
+} as const;
+
+const aiText = (max: number) => z.string().trim().min(1).max(max);
+
+const aiItemSchema = (minEvidence: number) =>
+  z
+    .object({
+      title: aiText(AI_OUTPUT_LIMITS.title),
+      description: aiText(AI_OUTPUT_LIMITS.description),
+      evidenceIds: z
+        .array(z.string().min(1).max(200))
+        .min(minEvidence)
+        .max(AI_OUTPUT_LIMITS.evidencePerItem),
+    })
+    .strict();
+
+/**
+ * Salida del modelo. Se envía como JSON Schema al proveedor y se vuelve a validar aquí al
+ * recibirla: nunca se confía sólo en que el proveedor respete el esquema. Toda observación
+ * cita al menos una evidencia; una sugerencia puede ser general (sin evidencia).
+ */
+export const aiModelOutputSchema = z
+  .object({
+    status: z.enum(['COMPLETED', 'INSUFFICIENT_DATA']),
+    summary: aiText(AI_OUTPUT_LIMITS.summary),
+    observations: z.array(aiItemSchema(1)).max(AI_OUTPUT_LIMITS.observations),
+    suggestions: z.array(aiItemSchema(0)).max(AI_OUTPUT_LIMITS.suggestions),
+    limitations: z.array(aiText(AI_OUTPUT_LIMITS.noteLength)).max(AI_OUTPUT_LIMITS.notes),
+    missingData: z.array(aiText(AI_OUTPUT_LIMITS.noteLength)).max(AI_OUTPUT_LIMITS.notes),
+  })
+  .strict();
+
+/** JSON Schema de `aiModelOutputSchema` para la salida estructurada del proveedor. */
+export const aiModelOutputJsonSchema = z.toJSONSchema(aiModelOutputSchema, {
+  target: 'draft-2020-12',
+});
+
+/** Cuerpo opcional de `POST /ai/analyze/progress`. */
+export const aiProgressRequestSchema = z
+  .object({
+    periodDays: z
+      .union(AI_PERIOD_DAYS.map((days) => z.literal(days)))
+      .default(DEFAULT_AI_PERIOD_DAYS),
+  })
+  .strict();
+
+export const AI_ANALYSIS_TYPE_LABELS: Record<AiAnalysisType, string> = {
+  PROGRESS_ANALYSIS: 'Análisis de progreso',
+  WORKOUT_ANALYSIS: 'Análisis de entrenamiento',
+  WOD_EXPLANATION: 'Explicación de WOD',
+  MOVEMENT_EXPLANATION: 'Explicación de movimiento',
 };

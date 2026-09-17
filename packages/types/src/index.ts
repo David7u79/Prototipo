@@ -9,6 +9,9 @@
  */
 
 import type {
+  AiAnalysisType,
+  AiDataUsed,
+  AiEvidenceFact,
   AthleteProgressSnapshot,
   Change,
   DistanceUnit,
@@ -31,6 +34,9 @@ import type {
 } from '@garfit/movements';
 
 export type {
+  AiAnalysisType,
+  AiDataUsed,
+  AiEvidenceFact,
   AthleteProgressSnapshot,
   Change,
   DistanceUnit,
@@ -173,6 +179,20 @@ export const API_ERROR_CODES = {
   WOD_NOT_FOUND: 'WOD_NOT_FOUND',
   /** La unidad no corresponde al tipo de marca, o el valor queda fuera de límites. */
   INVALID_RECORD_VALUE: 'INVALID_RECORD_VALUE',
+  /** El servicio de IA está desactivado por configuración (`GEMINI_ENABLED=false`). */
+  AI_DISABLED: 'AI_DISABLED',
+  /** Falta la credencial del proveedor de IA. */
+  AI_NOT_CONFIGURED: 'AI_NOT_CONFIGURED',
+  /** El atleta no ha aceptado enviar datos deportivos al proveedor de IA. */
+  AI_CONSENT_REQUIRED: 'AI_CONSENT_REQUIRED',
+  /** El proveedor no respondió a tiempo o falló de forma transitoria. */
+  AI_PROVIDER_UNAVAILABLE: 'AI_PROVIDER_UNAVAILABLE',
+  /** Límite de uso alcanzado (del proveedor o de GarFit). */
+  AI_RATE_LIMITED: 'AI_RATE_LIMITED',
+  /** El proveedor devolvió una respuesta que no cumple el esquema o cita evidencia inexistente. */
+  AI_INVALID_RESPONSE: 'AI_INVALID_RESPONSE',
+  /** Error no recuperable al generar el análisis. */
+  AI_ANALYSIS_FAILED: 'AI_ANALYSIS_FAILED',
   NOT_FOUND: 'NOT_FOUND',
   TOO_MANY_REQUESTS: 'TOO_MANY_REQUESTS',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
@@ -483,4 +503,58 @@ export interface WorkoutStatsResponse {
   /** Últimas marcas derivadas de entrenamientos (máximo 5). */
   recentPersonalRecords: PersonalRecord[];
   volumeByMovementLast30Days: { movement: MovementRef; volumeKg: number }[];
+}
+
+/* ---------------------------------------------------------------------------------------- */
+/* IA explicativa (fase 4)                                                                   */
+/* ---------------------------------------------------------------------------------------- */
+
+export type AiProviderName = 'GEMINI' | 'FAKE';
+
+/** `GET /ai/status`. Nunca incluye credenciales. */
+export interface AiStatusResponse {
+  /** `GEMINI_ENABLED`: el servicio está activado por configuración. */
+  enabled: boolean;
+  /** Hay credenciales para el proveedor (o se usa el proveedor simulado fuera de producción). */
+  configured: boolean;
+  provider: AiProviderName;
+  model: string;
+  /** Fecha en que el atleta aceptó enviar datos deportivos al proveedor; `null` sin consentimiento. */
+  consentGivenAt: string | null;
+}
+
+/** `POST /ai/consent` y `DELETE /ai/consent`. */
+export interface AiConsentResponse {
+  consentGivenAt: string | null;
+}
+
+/** Observación o sugerencia con su evidencia resuelta por GarFit (no por el modelo). */
+export interface AiAnalysisItem {
+  title: string;
+  description: string;
+  evidence: AiEvidenceFact[];
+}
+
+/** Respuesta de los cuatro endpoints de análisis y explicación. */
+export interface AiAnalysisResponse {
+  /** `null` si no se llamó al proveedor (datos insuficientes detectados por GarFit). */
+  id: string | null;
+  type: AiAnalysisType;
+  status: 'COMPLETED' | 'INSUFFICIENT_DATA';
+  /** `true` si se devolvió un análisis guardado con los mismos datos, modelo y versión de prompt. */
+  cached: boolean;
+  provider: AiProviderName | null;
+  model: string | null;
+  promptVersion: string | null;
+  /** Fecha en que se generó (en caché: la fecha original, no la de la consulta). */
+  generatedAt: string;
+  /** Sólo en análisis de progreso. */
+  periodDays: number | null;
+  summary: string;
+  observations: AiAnalysisItem[];
+  suggestions: AiAnalysisItem[];
+  limitations: string[];
+  missingData: string[];
+  /** Qué datos se usaron, para mostrarlo al atleta. */
+  dataUsed: AiDataUsed[];
 }

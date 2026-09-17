@@ -171,6 +171,18 @@ enum WorkoutStatus {
   COMPLETED
 }
 
+enum AiAnalysisType {
+  PROGRESS_ANALYSIS
+  WORKOUT_ANALYSIS
+  WOD_EXPLANATION
+  MOVEMENT_EXPLANATION
+}
+
+enum AiAnalysisStatus {
+  COMPLETED
+  INSUFFICIENT_DATA
+}
+
 /// Persona que usa GarFit. Un único User por correo, sin importar cuántos proveedores vincule.
 model User {
   id              String    @id @default(uuid(7))
@@ -180,6 +192,8 @@ model User {
   avatarUrl       String?
   /// Fecha en que un proveedor confiable (Google) verificó el correo. Null = no verificado.
   emailVerifiedAt DateTime?
+  /// Consentimiento para enviar datos deportivos al proveedor de IA. Null = sin consentimiento.
+  aiConsentAt     DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -190,6 +204,7 @@ model User {
   workouts        Workout[]
   /// WODs personales (privados) creados por el atleta.
   wods            Wod[]
+  aiAnalyses      AiAnalysis[]
 }
 
 /// Vínculo entre un User y un proveedor de identidad.
@@ -479,4 +494,34 @@ model AppRelease {
   @@unique([platform, version])
   @@unique([platform, versionCode])
   @@index([platform, published, versionCode])
+}
+
+/// Análisis generado por IA a partir de hechos calculados por GarFit (ADR 0009). Sólo se guardan
+/// análisis válidos: salida del modelo ya validada y los hechos de evidencia usados, para poder
+/// mostrar después exactamente los datos en que se basó. No guarda el prompt ni credenciales.
+model AiAnalysis {
+  id            String           @id @default(uuid(7))
+  userId        String
+  type          AiAnalysisType
+  /// Objetivo analizado: id del entrenamiento o slug del WOD/movimiento; null en progreso.
+  targetId      String?
+  /// Sólo en PROGRESS_ANALYSIS.
+  periodDays    Int?
+  provider      String
+  model         String
+  promptVersion String
+  /// SHA-256 (hex) de la serialización estable de tipo, objetivo, periodo, hechos y versión de prompt.
+  contextHash   String           @db.Char(64)
+  status        AiAnalysisStatus
+  /// { output, facts, dataUsed }: salida validada, hechos enviados y resumen de datos usados.
+  responseJson  Json
+  inputTokens   Int?
+  outputTokens  Int?
+  durationMs    Int
+  createdAt     DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Búsqueda de caché: mismo usuario, contexto, versión de prompt y modelo.
+  @@index([userId, contextHash, promptVersion, model])
 }

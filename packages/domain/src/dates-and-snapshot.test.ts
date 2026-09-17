@@ -108,6 +108,10 @@ describe('buildProgressSnapshot', () => {
         best: { value: 120, performedAt: '2026-03-01' },
         absoluteProgress: 20,
         percentProgress: 20,
+        recentHistory: [
+          { value: 100, performedAt: '2026-01-01', isPersonalBest: true },
+          { value: 120, performedAt: '2026-03-01', isPersonalBest: true },
+        ],
       },
     ]);
   });

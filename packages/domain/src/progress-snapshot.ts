@@ -38,6 +38,8 @@ export interface MovementRecordSummary {
   /** Cambio del primer registro al mejor; `null` con un solo registro. */
   absoluteProgress: number | null;
   percentProgress: number | null;
+  /** Últimos registros de la serie en orden cronológico (como máximo `RECENT_HISTORY_LIMIT`). */
+  recentHistory: { value: number; performedAt: string; isPersonalBest: boolean }[];
 }
 
 /** Entrenamiento completado, resumido. */
@@ -82,6 +84,14 @@ export interface AthleteProgressSnapshot {
     personalRecordsLast30Days: number;
     personalRecordsFromWorkoutsLast30Days: number;
   };
+  /** Mismas métricas sobre el periodo pedido (30 días por defecto), usado por el análisis de IA. */
+  period: {
+    days: number;
+    completedWorkouts: number;
+    personalRecords: number;
+    personalRecordsFromWorkouts: number;
+    volumeByMovement: { movementSlug: string; movementName: string; volumeKg: number }[];
+  };
 }
 
 export interface SnapshotProfileInput {
@@ -109,6 +119,7 @@ export interface SnapshotWorkoutInput {
 }
 
 const RECENT_WORKOUTS_LIMIT = 10;
+const RECENT_HISTORY_LIMIT = 5;
 
 const CANONICAL: Record<RecordType, MovementRecordSummary['canonicalUnit']> = {
   WEIGHT: 'KILOGRAM',
@@ -141,6 +152,10 @@ function toSummary(
     best: point(series.best),
     absoluteProgress: series.totalProgress?.absolute ?? null,
     percentProgress: series.totalProgress?.percent ?? null,
+    recentHistory: series.history.slice(-RECENT_HISTORY_LIMIT).map((entry) => ({
+      ...point(entry),
+      isPersonalBest: entry.isPersonalBest,
+    })),
   };
 }
 
@@ -159,9 +174,10 @@ function summarizeWorkout(workout: SnapshotWorkoutInput): WorkoutSummary {
 function volumeByMovement(
   workouts: readonly SnapshotWorkoutInput[],
   now: Date,
+  days: number,
 ): AthleteProgressSnapshot['volumeByMovementLast30Days'] {
   const recent = workouts.filter(
-    (workout) => countInLastDays([workout.performedOn], 30, now) === 1,
+    (workout) => countInLastDays([workout.performedOn], days, now) === 1,
   );
   const totals = new Map<
     string,
@@ -181,12 +197,16 @@ function volumeByMovement(
   return [...totals.values()].sort((a, b) => b.volumeKg - a.volumeKg);
 }
 
-/** Construye la instantánea de progreso a partir de datos ya leídos de la base. */
+/**
+ * Construye la instantánea de progreso a partir de datos ya leídos de la base. `periodDays`
+ * sólo afecta al bloque `period`; los campos `...Last30Days` conservan su ventana fija.
+ */
 export function buildProgressSnapshot(
   profile: SnapshotProfileInput | null,
   movements: readonly SnapshotMovementRecords[],
   now: Date = new Date(),
   workouts: readonly SnapshotWorkoutInput[] = [],
+  periodDays = 30,
 ): AthleteProgressSnapshot {
   const withEntries = movements.filter((movement) => movement.entries.length > 0);
   const records = withEntries.flatMap((movement) =>
@@ -216,13 +236,20 @@ export function buildProgressSnapshot(
     },
     records,
     recentWorkouts: byRecency.slice(0, RECENT_WORKOUTS_LIMIT).map(summarizeWorkout),
-    volumeByMovementLast30Days: volumeByMovement(workouts, now),
+    volumeByMovementLast30Days: volumeByMovement(workouts, now, 30),
     trends: {
       workoutsLast7Days: countInLastDays(workoutDates, 7, now),
       workoutsLast30Days: countInLastDays(workoutDates, 30, now),
       workoutsPerWeek: countPerWeek(workoutDates, 4, now),
       personalRecordsLast30Days: countInLastDays(recordDates, 30, now),
       personalRecordsFromWorkoutsLast30Days: countInLastDays(workoutRecordDates, 30, now),
+    },
+    period: {
+      days: periodDays,
+      completedWorkouts: countInLastDays(workoutDates, periodDays, now),
+      personalRecords: countInLastDays(recordDates, periodDays, now),
+      personalRecordsFromWorkouts: countInLastDays(workoutRecordDates, periodDays, now),
+      volumeByMovement: volumeByMovement(workouts, now, periodDays),
     },
   };
 }
