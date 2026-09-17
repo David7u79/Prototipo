@@ -1,12 +1,12 @@
 # Resumen de cobertura
 
-Generado: 2026-09-17T03:53:33.038Z
+Generado: 2026-09-17T08:58:06.132Z
 
 | Paquete | Líneas | Sentencias | Funciones | Ramas |
 | --- | ---: | ---: | ---: | ---: |
-| apps/api | 97.05% | 95.58% | 96.02% | 79.15% |
-| apps/web | 13.62% | 14.21% | 13.2% | 12.01% |
-| packages/api-client | 58.49% | 61.66% | 38.46% | 65% |
-| packages/domain | 100% | 100% | 100% | 96.59% |
-| packages/movements | 100% | 100% | 100% | 92.85% |
-| packages/validation | 34.88% | 34.09% | 0% | 0% |
+| apps/api | 96.66% | 95.55% | 96.71% | 80% |
+| apps/web | 10.06% | 11.09% | 11.05% | 8.87% |
+| packages/api-client | 87.87% | 89.04% | 82.05% | 88.37% |
+| packages/domain | 93.66% | 91.93% | 96.25% | 81.67% |
+| packages/movements | 100% | 100% | 100% | 93.33% |
+| packages/validation | 92.78% | 92.07% | 90.32% | 85.24% |

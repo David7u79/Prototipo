@@ -1,13 +1,13 @@
 # Información de compilación
 
-- Fecha: 2026-09-17T03:53:33.070Z
-- Commit: 4fb388174536940c7b853d4c4f5292b4cb31b544
-- Rama: fase-2-dominio
+- Fecha: 2026-09-17T08:58:06.187Z
+- Commit: 39e2f4cf5b5af08edffdb29e3d67f25cd6d1b21e
+- Rama: fase-3-entrenamientos
 - Cambios sin commit: sí
 - Node: v24.19.0
 - pnpm: 11.20.0
-- Última migración: 20260917005316_athlete_domain
-- SHA-256 corto de schema.prisma: 98f0ef26a928
+- Última migración: 20260917043000_workouts
+- SHA-256 corto de schema.prisma: 182375267169
 
 ## Aplicaciones y paquetes
 
