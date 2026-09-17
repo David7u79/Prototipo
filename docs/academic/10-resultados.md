@@ -134,7 +134,7 @@ En concordancia con los principios del trabajo de titulación, se declara explí
 
 ## 10.6 Resultados de la fase 4
 
-La fase 4 cerró con 238 pruebas: API 120, dominio 55, web 30, validación 14, movimientos 10 y cliente API 9. La cobertura de líneas fue API 94.61 %, dominio 93.78 %, movimientos 100 %, validación 93.39 %, cliente API 79.45 % y web 10.71 %. Playwright ejecutó cuatro flujos con el proveedor simulado y sin Internet: atleta, entrenamiento, IA y WOD.
+La fase 4 cerró con 244 pruebas: API 120, dominio 55, web 30, cliente API 15, validación 14 y movimientos 10. La cobertura de líneas fue API 94.61 %, dominio 93.78 %, movimientos 100 %, validación 93.39 %, cliente API 89.04 % y web 10.71 %. Playwright ejecutó cuatro flujos con el proveedor simulado y sin Internet: atleta, entrenamiento, IA y WOD.
 
 La comprobación de API con el proveedor simulado confirmó que sin consentimiento se recibe `AI_CONSENT_REQUIRED`; sin datos se obtiene `INSUFFICIENT_DATA` sin llamada al proveedor; con datos aparecen observaciones y evidencia resuelta; y una segunda petición idéntica indica caché. También se verificaron las explicaciones de WOD y movimiento. La semilla demo usa cinco entrenamientos completados dentro de los últimos 28 días y cinco marcas manuales.
 
