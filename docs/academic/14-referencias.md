@@ -39,3 +39,7 @@ La documentación del código complementa estas referencias. En particular, los 
 La fecha de consulta deberá archivarse con la versión final.
 
 Google. (2026). *Gemini API documentation*. https://ai.google.dev/gemini-api/docs
+
+Expo. (2026). *Continuous Native Generation*. https://docs.expo.dev/workflow/continuous-native-generation/
+
+Android Developers. (2026). *Opciones de distribución alternativa*. https://developer.android.com/distribute/marketing-tools/alternative-distribution?hl=es

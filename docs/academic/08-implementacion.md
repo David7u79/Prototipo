@@ -281,3 +281,13 @@ La separación favorece además pruebas unitarias del dominio sin inicializar Ne
 La web presenta la pantalla de IA en `apps/web/src/app/app/ai/page.tsx` y utiliza acciones de servidor para consentimiento y operaciones. Sus componentes muestran observaciones, evidencia y el aviso de análisis anterior. La ruta `apps/web/src/app/app/wods/new/page.tsx` habilita creación de WOD personal. El cliente móvil incorpora la pantalla de IA y utiliza el mismo contrato HTTP.
 
 La semilla demo crea el atleta `demo@garfit.example` con cinco entrenamientos completados en los últimos 28 días, marcas de sentadilla y carrera, además de cinco marcas manuales. Las fechas son relativas para que el análisis de progreso no dependa del calendario. La validación en dispositivo Android queda PENDIENTE; typecheck, lint y exportación Android sí fueron comprobados.
+
+## 8.10 Implementación de fase 5
+
+En `packages/domain/src/comparisons.ts`, `compareWodPerformance` fija la unidad comparable, el orden cronológico, la mejor ejecución y los motivos de no comparación. `comparePeriods` construye las ventanas actual y previa; ambas funciones permanecen libres de infraestructura. `packages/domain/src/ai.ts` convierte esos resultados en hechos `period:*` y `wod:*`, por lo que la evidencia enviada a la IA contiene valores resueltos.
+
+La API expone historial en `apps/api/src/ai/ai.controller.ts`: `GET /ai/analyses`, `GET /ai/analyses/:id`, `DELETE /ai/analyses/:id` y `DELETE /ai/analyses`. `ai.service.ts` reutiliza el rendimiento del WOD al analizar un entrenamiento. `apps/api/src/wods/wods.service.ts` filtra intentos admisibles y entrega `GET /wods/:slug/performance`; las estadísticas incluyen la comparación de periodos.
+
+La web presenta el historial en `apps/web/src/app/app/ai/` y la comparación mediante `apps/web/src/components/wod-performance.tsx`; el cliente móvil incorpora el acceso en `apps/mobile/src/app/(app)/ai.tsx`. La landing `apps/landing/src/components/AndroidDownload.astro` muestra release, checksum e instrucciones y genera el QR en compilación para la URL estable.
+
+La cadena reproducible ejecuta `pnpm --filter @garfit/mobile exec expo prebuild --platform android --clean`, `gradlew assembleRelease` y `pnpm --filter @garfit/api release:publish`. La compilación logró concluir al elevar la memoria de Gradle a `-Xmx4096m -XX:MaxMetaspaceSize=1024m`; la CLI calcula tamaño y checksum del APK real antes de publicarlo.

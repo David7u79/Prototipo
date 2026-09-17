@@ -202,3 +202,16 @@ Los requerimientos de IA no convierten al modelo en autoridad deportiva. El aná
 | RNF-20 | No funcional | Hay timeout, un único reintento, límite de uso por instancia, caché por hash y respuesta controlada sin proveedor configurado. | Alta | Implementado fase 4 |
 
 El estado del servicio comunica si la integración está habilitada y configurada sin revelar credenciales. La evidencia es inspeccionable: las referencias devueltas se resuelven contra hechos elaborados por GarFit. Un análisis idéntico puede aparecer como análisis anterior cuando se reutiliza la caché, evitando una nueva llamada para los mismos datos.
+
+## 4. Requerimientos implementados (Fase 5: validación y distribución)
+
+| Requerimiento | Criterio de aceptación verificable | Estado |
+| --- | --- | --- |
+| RF-22 Historial de IA | El atleta lista `GET /ai/analyses`, filtra por tipo, abre `GET /ai/analyses/:id` sin invocar al proveedor y elimina una entrada o todo su historial mediante `DELETE`. | Implementado fase 5 |
+| RF-23 Retención de análisis | Revocar el consentimiento impide nuevos análisis sin borrar los ya generados; el atleta conserva el control de borrarlos. | Implementado fase 5 |
+| RF-24 Comparación por WOD | `GET /wods/:slug/performance` considera sólo ejecuciones propias, COMPLETED, no borradas y del mismo `wodId`; informa mejor, última y cambio o un motivo de no comparación. | Implementado fase 5 |
+| RF-25 Comparación de periodos | `GET /workouts/stats` expone `periodComparison` con los últimos 30 días frente a los 30 anteriores, incluyendo entrenamientos, días, volumen, marcas y cambios descriptivos. | Implementado fase 5 |
+| RF-26 Release Android | La CLI publica el APK calculando tamaño y SHA-256 desde el fichero, y registra la versión publicada. | Implementado fase 5 |
+| RNF-21 Descarga estable | Las rutas versionada y `GET /releases/android/latest/download` entregan el binario publicado con checksum, tipo MIME y disposición de descarga; el QR de la landing apunta a la ruta estable. | Implementado fase 5 |
+
+La comprobación con Gemini real es PENDIENTE: `pnpm test:gemini` se omite sin `GEMINI_API_KEY`. No se la usa como criterio aprobado de estos requerimientos.

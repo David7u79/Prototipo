@@ -161,3 +161,24 @@ La fase 4 incorpora análisis de progreso y entrenamiento, explicación de WOD y
 Las variables de configuración son `GEMINI_ENABLED`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_PROVIDER`, `AI_TIMEOUT_MS`, `AI_RATE_LIMIT_PER_MINUTE` y `AI_RATE_LIMIT_PER_DAY`. El proveedor simulado permite pruebas locales; la comprobación real con Gemini permanece PENDIENTE porque no hay clave configurada. Este repositorio sigue siendo un prototipo académico y no constituye una aplicación oficial de la Universidad Autónoma de Tlaxcala.
 
 Consulte el [flujo de IA](docs/architecture/ai-flow.md), el [ADR 0009](docs/adr/0009-ai-analysis-architecture.md) y la [evidencia de fase 4](docs/evidence/fase-4/pruebas-2026-09-17.md).
+
+## Estado de la fase 5: validación y distribución Android
+
+La fase 5 incorpora historial borrable de análisis, retención tras revocar consentimiento, comparación determinista por WOD y por periodos, y una APK Android publicada desde la landing. La release comprobada es `com.garfit.app` 0.5.0 (`versionCode` 5); sus descargas versionada y estable devuelven checksum SHA-256 verificable. Gemini real, Google OAuth y la instalación en un dispositivo continúan PENDIENTES.
+
+Para generar el APK localmente se requiere JDK 21 y Android SDK. Desde el repositorio se ejecuta:
+
+```sh
+pnpm --filter @garfit/mobile exec expo prebuild --platform android --clean
+cd apps/mobile/android
+./gradlew assembleRelease
+```
+
+Para publicar el artefacto, la CLI calcula el tamaño y SHA-256 del fichero real:
+
+```sh
+pnpm --filter @garfit/api release:publish -- --file ruta/app-release.apk \
+  --version 0.5.0 --version-code 5 --changelog "Release de GarFit"
+```
+
+La descarga se ofrece desde la landing mediante la release publicada y un QR que apunta a la ruta estable. El usuario debe comprobar versión y checksum, y aceptar la advertencia Android para instalar desde origen externo. Consulte la [evidencia de fase 5](docs/evidence/fase-5/pruebas-2026-09-17.md) y la [arquitectura de distribución](docs/architecture/android-distribution.md).

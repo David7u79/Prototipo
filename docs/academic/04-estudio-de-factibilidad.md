@@ -91,3 +91,11 @@ Durante el prototipo se utiliza el nivel gratuito disponible del proveedor. No s
 | Control de consumo | Límite por atleta e instancia y caché por contexto | Implementado |
 
 La referencia del proveedor se añade al capítulo 14; no sustituye una cotización formal ni garantiza permanencia de condiciones.
+
+## 4.10 Factibilidad de la distribución directa en la fase 5
+
+La distribución directa del APK es factible para el alcance académico porque aprovecha herramientas ya disponibles en el equipo: JDK 21, Android SDK con plataformas 34 a 36, build-tools 37.0.0 y Gradle generado por Expo. El flujo `expo prebuild` seguido de `gradlew assembleRelease` no requiere cuentas de pago ni un servicio de compilación externo. La decisión de no emplear una tienda se documenta en el ADR 0010 y es congruente con una demostración controlada del prototipo.
+
+El costo directo comprobado en esta fase es nulo en cuentas de publicación: el archivo se compila localmente y se registra mediante la CLI del proyecto en el almacenamiento de releases existente. Esto no equivale a costo cero de producción: siguen pendientes las cotizaciones de servidor, transferencia, respaldo y tiempo de operación. La descarga exige aceptar la advertencia de instalación desde origen externo y la firma de depuración obliga a desinstalar antes de una futura versión firmada con una clave distinta.
+
+La factibilidad demostrada se limita al APK, su firma, metadatos, publicación y descarga con checksum. Permanecen PENDIENTES la validación con Gemini real por falta de clave, la instalación en un dispositivo Android por ausencia de teléfono o emulador, y Google OAuth por falta de credenciales. Estas restricciones no se presentan como resultados positivos del prototipo.

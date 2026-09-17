@@ -227,3 +227,9 @@ El consentimiento pertenece al usuario porque una explicación de catálogo no r
 Los enums `AiAnalysisType` distinguen progreso, entrenamiento, explicación de WOD y explicación de movimiento; `AiAnalysisStatus` distingue resultado completado de datos insuficientes. El índice compuesto por usuario, hash, versión de instrucción y modelo sostiene la caché y evita compartir una respuesta entre atletas.
 
 No se persisten clave del proveedor ni prompt completo. La salida se guarda sólo después de validación, junto con hechos calculados; el registro permite auditoría sin convertir secretos o instrucciones completas en datos de aplicación.
+
+## 7.10 Consultas de fase 5: análisis y releases
+
+`AiAnalysis`, ya definido para conservar la respuesta validada y sus hechos, se consulta por atleta con orden y paginación. Sus campos `type`, `targetId`, `periodDays`, `provider`, `model`, `promptVersion`, `contextHash`, `status`, `responseJson`, tokens, `durationMs` y `createdAt` permiten identificar un resultado guardado sin almacenar prompts ni credenciales. La eliminación se limita al `userId` autenticado; revocar consentimiento no modifica las filas existentes.
+
+`AppRelease` representa un binario distribuible y separa sus metadatos del archivo en `ReleaseStorage`. Sus campos reales son `id`, `platform`, `version`, `versionCode`, `fileName`, `filePath`, `fileSize`, `sha256`, `changelog`, `published`, `publishedAt` y `createdAt`. Las restricciones únicas por plataforma y versión, y por plataforma y `versionCode`, evitan ambigüedad; el índice de plataforma, publicación y código permite resolver la última descarga publicada.

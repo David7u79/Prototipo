@@ -77,3 +77,15 @@ Los requerimientos siguientes no cuentan con entidades, endpoints ni pruebas aso
 | RNF-20 | `apps/api/src/ai/gemini-ai.provider.ts`; `apps/api/src/ai/ai.service.ts` | `apps/api/test/ai-validation.spec.ts › IA: validación, disponibilidad y caché › reutiliza el análisis idéntico sin invocar de nuevo al proveedor` | Pasa | [fase 4](evidence/fase-4/pruebas-2026-09-17.md) |
 
 Las filas de fase 4 se verificaron contra los títulos de pruebas existentes. El proveedor simulado permite que las pruebas y las capturas sean reproducibles sin red; la integración con Gemini real se mantiene marcada como PENDIENTE en la evidencia.
+
+## 4. Requerimientos implementados (Fase 5)
+
+| Requerimiento | Implementación concreta (rutas) | Prueba automatizada (`fichero › describe › it`) | Resultado | Evidencia |
+| --- | --- | --- | --- | --- |
+| RF-22 | `apps/api/src/ai/ai.controller.ts`; `apps/api/src/ai/ai.service.ts` | `apps/api/test/ai-history.spec.ts › historial de análisis de IA › lista análisis con etiquetas, orden, paginación y filtro` | Pasa | [fase 5](evidence/fase-5/pruebas-2026-09-17.md) |
+| RF-23 | `apps/api/src/ai/ai.service.ts` | `apps/api/test/ai-history.spec.ts › historial de análisis de IA › borra únicamente el historial autenticado y conserva lo previo al revocar consentimiento` | Pasa | [fase 5](evidence/fase-5/pruebas-2026-09-17.md) |
+| RF-24 | `apps/api/src/wods/wods.service.ts`; `packages/domain/src/comparisons.ts` | `apps/api/test/wod-performance.spec.ts › rendimiento por WOD › calcula mejor, última y cambio entre intentos FOR_TIME` | Pasa | [fase 5](evidence/fase-5/pruebas-2026-09-17.md) |
+| RF-25 | `packages/domain/src/comparisons.ts`; `apps/api/src/workouts/workouts.service.ts` | `packages/domain/src/comparisons.test.ts › comparación entre periodos › separa las ventanas actual y anterior de 30 días` | Pasa | [fase 5](evidence/fase-5/pruebas-2026-09-17.md) |
+| RF-26 | `apps/api/src/releases/releases.controller.ts`; `apps/api/src/releases` | `apps/api/test/releases.spec.ts › releases Android › descarga la última publicada y no sirve borradores como última` | Pasa | [fase 5](evidence/fase-5/pruebas-2026-09-17.md) |
+| RNF-21 | `apps/landing/src/components/AndroidDownload.astro`; `apps/api/src/releases/releases.controller.ts` | `apps/web/e2e/landing-download.spec.ts › descarga y metadatos de la release Android` | Pasa | [fase 5](evidence/fase-5/pruebas-2026-09-17.md) |
+| RNF-22 | `apps/api/src/cli/gemini-smoke.ts` | `pnpm test:gemini` | PENDIENTE: `GEMINI_API_KEY` no configurada | [Gemini real](evidence/fase-5/gemini-real.md) |

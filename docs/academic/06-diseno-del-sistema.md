@@ -119,3 +119,11 @@ La capa de IA se sitúa después de los servicios deterministas de progreso, ent
 El ciclo de aceptación construye un contexto mínimo, busca una respuesta con hash estable, solicita al proveedor sólo si procede y valida tanto el esquema como cada cita de evidencia. Una respuesta inválida no llega a la interfaz. La persistencia almacena exclusivamente resultado validado, hechos remitidos y metadatos de auditoría.
 
 La decisión y sus consecuencias se documentan en [ADR 0009](../adr/0009-ai-analysis-architecture.md). El orden operativo, incluidos consentimiento, insuficiencia de datos, caché y límite de uso, se muestra en [flujo de IA](../architecture/ai-flow.md).
+
+## 6.10 Comparación determinista y distribución de fase 5
+
+El módulo de dominio concentra la comparación deportiva para que la interfaz y la evidencia de IA consuman la misma respuesta calculada. Para un WOD, la API filtra antes por propiedad, estado COMPLETED, ausencia de borrado y `wodId`; el dominio compara FOR_TIME por segundos, AMRAP por repeticiones cuando existe esquema, y STRENGTH por volumen. EMOM y resultados sin magnitud definida no fuerzan una cifra: devuelven `comparisonAvailable: false` y un motivo.
+
+La comparación de periodos aplica dos ventanas consecutivas de igual duración. Describe, sin calificar, entrenamientos, días distintos, volumen y marcas; sus cambios se incorporan como hechos `period:*`. De manera análoga, los hechos `wod:*` proceden del resultado ya calculado. El modelo interpreta estas evidencias y no reconstruye operaciones numéricas.
+
+El flujo de distribución es: configuración Expo, prebuild Android, compilación Gradle, APK, CLI de publicación, `AppRelease` y almacenamiento, API de descarga y landing con QR estable. El binario no entra en Git; el checksum lo calcula la CLI y se vuelve a comprobar en la descarga.
