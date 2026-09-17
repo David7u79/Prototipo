@@ -18,7 +18,11 @@ import { toRecordEntry } from '../records/records.mapper.js';
 export class ProgressSnapshotService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async build(userId: string, now: Date = new Date()): Promise<AthleteProgressSnapshot> {
+  async build(
+    userId: string,
+    now: Date = new Date(),
+    periodDays?: 30 | 60 | 90,
+  ): Promise<AthleteProgressSnapshot> {
     const [profile, rows, workouts] = await Promise.all([
       this.prisma.athleteProfile.findUnique({ where: { userId } }),
       this.prisma.personalRecord.findMany({
@@ -96,6 +100,7 @@ export class ProgressSnapshotService {
           })),
         })),
       })),
+      periodDays,
     );
   }
 }

@@ -29,6 +29,12 @@ importers:
       '@garfit/movements':
         specifier: workspace:*
         version: link:../../packages/movements
+      '@garfit/types':
+        specifier: workspace:*
+        version: link:../../packages/types
+      '@garfit/validation':
+        specifier: workspace:*
+        version: link:../../packages/validation
       '@google/genai':
         specifier: 2.22.0
         version: 2.22.0(supports-color@8.1.1)
