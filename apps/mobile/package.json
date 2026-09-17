@@ -51,7 +51,8 @@
     "lint": "expo lint",
     "dev": "expo start",
     "prebuild": "expo prebuild",
-    "typecheck": "tsc --noEmit"
+    "typegen": "expo customize tsconfig.json",
+    "typecheck": "pnpm typegen && tsc --noEmit"
   },
   "private": true
 }
