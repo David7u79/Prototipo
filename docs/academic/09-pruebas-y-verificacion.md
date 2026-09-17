@@ -69,17 +69,106 @@ La suite E2E automatiza la navegación real de un atleta sobre la plataforma int
 
 La API se probó contra PostgreSQL de integración. El inventario siguiente identifica escenarios por nombre real, para que el lector pueda reproducirlos sin inferir pruebas inexistentes.
 
-| Fichero | Escenarios verificados |
-| --- | --- |
-| `apps/api/test/workouts.spec.ts` | `workouts` › creación libre, copia desde WOD, validación, aislamiento, inicio, resultados, filtros y borrado lógico. |
-| `apps/api/test/workout-records.spec.ts` | `marcas derivadas de workouts` › mejoras, RM, cardio TIME/DISTANCE, completitud e idempotencia concurrente. |
-| `apps/api/test/wods.spec.ts` | `WODs` › benchmarks, WOD privado aislado y validación. |
-| `apps/api/test/workout-stats.spec.ts` | `GET /workouts/stats` › ventanas, volumen y exclusión de borradores. |
-| `packages/domain/src/workouts.test.ts` | prescripciones, canonicalización, volumen, score, candidatos, TIME por distancia y ventanas. |
-| `packages/validation/src/schemas.test.ts` | esquemas de entrenamiento: WOD, entrenamiento, series y score. |
-| `apps/web/e2e/workout-flow.spec.ts` | `athlete-flow workout-flow`: alta, fuerza, dos mejoras, historial, origen, dashboard y `FOR_TIME`. |
+A continuación se presenta el inventario exhaustivo y fidedigno con los títulos reales de cada escenario de prueba (`it`/`test`) implementado en la fase 3, categorizado por suite de prueba con su respectivo criterio de aceptación formal:
 
-Las pruebas detectaron que la primera versión de `complete` no era transaccional, que el detalle devolvía marcas y conteos fijos, que faltaba `origin`, que `setNumber` duplicado generaba 500, que la creación de WOD rechazaba opcionales, que un test permitía alterar marcas derivadas y que las Server Actions capturaban `NEXT_REDIRECT`. Todos fueron corregidos antes del cierre. La prueba en dispositivo móvil permanece PENDIENTE.
+### 9.5.1 Inventario de pruebas de integración de la API (`apps/api/test`)
+
+#### 1. Entrenamientos generales (`apps/api/test/workouts.spec.ts`)
+- **Suite:** `workouts`
+- **Criterio de aceptación:** Verificar el ciclo de vida completo de un entrenamiento libre o clonado desde WOD, validando orden y posición de ejercicios, aislamiento multiinquilino, edición exclusiva de borradores, persistencia canónica de resultados (kg, metros), control de unicidad de series y borrado lógico con código HTTP 204.
+- **Escenarios evaluados (`it`):**
+  1. `crea libre conservando orden y objetivos`
+  2. `crea desde WOD copiando prescripción y rechaza WOD inexistente`
+  3. `rechaza movimiento inválido, campos extra y más de treinta ejercicios`
+  4. `aísla todas las operaciones y valida UUID`
+  5. `reemplaza ejercicios en draft, inicia y bloquea PATCH en progreso`
+  6. `guarda resultados canónicos y valida score, ejercicio, duplicados y límite de series`
+  7. `lista con paginación y filtros, y borra lógicamente`
+
+#### 2. Marcas personales derivadas de entrenamientos (`apps/api/test/workout-records.spec.ts`)
+- **Suite:** `marcas derivadas de workouts`
+- **Criterio de aceptación:** Validar la deducción y persistencia de marcas personales al completar sesiones de fuerza o cardio, asegurando cálculo de incrementos absolutos y porcentuales sobre la mejor marca previa, separación estricta por repeticiones (1RM vs. 5RM) o distancia (5k vs. 10k), descarte de empates y regresiones, rechazo con código 422 ante sesiones incompletas y serialización transaccional idempotente bajo concurrencia.
+- **Escenarios evaluados (`it`):**
+  1. `crea 1RM, informa cambio y no registra empates o regresiones`
+  2. `separa RM, conserva sólo la mejor de una serie y crea REPS sin carga`
+  3. `crea TIME y DISTANCE para cardio, separando 5k y 10k`
+  4. `valida completitud por tipo y acepta resultados al completar`
+  5. `es idempotente y serializa completados concurrentes`
+
+#### 3. Plantillas WOD (`apps/api/test/wods.spec.ts`)
+- **Suite:** `WODs`
+- **Criterio de aceptación:** Comprobar la consulta combinada de plantillas públicas y privadas, priorización de benchmarks oficiales en listados, aislamiento multiinquilino (código 404 ante WODs ajenos), y validación de reglas de prescripción y autenticación.
+- **Escenarios evaluados (`it`):**
+  1. `lista benchmarks antes que WODs personales y filtra sus atributos`
+  2. `crea WOD privado, lo aísla y devuelve 404 a otro atleta`
+  3. `valida prescripción, movimientos y autenticación`
+
+#### 4. Estadísticas del atleta (`apps/api/test/workout-stats.spec.ts`)
+- **Suite:** `GET /workouts/stats`
+- **Criterio de aceptación:** Constatar el cómputo exacto de métricas para el panel de control: ceros en estado inicial, conteo de entrenamientos en ventanas móviles de 7 y 30 días, identificación del último entrenamiento, agregación de volumen en kg por movimiento y exclusión estricta de borradores o sesiones eliminadas lógicamente.
+- **Escenarios evaluados (`it`):**
+  1. `devuelve ceros cuando no hay entrenamientos`
+  2. `calcula ventanas, último, volumen y omite drafts y borrados`
+
+#### 5. Protección y extensión de marcas (`apps/api/test/records.spec.ts` — fase 3)
+- **Suites:** `POST /records` y `PATCH /records/:id`
+- **Criterio de aceptación:** Exigir calificador de distancia para marcas de tiempo cronometrado `TIME`, separar series según distancia (5k vs. 10k), exponer metadatos de procedencia `origin` y bloquear con HTTP 409 `RECORD_MANAGED_BY_WORKOUT` cualquier intento de modificación o borrado directo de marcas derivadas.
+- **Escenarios evaluados (`it`):**
+  1. `exige distancia para TIME, la separa por distancia y prohíbe distancia en peso`
+  2. `no permite modificar ni borrar una marca derivada y expone su origen`
+
+### 9.5.2 Inventario de pruebas unitarias de paquetes compartidos
+
+#### 6. Lógica pura de entrenamientos (`packages/domain/src/workouts.test.ts`)
+- **Suites:** `prescripciones y series`, `volumen y score`, `marcas y ventanas`
+- **Criterio de aceptación:** Evaluar matemáticamente las funciones puras de dominio: validación de prescripciones por modalidad, conversión canónica de unidades, cálculo de volumen acumulado serie a serie, validación y formateo de score, extracción determinista de candidatos, selección de mejoras estrictas y ventanas temporales de agregación.
+- **Escenarios evaluados (`it`):**
+  1. `valida contratos por tipo e informa los parámetros impropios`
+  2. `canonicaliza libras y kilómetros y detecta series inválidas`
+  3. `suma el volumen real y rechaza entradas negativas o NaN`
+  4. `valida y formatea score por tipo`
+  5. `resume fuerza, cardio y ausencia de datos`
+  6. `deriva candidatos y conserva la primera serie empatada`
+  7. `selecciona sólo mejoras estrictas y compara TIME por distancia`
+  8. `incluye límites de 7 y 30 días e ignora fechas inválidas`
+
+#### 7. Esquemas de validación Zod (`packages/validation/src/schemas.test.ts`)
+- **Suite:** `esquemas de entrenamiento`
+- **Criterio de aceptación:** Verificar que `createWorkoutSchema` diferencie creación libre de clonación por WOD, que `updateWorkoutSchema` exija cambios reales en borradores y que `workoutResultsSchema` detecte ejercicios repetidos, series con `setNumber` duplicado y scores inválidos.
+- **Escenarios evaluados (`it`):**
+  1. `separa WOD estricto y entrenamiento libre con prescripción válida`
+  2. `rechaza resultados repetidos, inválidos y scores con extras`
+
+#### 8. Cliente HTTP tipado (`packages/api-client/src/index.test.ts`)
+- **Suite:** `rutas de recursos`
+- **Criterio de aceptación:** Verificar la construcción correcta de rutas HTTP autenticadas para entrenamientos y WODs, la resolución limpia de respuestas 204 con `undefined` en operaciones DELETE, y la preservación intacta del cuerpo y código de error funcional ante excepciones de conflicto y validación.
+- **Escenarios evaluados (`it`):**
+  1. `construye rutas de movimientos, marcas, WODs y entrenamientos autenticadas`
+  2. `usa DELETE y devuelve undefined para borrar una marca o entrenamiento`
+  3. `conserva código y details de errores de conflicto y validación`
+
+### 9.5.3 Inventario de prueba de extremo a extremo (E2E con Playwright)
+
+#### 9. Flujo completo del atleta en entrenamientos (`apps/web/e2e/workout-flow.spec.ts`)
+- **Escenario E2E (sin describe):**
+  - `'athlete-flow workout-flow'`
+- **Criterio de aceptación:** Ejecutar sobre un navegador Chromium real el recorrido integral: registro de usuario y perfil; listado inicial vacío (`10-workouts-list.png`); construcción de entrenamiento de fuerza en sentadilla (`11-workout-builder.png`); inicio y registro interactivo de serie con 100 kg (`12-workout-active.png`); finalización con obtención de "Primera marca" (`13-workout-completed.png`); creación y ejecución de segunda sesión a 105 kg constatando la mejora "+5 kg" (`14-workout-detail.png`); consulta de historial filtrado (`16-history.png`); apertura de marca derivada verificando bloque de origen y leyenda "Gestionada por entrenamiento" sin botones de edición (`15-workout-pr.png`); consulta de panel de control con indicadores de volumen actualizados (`17-dashboard-workouts.png`); y construcción y cierre de sesión `FOR_TIME` con score de tiempo 05:30.
+
+### 9.5.4 Defectos técnicos identificados y corregidos en la fase 3
+
+Durante las fases de integración y verificación se detectaron siete anomalías que fueron resueltas antes del cierre formal de la fase:
+
+| Defecto identificado | Mecanismo de detección | Corrección aplicada y verificación |
+| --- | --- | --- |
+| La primera versión de la función `complete` no era atómica ni transaccional | Prueba de integración concurrente (`workout-records.spec.ts` › `es idempotente y serializa completados concurrentes`) | Se encapsuló la finalización íntegra en `prisma.$transaction`, añadiendo el bloqueo asesor exclusivo `SELECT pg_advisory_xact_lock(hashtext(userId))` y actualización condicional atómica con `updateMany`, garantizando serialización determinista e idempotencia estricta ante peticiones simultáneas. |
+| El detalle del entrenamiento devolvía listas de marcas y contadores estáticos | Pruebas de integración de API y verificación en pantalla | Se sustituyeron los valores fijos por la función dinámica `toDerivedPersonalRecords`, cruzando los identificadores de serie (`workoutResultId`) con las marcas persistidas del usuario y computando dinámicamente `personalRecordCount`. |
+| Ausencia del bloque de trazabilidad `origin` en las marcas personales del historial | Revisión funcional y prueba de integración (`records.spec.ts` › `no permite modificar ni borrar una marca derivada y expone su origen`) | Se amplió la consulta de Prisma en `RecordsService` para incluir la relación `workoutResult` (junto con su ejercicio y entrenamiento contenedor), proyectando en `toPersonalRecord` los metadatos de procedencia: `workoutId`, `workoutName`, `performedOn`, `setNumber` y `reps`. |
+| La repetición accidental del número de serie `setNumber` causaba un error 500 no controlado de base de datos | Prueba de integración de API (`workouts.spec.ts` › `guarda resultados canónicos y valida score, ejercicio, duplicados y límite de series`) | Se incorporó una validación previa en `WorkoutsService.replaceResults` que verifica la unicidad de las claves compuestas `exerciseId:setNumber`, arrojando una excepción controlada `ApiException(400, 'VALIDATION_FAILED', 'El número de serie debe ser único')` antes de alcanzar la restricción de PostgreSQL. |
+| El esquema de creación de plantillas WOD rechazaba cargas cuando se omitían campos opcionales | Pruebas unitarias de esquemas (`schemas.test.ts`) e integración de WODs (`wods.spec.ts`) | Se ajustó `createWodSchema` y sus esquemas asociados en `@garfit/validation` para aceptar explícitamente valores nulos o no provistos en atributos opcionales como `description`, `notes`, `rounds` o `durationSeconds`. |
+| Un escenario de prueba previo permitía modificar o retirar marcas derivadas directamente | Auditoría de especificación y pruebas de aislamiento en `records.spec.ts` | Se fortaleció `RecordsService.findOwnedRecord` para evaluar `record.source === 'WORKOUT'`, bloqueando peticiones directas de `PATCH` o `DELETE` con `ApiException(409, 'RECORD_MANAGED_BY_WORKOUT', 'Esta marca proviene de un entrenamiento: gestiónala desde el entrenamiento')`. |
+| Las Server Actions web capturaban la excepción interna `NEXT_REDIRECT` impidiendo la navegación | Ejecución del flujo E2E automatizado con Playwright (`workout-flow.spec.ts`) | En `apps/web/src/app/workout-actions.ts`, se reposicionaron las llamadas a `redirect()` estrictamente fuera de los bloques `try/catch` para permitir que el error de control `NEXT_REDIRECT` sea procesado nativamente por el runtime de Next.js en lugar de ser tratado como fallo de API. |
+
+La verificación sobre dispositivo móvil físico permanece formalmente declarada como PENDIENTE por indisponibilidad de hardware y emuladores AVD en el entorno de desarrollo.
 
 Para reproducir la suite de verificación completa en un entorno local:
 

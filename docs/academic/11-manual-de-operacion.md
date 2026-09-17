@@ -172,7 +172,216 @@ En el detalle de un borrador seleccione **Empezar**. Registre cada serie con sus
 
 Una tarjeta **Primera marca** indica que no había una mejor marca comparable. Una presentación como **115 → 120 kg** indica mejora; el enlace **Origen** lleva a la sesión y serie que la generó. La leyenda **Gestionada por entrenamiento** explica por qué no se muestran Editar ni Retirar: para corregir una serie completada se elimina el entrenamiento, que retira lógicamente sus marcas derivadas, y se registra de nuevo. En **Historial** se filtra por estado y se abre el detalle; el panel de inicio muestra actividad, volumen y sesiones recientes.
 
-La app móvil ofrece el mismo flujo desde las pestañas Entrenar, Historial e Inicio y las rutas de WODs y Workouts. Su compilación y validación estática concluyeron correctamente, pero la operación en dispositivo permanece PENDIENTE. Las capturas del recorrido web son: ![Lista](../evidence/fase-3/capturas/10-workouts-list.png), ![Constructor](../evidence/fase-3/capturas/11-workout-builder.png), ![Activo](../evidence/fase-3/capturas/12-workout-active.png), ![Completado](../evidence/fase-3/capturas/13-workout-completed.png), ![Marca](../evidence/fase-3/capturas/15-workout-pr.png) y ![Dashboard](../evidence/fase-3/capturas/17-dashboard-workouts.png).
+La aplicación móvil ofrece el mismo flujo desde las pestañas Entrenar, Historial e Inicio y las rutas de WODs y Workouts. Su compilación y validación estática concluyeron correctamente, pero la operación en dispositivo permanece formalmente PENDIENTE. A continuación se desglosa la guía operativa paso a paso para el ciclo completo de entrenamientos y WODs.
+
+### 11.7.1 Preparación del entorno y datos de prueba (semillas)
+
+Para operar y evaluar el módulo deportivo de entrenamientos y plantillas WOD, el sistema requiere la inicialización de los catálogos y, opcionalmente, de un atleta con historial precargado:
+
+1. **Siembra del catálogo unificado (`pnpm db:seed`):**
+   - Ejecute desde la raíz del monorepo: `pnpm db:seed`.
+   - Este comando compila las dependencias e invoca `apps/api/src/cli/seed-movements.ts`.
+   - Carga de forma estrictamente idempotente los **1319 movimientos** estándar del catálogo inmutable (`packages/movements/data/catalog.json`), asegurando su disponibilidad en la tabla `Movement`.
+   - Siembra los **7 movimientos curados** por GarFit (`packages/movements/src/curated.ts`), identificados con `CURATED_SOURCE = 'garfit'`: `rowing-ergometer`, `air-squat`, `wall-ball`, `box-jump`, `double-under`, `toes-to-bar` y `barbell-clean-and-jerk`.
+   - Siembra los **6 WODs benchmark** públicos de referencia (`packages/movements/src/benchmark-wods.ts`), identificados con `BENCHMARK_SOURCE = 'garfit-benchmarks'`: `fran`, `grace`, `helen`, `diane`, `karen` y `cindy`, vinculando sus ejercicios a los movimientos correspondientes con sus esquemas y cargas estándar.
+2. **Siembra del atleta de demostración (`pnpm db:seed:demo`):**
+   - Ejecute: `DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo`.
+   - Inicializa el usuario `demo@garfit.example` con credenciales locales, perfil deportivo intermedio en sistema métrico y 5 marcas manuales históricas (press de banca con 75 y 80 kg, flexiones con 30 y 38 repeticiones, y plancha abdominal con 60 segundos).
+   - Genera mediante llamadas reales a `WorkoutsService` **tres sesiones de entrenamiento completadas**: dos entrenamientos de fuerza en sentadilla (`barbell-full-squat`) a 100 kg y 105 kg, y una sesión de cardio (`run`) de 5 km en 1420 segundos.
+   - Estas sesiones derivan automáticamente 1, 1 y 2 marcas personales en la base de datos (incluyendo marcas de carga `WEIGHT` y marcas de `TIME` y `DISTANCE` para cardio).
+
+### 11.7.2 Creación de un entrenamiento libre en la interfaz web
+
+Para construir una sesión de entrenamiento personalizada desde la aplicación web (`http://localhost:3000`):
+
+1. **Acceso a la sección de entrenamientos:**
+   - Inicie sesión y navegue a `http://localhost:3000/app/workouts` mediante el enlace "Entrenamientos" de la barra de navegación principal.
+   
+   ![Listado general de entrenamientos](../evidence/fase-3/capturas/10-workouts-list.png)
+   *Figura 11.1: Listado de entrenamientos del atleta con accesos para creación libre y consulta de plantillas WOD.*
+
+2. **Apertura del constructor de entrenamientos:**
+   - En la esquina superior derecha, haga clic en el botón "Nuevo entrenamiento" para ingresar a la ruta `/app/workouts/new`. La vista monta el componente `WorkoutBuilder`.
+3. **Definición de metadatos básicos:**
+   - En el campo **Nombre** (`name="name"`), introduzca el título descriptivo de la sesión (p. ej., "Fuerza A" o "Metcon Matutino").
+   - En el selector desplegable **Tipo** (`select name="workoutType"`), elija la modalidad de entrenamiento deseada: Fuerza (`STRENGTH`), Por tiempo (`FOR_TIME`), AMRAP (`AMRAP`), EMOM (`EMOM`), Cardio (`CARDIO`) o Personalizado (`CUSTOM`).
+4. **Configuración de la prescripción global (`Prescription`):**
+   - Según el tipo seleccionado, el formulario despliega dinámicamente los campos correspondientes:
+     - En `FOR_TIME`: campo opcional "Límite (s)" (`durationSeconds`) para fijar el corte de tiempo (*time cap*), y campo opcional "Esquema" (`repScheme`, p. ej., `21-15-9`).
+     - En `AMRAP`: campo obligatorio "Duración (s)" (`durationSeconds`) y campo opcional "Rondas" (`rounds`).
+     - En `EMOM`: campos obligatorios "Duración (s)" (`durationSeconds`) e "Intervalo (s)" (`intervalSeconds`), exigiendo que la duración sea múltiplo entero del intervalo.
+     - En `CUSTOM`: campo opcional "Esquema" (`repScheme`).
+     - En `STRENGTH` y `CARDIO`: no aplican parámetros globales, ya que la prescripción se define individualmente por ejercicio.
+5. **Búsqueda y agregación de ejercicios:**
+   - En la sección "Ejercicios", introduzca al menos dos caracteres en el campo "Buscar movimiento".
+   - El componente ejecuta una consulta con retardo (*debounce*) a `/app/workouts/movement-search?q=...` y muestra la lista de coincidencias con su categoría anatómica y tipos de marca admitidos.
+   - Haga clic sobre el movimiento deseado (p. ej., `barbell full squat`) para añadirlo al entrenamiento.
+6. **Configuración de las series objetivo (`ExerciseEditor`):**
+   - Para cada ejercicio añadido, establezca el objetivo prescrito:
+     - "Series" (`targetSets`) y "Repeticiones" (`targetReps`).
+     - Si el ejercicio admite marcas de peso (`WEIGHT`): introduzca "Carga" (`targetLoadValue`) y seleccione la unidad en "Unidad de carga" (`targetLoadUnit`: `KILOGRAM` o `POUND`).
+     - Si admite distancia o tiempo (`DISTANCE` / `TIME`): defina "Distancia" (`targetDistanceValue`) y "Unidad de distancia" (`targetDistanceUnit`: `METER`, `KILOMETER` o `MILE`), o "Duración (s)" (`targetDurationSeconds`).
+     - Ajuste el orden de ejecución mediante los botones "Subir" y "Bajar", o elimine un ejercicio con "Quitar".
+7. **Guardado del borrador:**
+   - Haga clic en el botón "Guardar entrenamiento".
+   - La Server Action `createWorkout` valida los datos con `createWorkoutSchema`, persiste la sesión en estado borrador (`DRAFT`) y redirige automáticamente al detalle del entrenamiento (`/app/workouts/:id`).
+
+   ![Constructor de entrenamientos](../evidence/fase-3/capturas/11-workout-builder.png)
+   *Figura 11.2: Formulario del constructor de entrenamiento con prescripción estructurada de ejercicios.*
+
+### 11.7.3 Creación de un entrenamiento a partir de un WOD predefinido
+
+Para iniciar un entrenamiento reutilizando una plantilla del catálogo público o privado:
+
+1. **Navegación al catálogo de WODs:**
+   - Desde `/app/workouts`, haga clic en el enlace "Desde un WOD" o navegue directamente a `http://localhost:3000/app/wods`.
+2. **Exploración y filtrado de plantillas:**
+   - Utilice la barra de búsqueda para filtrar por nombre (p. ej., "Fran") o el desplegable para seleccionar por tipo (`workoutType`).
+   - La lista presenta primero los WODs de referencia con el distintivo "Benchmark" y posteriormente los WODs personales del usuario.
+3. **Inspección de la ficha técnica:**
+   - Haga clic en el enlace del WOD deseado para abrir `/app/wods/:slug`.
+   - Consulte la prescripción consolidada (esquema de repeticiones, número de rondas o duración programada) y el listado de movimientos con sus cargas o repeticiones estándar.
+4. **Instanciación de la sesión:**
+   - Pulse el botón "Usar este WOD".
+   - La Server Action `useWod` envía una solicitud a la API creando un entrenamiento clonado en estado borrador (`DRAFT`) con todos los ejercicios y parámetros del WOD, redirigiendo de inmediato a `/app/workouts/:id`.
+
+### 11.7.4 Inicio de la sesión y registro de series y score por tipo
+
+Una vez creado el entrenamiento en borrador, el atleta procede a ejecutarlo y registrar su desempeño real:
+
+1. **Puesta en marcha del entrenamiento:**
+   - En la vista del detalle `/app/workouts/:id`, haga clic en el botón "Empezar".
+   - La acción `startWorkout` envía `POST /workouts/:id/start`, registrando la fecha y hora de inicio (`startedAt`) y actualizando el estado a en curso (`IN_PROGRESS`).
+
+   ![Sesión de entrenamiento en curso](../evidence/fase-3/capturas/12-workout-active.png)
+   *Figura 11.3: Vista de entrenamiento activo con formulario dinámico para la captura de series y score.*
+
+2. **Captura de series ejecutadas (`ExerciseRows`):**
+   - Para cada ejercicio prescrito, capture los valores reales conseguidos:
+     - En el campo "Reps", ingrese el número entero de repeticiones completadas.
+     - En el campo "kg" (o carga), capture el peso levantado.
+     - En el campo "Distancia", registre los metros completados si aplica.
+     - Utilice el botón "Añadir serie" para registrar series adicionales, o "Quitar" para descartar las series no realizadas.
+3. **Registro del resultado global (`Score`):**
+   - Dependiendo del tipo de sesión, el formulario presenta los campos validados por `validateScore`:
+     - En `FOR_TIME`: capture en el campo "Tiempo (mm:ss)" la marca cronometrada (p. ej., `05:30`). Si se alcanzó el tiempo límite (*time cap*), se capturan las repeticiones logradas al corte; `validateScore` prohíbe registrar simultáneamente tiempo y repeticiones al corte.
+     - En `AMRAP`: introduzca el número entero de "Rondas" completas y, en su caso, las repeticiones de la ronda incompleta en "Reps extra".
+     - En `EMOM`: seleccione en el grupo "¿Completaste todos los intervalos?" la opción "Sí" o "No" (`completed`).
+     - En `STRENGTH`, `CARDIO` y `CUSTOM`: no aplica score global; el resumen principal se deriva automáticamente de las series ejecutadas mediante `summarizeSets` (volumen total en kg para fuerza y mayor distancia/duración en cardio).
+4. **Guardado parcial (opcional):**
+   - Durante la sesión, puede pulsar "Guardar resultados" (`saveWorkoutResults`). El sistema ejecuta `PUT /workouts/:id/results`, normalizando las series a valores canónicos en la base de datos sin finalizar la sesión.
+
+### 11.7.5 Finalización del entrenamiento y gestión de errores
+
+Al concluir la totalidad del trabajo físico:
+
+1. **Envío de la finalización:**
+   - Haga clic en el botón principal "Completar" para invocar la Server Action `completeWorkout`.
+   - La acción valida los datos con `workoutResultsSchema` y envía `POST /workouts/:id/complete`.
+2. **Validación de completitud y error 422 (`WORKOUT_INCOMPLETE`):**
+   - El servicio de backend verifica que se hayan suministrado los resultados obligatorios mínimos antes de cerrar la sesión. Si faltan datos, la API rechaza la petición con código HTTP 422, código de error `WORKOUT_INCOMPLETE` y los mensajes textuales correspondientes:
+     - En `STRENGTH`: `"Registra al menos una serie con repeticiones"`.
+     - En `CARDIO`: `"Registra al menos una serie con distancia o duración"`.
+     - En `FOR_TIME`: `"Indica el tiempo, o las repeticiones si se alcanzó el tiempo límite"`.
+     - En `AMRAP`: `"Indica las rondas completadas"`.
+     - En `EMOM`: `"Indica si completaste todos los intervalos"`.
+3. **Control de transiciones y error 409 (`WORKOUT_INVALID_STATE`):**
+   - Si se intenta ejecutar una acción no permitida para el estado actual de la sesión (p. ej., intentar editar un entrenamiento que ya no está en `DRAFT`, o invocar `start` sobre una sesión ya completada), la API responde con código HTTP 409, código `WORKOUT_INVALID_STATE` y el mensaje literal:
+     - `"La acción no está permitida en este estado"`.
+4. **Cierre exitoso y persistencia:**
+   - Superadas las validaciones, el backend ejecuta una transacción atómica que fija `status = 'COMPLETED'`, asigna `completedAt = now()`, establece la fecha de realización `performedOn` y redirige a la vista de confirmación.
+
+   ![Entrenamiento completado](../evidence/fase-3/capturas/13-workout-completed.png)
+   *Figura 11.4: Resumen de sesión completada con cálculo de volumen total y derivación de marcas personales.*
+
+### 11.7.6 Interpretación de marcas automáticas y trazabilidad de origen
+
+Al finalizar una sesión de fuerza o cardio, GarFit evalúa automáticamente si alguna serie ejecutada constituye una nueva marca personal:
+
+1. **Detección de primera marca:**
+   - Si el atleta no contaba con ningún registro histórico comparable en dicho ejercicio y número de repeticiones (o distancia), el sistema crea la marca en la tabla `PersonalRecord` y la presenta en la interfaz con la etiqueta **Primera marca**.
+2. **Formato de mejora ("antes → después"):**
+   - Si ya existía una marca previa y la serie ejecutada la supera estrictamente, la interfaz proyecta la progresión en formato antes → después, indicando la mejora relativa conseguida:
+     - Ejemplo: **115 → 120 kg** (con el incremento calculado `· +5 kg`).
+
+   ![Detalle del entrenamiento con incremento de marca](../evidence/fase-3/capturas/14-workout-detail.png)
+   *Figura 11.5: Vista de detalle de la sesión completada reflejando la mejora sobre la marca personal anterior.*
+
+3. **Trazabilidad mediante el enlace "Origen":**
+   - Al hacer clic sobre cualquier marca personal, el sistema abre la vista del historial del ejercicio (`/app/records/:movementSlug`).
+   - Las marcas originadas en una sesión muestran la sección **Origen**, detallando el nombre del entrenamiento generador (p. ej., "Fuerza B"), la fecha de realización y la serie precisa (`setNumber: 1`) con sus repeticiones.
+4. **Protección contra edición directa ("Gestionada por entrenamiento"):**
+   - Las marcas automáticas muestran la leyenda informativa **Gestionada por entrenamiento** y ocultan deliberadamente los botones "Editar" y "Retirar".
+   - Si un cliente intenta modificar o suprimir la marca directamente (`PATCH /records/:id` o `DELETE /records/:id`), el backend la rechaza con código HTTP 409 y código `RECORD_MANAGED_BY_WORKOUT`:
+     - Mensaje: `"Esta marca proviene de un entrenamiento: gestiónala desde el entrenamiento"`.
+     - *Justificación técnica:* Se asegura que el valor de la marca coincida exactamente con el registro auditado de la serie deportiva realizada.
+5. **Procedimiento de corrección mediante borrado del entrenamiento:**
+   - Para enmendar una captura errónea en una sesión completada, navegue a `/app/workouts/:id` y haga clic en el enlace "Borrar entrenamiento".
+   - Confirme la acción pulsando "Confirmar borrado". La API ejecuta una transacción que aplica borrado lógico (`deletedAt`) sobre el entrenamiento y retira en cascada todas las marcas personales asociadas a sus series (`workoutResultId`).
+   - Las marcas retiradas dejan de contabilizar en el historial y en las mejores marcas. Posteriormente, el atleta puede registrar la sesión nuevamente con los valores correctos.
+
+   ![Detalle de marca personal y trazabilidad de origen](../evidence/fase-3/capturas/15-workout-pr.png)
+   *Figura 11.6: Ficha de marca derivada en el historial del atleta con origen trazable y bloqueo de modificación manual.*
+
+### 11.7.7 Consulta de historial, filtros y métricas en el panel de control
+
+Para dar seguimiento al volumen global y la regularidad del entrenamiento:
+
+1. **Navegación al historial de entrenamientos:**
+   - Acceda a `/app/workouts`. La interfaz agrupa las sesiones en dos bloques: "Pendientes" (borradores y en curso) e "Historial" (sesiones completadas).
+
+   ![Historial de entrenamientos completados](../evidence/fase-3/capturas/16-history.png)
+   *Figura 11.7: Historial de sesiones completadas con filtros por modalidad, estado y fecha.*
+
+2. **Aplicación de filtros de búsqueda:**
+   - En el formulario superior de `/app/workouts`, configure los filtros deseados:
+     - Selector de tipo: "Todos los tipos", "Fuerza", "Por tiempo", "AMRAP", "EMOM", "Cardio" o "Personalizado".
+     - Selector de estado: "Todos los estados", "Borrador", "En curso" o "Completado".
+     - Selector de fecha: "Desde" (`input name="from"` en formato fecha).
+     - Haga clic en "Filtrar" para actualizar los resultados paginados.
+3. **Lectura de tarjetas de sesión:**
+   - Cada tarjeta muestra la fecha de ejecución (o estado si está pendiente), modalidad, lista de movimientos participantes, el resumen destacado (`headline`) y el contador de marcas derivadas obtenidas ("X marcas").
+4. **Métricas en el panel de inicio (`/app`):**
+   - Ingrese al panel principal del atleta para consultar los indicadores agregados:
+     - Tarjetas superiores: volumen de sesiones completadas en "Esta semana" (`last7Days`), "Este mes" (`last30Days`), "Movimientos con marca" y "Marcas registradas".
+     - Tarjeta "Último entrenamiento": enlace directo con el nombre y headline de la sesión más reciente.
+     - Indicador "Marcas desde entrenamientos (30 días)": total de logros derivados directamente de entrenamientos en el último mes.
+
+   ![Dashboard principal con entrenamientos](../evidence/fase-3/capturas/17-dashboard-workouts.png)
+   *Figura 11.8: Panel de control del atleta con indicadores de frecuencia, volumen y actividad reciente.*
+
+### 11.7.8 Guía operativa de la aplicación móvil (Expo SDK 57)
+
+La aplicación móvil nativa (`apps/mobile`) replica las capacidades deportivas del cliente web adaptándolas a la pantalla táctil:
+
+1. **Pestaña Inicio (`(tabs)/index.tsx`):**
+   - Consume en paralelo `GET /records/summary` y `GET /workouts/stats`.
+   - Renderiza el saludo personalizado, las tarjetas de volumen mensual y semanal, el contador de marcas derivadas en los últimos 30 días y el componente `WorkoutSummary` con acceso directo al último entrenamiento registrado.
+2. **Pestaña Entrenar (`(tabs)/train.tsx`):**
+   - Punto de entrada a la sesión de ejercicio. Ofrece los botones principales de acción "Nuevo entrenamiento" y "Desde un WOD".
+   - En la sección "Continúa donde lo dejaste", lista los entrenamientos pendientes en estado borrador (`DRAFT`) o en curso (`IN_PROGRESS`) para reanudar la actividad con un toque.
+3. **Constructor de entrenamiento móvil (`workouts/new.tsx`):**
+   - Permite capturar el nombre, seleccionar el tipo mediante botones de opción táctil (`Choice`), ingresar parámetros de prescripción global en campos adaptados al teclado numérico (`Field`), seleccionar movimientos desde el catálogo y añadir series personalizadas.
+4. **Catálogo de WODs móvil (`wods/index.tsx` y `wods/[slug].tsx`):**
+   - Lista los benchmarks oficiales con su prescripción resumida. Al abrir un WOD, el botón "Usar este WOD" clona la estructura hacia un entrenamiento personal mediante `POST /workouts`.
+5. **Sesión interactiva y captura táctil (`workouts/[id].tsx`):**
+   - Permite transicionar la sesión a en curso ("Empezar"), ingresar repeticiones y cargas de cada serie en `ResultExercise`, registrar scores en `Score` (con botones de incremento `+` y `−` para rondas en AMRAP y conmutador para EMOM) y finalizar pulsando "Completar".
+6. **Pestaña Historial móvil (`(tabs)/history.tsx`):**
+   - Muestra el listado cronológico de sesiones completadas agrupadas por fecha (`groupWorkouts`) mediante un componente `FlatList` con recarga interactiva (`RefreshControl`) y paginación progresiva (`onEndReached`).
+7. **Declaración formal de verificación:**
+   - La validez sintáctica, el chequeo estático de tipos con TypeScript y la compilación del bundle para Android (`npx expo export --platform android`) han concluido con código de salida 0; no obstante, la operación interactiva en dispositivo móvil físico o emulador permanece declarada formalmente como **PENDIENTE** debido a la falta de terminales de prueba y entorno AVD en el equipo de desarrollo.
+
+### 11.7.9 Diagnóstico y resolución de problemas observados en fase 3
+
+Durante el desarrollo e integración de la fase 3 se identificaron dos situaciones operativas recurrentes que cuentan con solución documentada:
+
+1. **Definiciones de tipos de rutas de Expo desactualizadas en TypeScript:**
+   - *Síntoma:* La tarea `pnpm typecheck` o el editor de código reportan errores de tipado estático en `apps/mobile`, señalando que rutas como `/(app)/workouts/new` o `/(app)/wods/[slug]` no son destinos válidos de navegación.
+   - *Causa:* El generador de rutas estáticas de Expo Router no ha actualizado el archivo de tipos `expo-env.d.ts` tras la creación de nuevos archivos de pantalla.
+   - *Solución:* Iniciar brevemente el servidor de desarrollo de Metro mediante `pnpm dev:mobile` (o ejecutando `npx expo start`). Expo inspecciona el árbol de carpetas de `(app)` y reescribe automáticamente `expo-env.d.ts` con la totalidad de las rutas válidas.
+2. **Aviso informativo del adaptador `@prisma/adapter-pg` al sembrar datos de prueba:**
+   - *Síntoma:* Al ejecutar `pnpm db:seed:demo`, la terminal puede emitir mensajes de advertencia de PostgreSQL o del adaptador relativos a conexiones liberadas o cierre del pool de conexiones.
+   - *Diagnóstico:* Este aviso es completamente inocuo. Se produce por la secuencia de apagado coordinada entre el contexto de NestJS (`app.close()`) y la desconexión explícita del cliente Prisma (`prisma.$disconnect()`). Todas las transacciones de inserción de usuario, marcas y entrenamientos se completan satisfactoriamente con anterioridad a la emisión del mensaje.
 
 1. **Error: `DATABASE_URL no está definida` o fallo de conexión a PostgreSQL:**
    - Compruebe que el contenedor esté en ejecución mediante `docker ps`.
