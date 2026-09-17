@@ -15,9 +15,9 @@ export function analysisGeneratedLabel(cached: boolean, provider: string | null)
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' }).format(
-    new Date(`${value}T12:00:00`),
-  );
+  const date = value.includes('T') ? new Date(value) : new Date(`${value}T12:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' }).format(date);
 }
 
 export function AiAnalysis({ analysis }: { analysis: AiAnalysisResponse }) {
@@ -80,12 +80,14 @@ function AnalysisItems({ title, items }: { title: string; items: AiAnalysisItem[
     return null;
   }
 
+  const singular = title === 'Observaciones' ? 'Observación' : title.slice(0, -1);
+
   return (
     <AnalysisSection title={title}>
       <div className="mt-2 space-y-3">
         {items.map((item, i) => (
           <article
-            aria-label={`${title.slice(0, -1)}: ${item.title}`}
+            aria-label={`${singular}: ${item.title}`}
             className="rounded border border-line p-3"
             key={`${item.title}-${i}`}
           >
