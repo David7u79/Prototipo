@@ -11,6 +11,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  ArrayMaxSize,
+  ArrayMinSize,
   IsIn,
   IsInt,
   IsNumber,
@@ -43,8 +45,8 @@ export class CreateWodDto {
   @ApiProperty({ type: [Number] }) @IsArray() @IsInt({ each: true }) repScheme: number[] = [];
   @ApiProperty({ type: [WodExerciseDto] })
   @IsArray()
-  @Min(1)
-  @Max(WORKOUT_LIMITS.maxExercises)
+  @ArrayMinSize(1)
+  @ArrayMaxSize(WORKOUT_LIMITS.maxExercises)
   @ValidateNested({ each: true })
   @Type(() => WodExerciseDto)
   exercises!: WodExerciseDto[];

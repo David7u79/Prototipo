@@ -97,7 +97,10 @@ export class RecordsService {
         notes: emptyToNull(dto.notes),
         source: 'MANUAL',
       },
-      include: { movement: true },
+      include: {
+        movement: true,
+        workoutResult: { include: { workoutExercise: { include: { workout: true } } } },
+      },
     });
     return toPersonalRecord(row);
   }
@@ -115,14 +118,6 @@ export class RecordsService {
       throw validationFailed('La distancia y su unidad se envían juntas');
     }
     const record = await this.findOwnedRecord(userId, id);
-    if (record.source === 'WORKOUT') {
-      throw new ApiException(
-        409,
-        'RECORD_MANAGED_BY_WORKOUT',
-        'La marca pertenece a un entrenamiento',
-      );
-    }
-
     // Las reglas se comprueban sobre el resultado final (valores nuevos + los que no cambian).
     const next: RecordValues = {
       value: dto.value ?? Number(record.value),
@@ -162,7 +157,10 @@ export class RecordsService {
         ...(dto.performedAt !== undefined ? { performedAt: fromIsoDate(dto.performedAt) } : {}),
         ...(dto.notes !== undefined ? { notes: emptyToNull(dto.notes) } : {}),
       },
-      include: { movement: true },
+      include: {
+        movement: true,
+        workoutResult: { include: { workoutExercise: { include: { workout: true } } } },
+      },
     });
     return toPersonalRecord(row);
   }
@@ -171,13 +169,6 @@ export class RecordsService {
   async remove(userId: string, id: string): Promise<void> {
     assertValidId(id);
     const record = await this.findOwnedRecord(userId, id);
-    if (record.source === 'WORKOUT') {
-      throw new ApiException(
-        409,
-        'RECORD_MANAGED_BY_WORKOUT',
-        'La marca pertenece a un entrenamiento',
-      );
-    }
     await this.prisma.personalRecord.update({
       where: { id: record.id },
       data: { deletedAt: new Date() },
@@ -247,11 +238,22 @@ export class RecordsService {
     });
   }
 
+  /**
+   * Marca editable del usuario (PATCH/DELETE). Las derivadas de un entrenamiento se gestionan
+   * desde el entrenamiento (ADR 0008 §7): su valor debe coincidir con el resultado de origen.
+   */
   private async findOwnedRecord(userId: string, id: string) {
     const record = await this.prisma.personalRecord.findFirst({
       where: { id, userId, deletedAt: null },
     });
     if (!record) throw recordNotFound();
+    if (record.source === 'WORKOUT') {
+      throw new ApiException(
+        409,
+        'RECORD_MANAGED_BY_WORKOUT',
+        'Esta marca proviene de un entrenamiento: gestiónala desde el entrenamiento',
+      );
+    }
     return record;
   }
 }

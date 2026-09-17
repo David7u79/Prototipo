@@ -81,13 +81,13 @@ export function toPersonalRecord(row: RecordRow): PersonalRecordResponse {
  */
 export function toSeriesResponse(
   series: RecordSeriesSummary,
-  rowsById: ReadonlyMap<string, PersonalRecord>,
+  rowsById: ReadonlyMap<string, RecordRow>,
 ): RecordSeriesResponse {
   const personalBests = new Set(
     series.history.filter((point) => point.isPersonalBest).map((point) => point.id),
   );
   const entry = (item: RecordEntry): RecordHistoryEntryResponse => ({
-    ...toRecordFields(rowOf(item.id, rowsById)),
+    ...toPersonalRecord(rowOf(item.id, rowsById)),
     isPersonalBest: personalBests.has(item.id),
   });
   return {
@@ -116,16 +116,16 @@ function toDistanceUnit(value: PersonalRecord['distanceUnit']): DistanceUnit | n
 
 export function toSeriesWithHistory(
   series: RecordSeriesSummary,
-  rowsById: ReadonlyMap<string, PersonalRecord>,
+  rowsById: ReadonlyMap<string, RecordRow>,
 ): RecordSeriesWithHistoryResponse {
   const history = series.history.map((point: HistoryPoint) => ({
-    ...toRecordFields(rowOf(point.id, rowsById)),
+    ...toPersonalRecord(rowOf(point.id, rowsById)),
     isPersonalBest: point.isPersonalBest,
   }));
   return { ...toSeriesResponse(series, rowsById), history };
 }
 
-function rowOf(id: string, rowsById: ReadonlyMap<string, PersonalRecord>): PersonalRecord {
+function rowOf(id: string, rowsById: ReadonlyMap<string, RecordRow>): RecordRow {
   const row = rowsById.get(id);
   if (!row) throw new Error(`Registro ${id} ausente al serializar la serie`);
   return row;

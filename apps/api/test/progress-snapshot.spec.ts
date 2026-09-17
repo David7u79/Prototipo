@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ProgressSnapshotService } from '../src/ai/progress-snapshot.service.js';
 import { createTestApp, resetDatabase, type TestApp } from './app.js';
 import { bearer, registerUser, seedTestMovements } from './helpers.js';
+import { completeWorkout, createWorkout, oneSet, workoutDraft } from './helpers.js';
 
 describe('ProgressSnapshotService', () => {
   let ctx: TestApp;
@@ -87,5 +88,55 @@ describe('ProgressSnapshotService', () => {
       completedWorkouts: 0,
     });
     expect(snapshot.records).toEqual([]);
+  });
+
+  it('incluye entrenamientos, score, volumen y tendencias de fase 3', async () => {
+    const token = await registerUser(ctx.app);
+    const server = ctx.app.getHttpServer();
+    const user = (await request(server).get('/auth/me').set(bearer(token))).body;
+    const forTime = await createWorkout(ctx.app, token, workoutDraft('Fran', 'FOR_TIME', 'run'));
+    await completeWorkout(
+      ctx.app,
+      token,
+      forTime.id,
+      oneSet(
+        forTime.exercises[0].id,
+        { setNumber: 1, reps: 1, loadValue: 100, loadUnit: 'KILOGRAM' },
+        { timeSeconds: 330 },
+      ),
+      '2026-06-30',
+    ).expect(201);
+    const strength = await createWorkout(ctx.app, token, workoutDraft('Sentadilla'));
+    await completeWorkout(
+      ctx.app,
+      token,
+      strength.id,
+      oneSet(strength.exercises[0].id, {
+        setNumber: 1,
+        reps: 5,
+        loadValue: 100,
+        loadUnit: 'KILOGRAM',
+      }),
+      '2026-06-20',
+    ).expect(201);
+    const snapshot = await ctx.app
+      .get(ProgressSnapshotService)
+      .build(user.id, new Date('2026-07-01T12:00:00Z'));
+    expect(snapshot.totals.completedWorkouts).toBe(2);
+    expect(snapshot.recentWorkouts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'Fran', score: '5:30' }),
+        expect.objectContaining({ name: 'Sentadilla', volumeKg: 500 }),
+      ]),
+    );
+    expect(snapshot.volumeByMovementLast30Days).toEqual([
+      { movementSlug: 'barbell-full-squat', movementName: 'Barbell full squat', volumeKg: 500 },
+      { movementSlug: 'run', movementName: 'Run', volumeKg: 100 },
+    ]);
+    expect(snapshot.trends).toMatchObject({
+      workoutsLast7Days: 1,
+      workoutsLast30Days: 2,
+      personalRecordsFromWorkoutsLast30Days: 1,
+    });
   });
 });

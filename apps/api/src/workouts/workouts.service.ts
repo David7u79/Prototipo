@@ -11,6 +11,7 @@ import {
   validateScore,
   isNotInFuture,
   isValidIsoDate,
+  UUID_PATTERN,
   type DistanceUnit,
   type LoadUnit,
   type RecordType,
@@ -28,7 +29,7 @@ import type {
   UpdateWorkoutDto,
   WorkoutFiltersDto,
 } from './dto/workout.dto.js';
-import { toWorkoutMovementRef } from './workouts.mapper.js';
+import { toDerivedPersonalRecords, toWorkoutMovementRef } from './workouts.mapper.js';
 
 const workoutNotFound = () =>
   new ApiException(404, 'WORKOUT_NOT_FOUND', 'No encontramos ese entrenamiento');
@@ -96,7 +97,12 @@ export class WorkoutsService {
         where,
         include: {
           wod: true,
-          exercises: { include: { movement: true, results: true } },
+          exercises: {
+            include: {
+              movement: true,
+              results: { include: { personalRecords: { where: { deletedAt: null } } } },
+            },
+          },
           score: true,
         },
         orderBy: [{ performedOn: 'desc' }, { createdAt: 'desc' }],
@@ -114,7 +120,14 @@ export class WorkoutsService {
   }
   async get(userId: string, id: string) {
     const row = await this.owned(userId, id);
-    return this.detail(row);
+    const records = await this.prisma.personalRecord.findMany({
+      where: { userId, deletedAt: null },
+      include: {
+        movement: true,
+        workoutResult: { include: { workoutExercise: { include: { workout: true } } } },
+      },
+    });
+    return this.detail(row, records);
   }
   async update(userId: string, id: string, dto: UpdateWorkoutDto) {
     const workout = await this.owned(userId, id);
@@ -217,7 +230,12 @@ export class WorkoutsService {
       where: { userId, deletedAt: null, status: 'COMPLETED' },
       include: {
         wod: true,
-        exercises: { include: { movement: true, results: true } },
+        exercises: {
+          include: {
+            movement: true,
+            results: { include: { personalRecords: { where: { deletedAt: null } } } },
+          },
+        },
         score: true,
       },
     });
@@ -299,6 +317,19 @@ export class WorkoutsService {
         'VALIDATION_FAILED',
         'El ejercicio no pertenece al entrenamiento',
       );
+    if (dto.exercises.length !== new Set(dto.exercises.map((item) => item.exerciseId)).size) {
+      throw new ApiException(400, 'VALIDATION_FAILED', 'El ejercicio se enviÃ³ mÃ¡s de una vez');
+    }
+    const sets = dto.exercises.flatMap((item) => item.sets);
+    if (sets.length > 300) {
+      throw new ApiException(400, 'VALIDATION_FAILED', 'Se excediÃ³ el lÃ­mite de series');
+    }
+    const resultKeys = dto.exercises.flatMap((exercise) =>
+      exercise.sets.map((set) => `${exercise.exerciseId}:${set.setNumber}`),
+    );
+    if (resultKeys.length !== new Set(resultKeys).size) {
+      throw new ApiException(400, 'VALIDATION_FAILED', 'El nÃºmero de serie debe ser Ãºnico');
+    }
     const score = dto.score ?? EMPTY_SCORE;
     const errors = validateScore(workout.workoutType, score);
     if (dto.score && errors.length) throw new ApiException(400, 'VALIDATION_FAILED', errors[0]!);
@@ -381,13 +412,22 @@ export class WorkoutsService {
     }
   }
   private async owned(userId: string, id: string, client: DbClient = this.prisma) {
+    if (!UUID_PATTERN.test(id)) {
+      throw new ApiException(400, 'VALIDATION_FAILED', 'El identificador no es vÃ¡lido');
+    }
     const row = await client.workout.findFirst({
       where: { id, userId, deletedAt: null },
       include: {
         wod: true,
         score: true,
         exercises: {
-          include: { movement: true, results: { orderBy: { setNumber: 'asc' } } },
+          include: {
+            movement: true,
+            results: {
+              orderBy: { setNumber: 'asc' },
+              include: { personalRecords: { where: { deletedAt: null } } },
+            },
+          },
           orderBy: { position: 'asc' },
         },
       },
@@ -424,10 +464,22 @@ export class WorkoutsService {
       headline:
         formatScore(row.workoutType, row.score ?? EMPTY_SCORE) ??
         summarizeSets(row.workoutType, sets),
-      personalRecordCount: 0,
+      personalRecordCount: row.exercises.reduce(
+        (count, exercise) =>
+          count +
+          exercise.results.reduce(
+            (sum, result) =>
+              sum + ('personalRecords' in result ? result.personalRecords.length : 0),
+            0,
+          ),
+        0,
+      ),
     };
   }
-  private detail(row: Awaited<ReturnType<WorkoutsService['owned']>>) {
+  private detail(
+    row: Awaited<ReturnType<WorkoutsService['owned']>>,
+    records: import('../records/records.mapper.js').RecordRow[],
+  ) {
     const sets = row.exercises.flatMap((item) =>
       item.results.map((result) => ({
         reps: result.reps,
@@ -483,7 +535,10 @@ export class WorkoutsService {
           })),
         ),
       })),
-      personalRecords: [],
+      personalRecords: toDerivedPersonalRecords(
+        records,
+        new Set(row.exercises.flatMap((exercise) => exercise.results.map((result) => result.id))),
+      ),
     };
   }
 }

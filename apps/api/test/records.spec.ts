@@ -45,6 +45,30 @@ describe('marcas personales', () => {
   });
 
   describe('POST /records', () => {
+    it('exige distancia para TIME, la separa por distancia y prohíbe distancia en peso', async () => {
+      const time = (distanceValue: number) => ({
+        movementSlug: 'run',
+        recordType: 'TIME',
+        value: 1500,
+        unit: 'SECOND',
+        distanceValue,
+        distanceUnit: 'KILOMETER',
+        performedAt: daysAgo(1),
+      });
+      await post({ ...time(5), distanceValue: null, distanceUnit: null }).expect(400);
+      await post(time(5)).expect(201);
+      await post(time(10)).expect(201);
+      const series = (await get('/records/run')).body.series;
+      expect(series).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: 'TIME@5000m', distanceMeters: 5000 }),
+          expect.objectContaining({ key: 'TIME@10000m', distanceMeters: 10000 }),
+        ]),
+      );
+      await post(weight(100, daysAgo(1), { distanceValue: 5, distanceUnit: 'KILOMETER' })).expect(
+        400,
+      );
+    });
     it('registra una marca de peso en kg', async () => {
       const response = await post(weight(100.5, daysAgo(3), { notes: '  Buena técnica  ' }));
       expect(response.status).toBe(201);
@@ -255,6 +279,77 @@ describe('marcas personales', () => {
   });
 
   describe('PATCH /records/:id', () => {
+    it('no permite modificar ni borrar una marca derivada y expone su origen', async () => {
+      const user = await ctx.prisma.user.findFirstOrThrow();
+      const movement = await ctx.prisma.movement.findUniqueOrThrow({
+        where: { slug: 'barbell-full-squat' },
+      });
+      const workout = await ctx.prisma.workout.create({
+        data: {
+          userId: user.id,
+          name: 'Origen',
+          workoutType: 'STRENGTH',
+          status: 'COMPLETED',
+          performedOn: new Date(daysAgo(1)),
+          repScheme: [],
+          exercises: {
+            create: {
+              movementId: movement.id,
+              position: 1,
+              results: {
+                create: {
+                  setNumber: 1,
+                  reps: 1,
+                  loadValue: 100,
+                  loadUnit: 'KILOGRAM',
+                  loadKg: 100,
+                },
+              },
+            },
+          },
+        },
+      });
+      const result = await ctx.prisma.workoutResult.findFirstOrThrow({
+        where: { workoutExercise: { workoutId: workout.id } },
+      });
+      const record = await ctx.prisma.personalRecord.create({
+        data: {
+          userId: user.id,
+          movementId: movement.id,
+          recordType: 'WEIGHT',
+          value: 100,
+          unit: 'KILOGRAM',
+          normalizedValue: 100,
+          repetitions: 1,
+          performedAt: new Date(daysAgo(1)),
+          source: 'WORKOUT',
+          workoutResultId: result.id,
+        },
+      });
+      const listed = await get('/records/barbell-full-squat');
+      expect(listed.body.series[0].history[0].origin).toMatchObject({
+        workoutId: workout.id,
+        workoutName: 'Origen',
+        performedOn: daysAgo(1),
+        setNumber: 1,
+        reps: 1,
+      });
+      const updated = await request(server())
+        .patch(`/records/${record.id}`)
+        .set(bearer(token))
+        .send({ notes: 'x' })
+        .expect(409);
+      expect(updated.body.code).toBe('RECORD_MANAGED_BY_WORKOUT');
+      const removed = await request(server())
+        .delete(`/records/${record.id}`)
+        .set(bearer(token))
+        .expect(409);
+      expect(removed.body.code).toBe('RECORD_MANAGED_BY_WORKOUT');
+      const unchanged = await ctx.prisma.personalRecord.findUniqueOrThrow({
+        where: { id: record.id },
+      });
+      expect(unchanged).toMatchObject({ notes: null, deletedAt: null });
+    });
     it('corrige valor y unidad recalculando normalizedValue', async () => {
       const created = await post(weight(100, daysAgo(5))).expect(201);
       const response = await request(server())
