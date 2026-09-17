@@ -8,5 +8,6 @@ import { WorkoutsService } from './workouts.service.js';
   imports: [AuthModule, PrismaModule],
   controllers: [WorkoutsController],
   providers: [WorkoutsService],
+  exports: [WorkoutsService],
 })
 export class WorkoutsModule {}

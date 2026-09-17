@@ -88,7 +88,9 @@ try {
   try {
     const workouts = app.get(WorkoutsService);
     await completeStrengthWorkout(workouts, user.id, 100, '2025-01-10');
-    await completeStrengthWorkout(workouts, user.id, 105, '2025-03-10');
+    await completeStrengthWorkout(workouts, user.id, 100, '2025-01-17');
+    await completeStrengthWorkout(workouts, user.id, 105, '2025-01-24');
+    await completeStrengthWorkout(workouts, user.id, 110, '2025-01-31');
     await completeRunWorkout(workouts, user.id, '2025-08-20');
   } finally {
     await app.close();
@@ -119,7 +121,9 @@ async function completeStrengthWorkout(
       exercises: [
         {
           exerciseId: workout.exercises[0]!.id,
-          sets: [set({ reps: 1, loadValue, loadUnit: 'KILOGRAM' })],
+          sets: Array.from({ length: 5 }, (_, index) =>
+            set({ setNumber: index + 1, reps: 5, loadValue, loadUnit: 'KILOGRAM' }),
+          ),
         },
       ],
     },
@@ -184,6 +188,7 @@ function workoutDraft(values: {
   };
 }
 function set(values: {
+  setNumber?: number;
   reps?: number;
   loadValue?: number;
   loadUnit?: 'KILOGRAM';
@@ -192,7 +197,7 @@ function set(values: {
   durationSeconds?: number;
 }) {
   return {
-    setNumber: 1,
+    setNumber: values.setNumber ?? 1,
     reps: values.reps ?? null,
     loadValue: values.loadValue ?? null,
     loadUnit: values.loadUnit ?? null,
