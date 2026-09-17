@@ -1,13 +1,13 @@
 # Información de compilación
 
-- Fecha: 2026-09-17T08:58:06.187Z
-- Commit: 39e2f4cf5b5af08edffdb29e3d67f25cd6d1b21e
-- Rama: fase-3-entrenamientos
+- Fecha: 2026-09-17T19:09:03.284Z
+- Commit: 38772670fa90ae1bc1f4c85e82331d570d627177
+- Rama: fase-4-ia
 - Cambios sin commit: sí
 - Node: v24.19.0
 - pnpm: 11.20.0
-- Última migración: 20260917043000_workouts
-- SHA-256 corto de schema.prisma: 182375267169
+- Última migración: 20260917180000_ai_analysis
+- SHA-256 corto de schema.prisma: 6c9daf3209b6
 
 ## Aplicaciones y paquetes
 
