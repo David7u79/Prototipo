@@ -6,6 +6,7 @@ build/
 .expo/
 .turbo/
 coverage/
+!docs/generated/coverage/
 *.tsbuildinfo
 .DS_Store
 npm-debug.log*
@@ -20,8 +21,8 @@ pnpm-debug.log*
 apps/api/src/generated/
 
 # Binarios de releases (se publican vía script, no por git)
-storage/releases/**/*
-!storage/releases/**/.gitkeep
+storage/releases/android/*
+!storage/releases/android/.gitkeep
 
 # Mobile nativo (Development Builds se generan con prebuild)
 apps/mobile/android/

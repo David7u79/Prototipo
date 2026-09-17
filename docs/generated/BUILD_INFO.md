@@ -1,8 +1,8 @@
 # Información de compilación
 
-- Fecha: 2026-09-17T00:02:34.883Z
-- Commit: 5edd3bc402e2df4b33fa6565aac83906ebfa6518
-- Rama: ai/docs
+- Fecha: 2026-09-17T00:05:21.945Z
+- Commit: 9485ab30fd9f05f339826b2c6ec0f839d83462ac
+- Rama: fase-1-fundacion
 - Cambios sin commit: sí
 - Node: v24.19.0
 - pnpm: 11.20.0

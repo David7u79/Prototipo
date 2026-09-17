@@ -10,7 +10,7 @@
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "test:coverage": "vitest run --coverage --passWithNoTests --reporter=default --reporter=json-summary"
+    "test:coverage": "vitest run --coverage --passWithNoTests --coverage.reporter=text --coverage.reporter=json-summary"
   },
   "devDependencies": {
     "@garfit/config": "workspace:*",
