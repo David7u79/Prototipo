@@ -14,9 +14,34 @@ import type {
   AuthResponse,
   HealthResponse,
   LatestReleaseResponse,
+  MovementDetail,
+  MovementFilters,
+  MovementRecordsResponse,
+  MovementSummary,
+  Paginated,
+  PersonalRecord,
+  RecordsOverviewResponse,
+  RecordsSummaryResponse,
   User,
 } from '@garfit/types';
-import type { AthleteProfileInput, LoginInput, RegisterInput } from '@garfit/validation';
+import type {
+  AthleteProfileInput,
+  CreateRecordInput,
+  LoginInput,
+  RegisterInput,
+  UpdateRecordInput,
+} from '@garfit/validation';
+
+/** Construye `?a=1&b=2` omitiendo valores vacíos. */
+export function toQueryString(params: object): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue;
+    search.set(key, String(value));
+  }
+  const query = search.toString();
+  return query ? `?${query}` : '';
+}
 
 /** Error de la API con el cuerpo normalizado. `status` 0 indica fallo de red. */
 export class ApiError extends Error {
@@ -43,7 +68,7 @@ export interface ApiClientOptions {
   fetch?: typeof fetch;
 }
 
-type Method = 'GET' | 'POST' | 'PUT';
+type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 /** Crea un cliente ligado a una URL base y a una fuente de access token. */
 export function createApiClient(options: ApiClientOptions) {
@@ -96,6 +121,40 @@ export function createApiClient(options: ApiClientOptions) {
       get: () => request<AthleteProfile>('GET', '/profile', undefined, true),
       upsert: (input: AthleteProfileInput) =>
         request<AthleteProfile>('PUT', '/profile', input, true),
+    },
+
+    movements: {
+      list: (filters: MovementFilters = {}) =>
+        request<Paginated<MovementSummary>>(
+          'GET',
+          `/movements${toQueryString(filters)}`,
+          undefined,
+          true,
+        ),
+      /** Lanza `ApiError` 404 `MOVEMENT_NOT_FOUND` si el slug no existe. */
+      get: (slug: string) =>
+        request<MovementDetail>('GET', `/movements/${encodeURIComponent(slug)}`, undefined, true),
+    },
+
+    records: {
+      /** Mejor marca y marca actual por serie, ordenadas por actividad reciente. */
+      overview: () => request<RecordsOverviewResponse>('GET', '/records', undefined, true),
+      summary: () => request<RecordsSummaryResponse>('GET', '/records/summary', undefined, true),
+      /** Historial completo en un movimiento; `series` vacío si aún no hay marcas. */
+      forMovement: (movementSlug: string) =>
+        request<MovementRecordsResponse>(
+          'GET',
+          `/records/${encodeURIComponent(movementSlug)}`,
+          undefined,
+          true,
+        ),
+      create: (input: CreateRecordInput) =>
+        request<PersonalRecord>('POST', '/records', input, true),
+      update: (id: string, input: UpdateRecordInput) =>
+        request<PersonalRecord>('PATCH', `/records/${encodeURIComponent(id)}`, input, true),
+      /** Borrado lógico: deja de contar en cálculos e historial. */
+      remove: (id: string) =>
+        request<void>('DELETE', `/records/${encodeURIComponent(id)}`, undefined, true),
     },
 
     releases: {

@@ -5,7 +5,10 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "types": "./src/index.ts",
-  
+  "dependencies": {
+    "@garfit/domain": "workspace:*",
+    "@garfit/movements": "workspace:*"
+  },
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",

@@ -1,0 +1,35 @@
+{
+  "name": "@garfit/movements",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Taxonomía, reglas y catálogo de movimientos de GarFit (sin componentes visuales).",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./catalog.json": "./data/catalog.json"
+  },
+  "types": "./dist/index.d.ts",
+  "files": ["dist", "data"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "catalog:import": "tsc -p tsconfig.build.json && node scripts/import-catalog.mjs",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=json-summary"
+  },
+  "dependencies": {
+    "@garfit/domain": "workspace:*"
+  },
+  "devDependencies": {
+    "@garfit/config": "workspace:*",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "^10.10.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  }
+}

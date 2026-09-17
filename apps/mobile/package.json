@@ -5,6 +5,8 @@
   "dependencies": {
     "@expo/ui": "~57.0.18",
     "@garfit/api-client": "workspace:*",
+    "@garfit/domain": "workspace:*",
+    "@garfit/movements": "workspace:*",
     "@garfit/types": "workspace:*",
     "@garfit/validation": "workspace:*",
     "@react-native-google-signin/google-signin": "^16.1.5",
@@ -37,7 +39,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "eslint": "^10.10.0",
+    "eslint": "^9.39.5",
     "eslint-config-expo": "~57.0.2",
     "typescript": "~6.0.3"
   },

@@ -5,7 +5,11 @@
   "type": "module",
   "exports": { ".": "./src/index.ts" },
   "types": "./src/index.ts",
-  "dependencies": { "zod": "^4.6.5" },
+  "dependencies": {
+    "@garfit/domain": "workspace:*",
+    "@garfit/movements": "workspace:*",
+    "zod": "^4.6.5"
+  },
   "scripts": {
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",

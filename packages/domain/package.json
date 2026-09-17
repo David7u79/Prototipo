@@ -1,0 +1,30 @@
+{
+  "name": "@garfit/domain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reglas de dominio de GarFit sin dependencias: límites, enums, unidades y cálculo de marcas.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage --coverage.reporter=text --coverage.reporter=json-summary"
+  },
+  "devDependencies": {
+    "@garfit/config": "workspace:*",
+    "@vitest/coverage-v8": "^5.0.1",
+    "eslint": "^10.10.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.1"
+  }
+}
