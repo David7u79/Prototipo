@@ -1,5 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": { "noEmit": true, "lib": ["ES2023", "DOM"] },
-  "include": ["packages/types/src", "packages/validation/src", "packages/api-client/src"]
+  "include": [
+    "packages/types/src",
+    "packages/validation/src",
+    "packages/api-client/src",
+    "packages/domain/src",
+    "packages/movements/src"
+  ],
+  "exclude": ["**/*.test.ts"]
 }
