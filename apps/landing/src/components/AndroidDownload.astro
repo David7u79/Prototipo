@@ -14,6 +14,15 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000';
   <a class="button button-primary mt-4" data-download hidden href="#">
     Descargar para Android
   </a>
+  <div class="mt-5" data-qr hidden>
+    <p class="text-sm text-muted">Escanea para descargar en Android</p>
+    <svg aria-label="Código QR para descargar GarFit en Android" role="img" viewBox="0 0 29 29" width="144">
+      <rect fill="white" height="29" width="29" />
+      <g fill="currentColor">
+        <path d="M1 1h7v7H1zM3 3v3h3V3zM21 1h7v7h-7zM23 3v3h3V3zM1 21h7v7H1zM3 23v3h3v-3zM10 2h2v2h-2zM14 2h2v2h-2zM10 6h2v2h-2zM13 9h2v2h-2zM17 9h2v2h-2zM10 12h2v2h-2zM15 13h2v2h-2zM19 12h2v2h-2zM9 16h2v2H9zM13 17h2v2h-2zM17 16h2v2h-2zM21 17h2v2h-2zM10 21h2v2h-2zM14 22h2v2h-2zM18 21h2v2h-2zM22 23h2v2h-2zM26 10h2v2h-2zM23 13h2v2h-2z" />
+      </g>
+    </svg>
+  </div>
   <button class="button button-secondary mt-4" data-unavailable type="button" disabled hidden>
     Próximamente
   </button>
@@ -89,6 +98,7 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000';
     const status = root.querySelector('[data-status]');
     const download = root.querySelector('[data-download]');
     const unavailable = root.querySelector('[data-unavailable]');
+    const qr = root.querySelector('[data-qr]');
 
     if (!(status instanceof HTMLElement)) return;
 
@@ -108,10 +118,12 @@ const apiUrl = import.meta.env.PUBLIC_API_URL ?? 'http://localhost:4000';
         `Publicada el ${formatDate(release.releasedAt)}`;
 
       if (download instanceof HTMLAnchorElement) {
-        download.href = release.downloadUrl;
+        download.href = `${apiUrl}/releases/android/latest/download`;
         download.textContent = `Descargar para Android (${release.version})`;
         download.hidden = false;
       }
+
+      if (qr instanceof HTMLElement) qr.hidden = false;
 
       // Los detalles solo existen en la página de descarga.
       populateDetails(root, release.changelog, release.sha256);
