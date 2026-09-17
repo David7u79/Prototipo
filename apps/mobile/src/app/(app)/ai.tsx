@@ -2,6 +2,7 @@ import { ApiError } from '@garfit/api-client';
 import type {
   AiAnalysisItem,
   AiAnalysisResponse,
+  AiAnalysisSummary,
   AiStatusResponse,
   WorkoutListItem,
 } from '@garfit/types';
@@ -10,9 +11,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Title, uiStyles } from '@/components/ui';
 import { colors } from '@/constants/theme';
-import { api, messageFor, useSession } from '@/lib/auth';
+import { api, useSession } from '@/lib/auth';
 
 type RequestedAction = 'progress' | 'workout' | 'wod' | 'movement';
+const HISTORY_PAGE_SIZE = 10;
 
 function aiMessageFor(error: unknown): string {
   if (error instanceof ApiError) {
@@ -32,12 +34,22 @@ function aiMessageFor(error: unknown): string {
         return 'No se pudo generar el análisis. Inténtalo de nuevo.';
     }
   }
-  return messageFor(error);
+  return 'No se pudo completar la solicitud. Inténtalo de nuevo.';
 }
 
 function dateLabel(value: string) {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('es-MX');
+}
+
+function analysisTypeLabel(type: AiAnalysisSummary['type']) {
+  const labels: Record<AiAnalysisSummary['type'], string> = {
+    PROGRESS_ANALYSIS: 'Progreso',
+    WORKOUT_ANALYSIS: 'Entrenamiento',
+    WOD_EXPLANATION: 'WOD',
+    MOVEMENT_EXPLANATION: 'Movimiento',
+  };
+  return labels[type];
 }
 
 export default function AiScreen() {
@@ -52,8 +64,14 @@ export default function AiScreen() {
   const [status, setStatus] = useState<AiStatusResponse | null>(null);
   const [latestWorkout, setLatestWorkout] = useState<WorkoutListItem | null>(null);
   const [analysis, setAnalysis] = useState<AiAnalysisResponse | null>(null);
+  const [history, setHistory] = useState<AiAnalysisSummary[]>([]);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyPages, setHistoryPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [openingAnalysisId, setOpeningAnalysisId] = useState<string | null>(null);
+  const [deletingAnalysisId, setDeletingAnalysisId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -63,10 +81,14 @@ export default function AiScreen() {
       const currentStatus = await request(() => api.ai.status());
       setStatus(currentStatus);
       if (currentStatus.enabled && currentStatus.configured) {
-        const workouts = await request(() =>
-          api.workouts.list({ status: 'COMPLETED', page: 1, limit: 1 }),
-        );
+        const [workouts, analyses] = await Promise.all([
+          request(() => api.workouts.list({ status: 'COMPLETED', page: 1, limit: 1 })),
+          request(() => api.ai.analyses.list({ page: 1, limit: HISTORY_PAGE_SIZE })),
+        ]);
         setLatestWorkout(workouts.items[0] ?? null);
+        setHistory(analyses.items);
+        setHistoryPage(analyses.page);
+        setHistoryPages(analyses.totalPages);
       }
     } catch (cause) {
       setError(aiMessageFor(cause));
@@ -79,6 +101,26 @@ export default function AiScreen() {
     useCallback(() => {
       void load();
     }, [load]),
+  );
+
+  const loadHistory = useCallback(
+    async (nextPage: number, replace = false) => {
+      if (loadingHistory || (!replace && nextPage > historyPages)) return;
+      setLoadingHistory(true);
+      try {
+        const result = await request(() =>
+          api.ai.analyses.list({ page: nextPage, limit: HISTORY_PAGE_SIZE }),
+        );
+        setHistory((current) => (replace ? result.items : [...current, ...result.items]));
+        setHistoryPage(result.page);
+        setHistoryPages(result.totalPages);
+      } catch (cause) {
+        setError(aiMessageFor(cause));
+      } finally {
+        setLoadingHistory(false);
+      }
+    },
+    [historyPages, loadingHistory, request],
   );
 
   const run = useCallback(
@@ -95,13 +137,14 @@ export default function AiScreen() {
           throw new Error('No se encontró el elemento para analizar.');
         });
         setAnalysis(result);
+        await loadHistory(1, true);
       } catch (cause) {
         setError(aiMessageFor(cause));
       } finally {
         setRunning(false);
       }
     },
-    [request],
+    [loadHistory, request],
   );
 
   useEffect(() => {
@@ -123,6 +166,32 @@ export default function AiScreen() {
       setError(aiMessageFor(cause));
     } finally {
       setRunning(false);
+    }
+  }
+
+  async function openAnalysis(id: string) {
+    setOpeningAnalysisId(id);
+    setError(null);
+    try {
+      setAnalysis(await request(() => api.ai.analyses.get(id)));
+    } catch (cause) {
+      setError(aiMessageFor(cause));
+    } finally {
+      setOpeningAnalysisId(null);
+    }
+  }
+
+  async function removeAnalysis(id: string) {
+    setDeletingAnalysisId(id);
+    setError(null);
+    try {
+      await request(() => api.ai.analyses.remove(id));
+      if (analysis?.id === id) setAnalysis(null);
+      await loadHistory(1, true);
+    } catch (cause) {
+      setError(aiMessageFor(cause));
+    } finally {
+      setDeletingAnalysisId(null);
     }
   }
 
@@ -200,7 +269,74 @@ export default function AiScreen() {
       </Card>
       {running ? <ActivityIndicator color={colors.accent} size="large" /> : null}
       {analysis ? <AnalysisResult analysis={analysis} /> : null}
+      <AnalysisHistory
+        analyses={history}
+        canLoadMore={historyPage < historyPages}
+        deletingId={deletingAnalysisId}
+        loading={loadingHistory}
+        openingId={openingAnalysisId}
+        onDelete={removeAnalysis}
+        onLoadMore={() => void loadHistory(historyPage + 1)}
+        onOpen={openAnalysis}
+      />
     </ScrollView>
+  );
+}
+
+function AnalysisHistory({
+  analyses,
+  canLoadMore,
+  deletingId,
+  loading,
+  openingId,
+  onDelete,
+  onLoadMore,
+  onOpen,
+}: {
+  analyses: AiAnalysisSummary[];
+  canLoadMore: boolean;
+  deletingId: string | null;
+  loading: boolean;
+  openingId: string | null;
+  onDelete: (id: string) => void;
+  onLoadMore: () => void;
+  onOpen: (id: string) => void;
+}) {
+  return (
+    <View style={styles.history}>
+      <Text style={styles.historyTitle}>Análisis anteriores</Text>
+      {analyses.length ? (
+        analyses.map((item) => (
+          <Card key={item.id}>
+            <Pressable
+              accessibilityLabel={`Abrir análisis de ${analysisTypeLabel(item.type)}`}
+              accessibilityRole="button"
+              disabled={openingId === item.id}
+              onPress={() => void onOpen(item.id)}
+            >
+              <Text style={styles.cardTitle}>{analysisTypeLabel(item.type)}</Text>
+              <Text style={uiStyles.muted}>{dateLabel(item.createdAt)}</Text>
+              <Text style={uiStyles.muted}>{item.targetLabel ?? 'Mi progreso'}</Text>
+              <Text numberOfLines={3} style={uiStyles.muted}>
+                {item.summary}
+              </Text>
+            </Pressable>
+            <Button
+              label={deletingId === item.id ? 'Borrando…' : 'Borrar'}
+              disabled={deletingId === item.id}
+              onPress={() => void onDelete(item.id)}
+              secondary
+            />
+          </Card>
+        ))
+      ) : (
+        <Card>
+          <Text style={uiStyles.muted}>Aún no tienes análisis guardados.</Text>
+        </Card>
+      )}
+      {loading ? <ActivityIndicator color={colors.accent} /> : null}
+      {canLoadMore ? <Button label="Cargar más" onPress={onLoadMore} secondary /> : null}
+    </View>
   );
 }
 
@@ -327,6 +463,8 @@ const styles = StyleSheet.create({
   errorCard: { borderColor: colors.danger },
   fact: { backgroundColor: colors.background, borderRadius: 10, gap: 2, padding: 10 },
   factLabel: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  history: { gap: 12 },
+  historyTitle: { color: colors.text, fontSize: 20, fontWeight: '700' },
   items: { gap: 10 },
   loading: {
     alignItems: 'center',
