@@ -1,23 +1,54 @@
 # 12. Trabajo futuro
 
-## 12.1 Dominio deportivo
+## 12.1 Dominio de entrenamientos estructurados (Fase 3)
 
-Una siguiente fase debe modelar movimientos, rutinas, sesiones, resultados y marcas personales con migraciones y criterios de propiedad por usuario. Sobre esos datos podrán añadirse historial, estadísticas y visualización de evolución. Los cálculos de rendimiento deberán ser deterministas, auditables y probados antes de cualquier explicación automatizada.
+Una vez consolidado el dominio de movimientos y marcas personales en la fase 2, la siguiente etapa de desarrollo (fase 3) tiene como objetivo prioritario modelar y persistir la planificación y ejecución de sesiones de entrenamiento deportivo:
 
-## 12.2 IA y plataforma
+1. **Catálogo de rutinas y entrenamientos (`Workout` y `WorkoutExercise`):**
+   - Modelar la entidad `Workout` para representar plantillas de sesiones estructuradas (fuerza, hipertrofia, resistencia, acondicionamiento metabólico).
+   - Diseñar la relación intermedia `WorkoutExercise` para vincular un entrenamiento con los ejercicios del catálogo oficial (`Movement`), especificando parámetros de prescripción: cantidad de series, repeticiones objetivo, porcentajes de carga respecto a la mejor marca del atleta (% 1RM), intervalos de descanso y notas técnicas de ejecución.
+   - Proveer soporte específico para rutinas de acondicionamiento de alta intensidad o de tipo CrossFit (WODs: *Workout of the Day*), estructurando modalidades clásicas como *For Time* (completar una tarea fija en el menor tiempo posible), *AMRAP* (*As Many Rounds/Reps As Possible* en una ventana de tiempo delimitada) y *EMOM* (*Every Minute on the Minute*).
+2. **Registro de sesiones ejecutadas (`WorkoutResult`):**
+   - Implementar la entidad `WorkoutResult` para capturar la ejecución real de un entrenamiento por parte del atleta: fecha y hora de la sesión, duración total, rondas completadas, cargas levantadas en cada serie y percepciones subjetivas del esfuerzo (escala RPE: *Rate of Perceived Exertion*).
+   - Mantener una estricta separación entre la prescripción (el entrenamiento planeado) y la ejecución real (el resultado obtenido), permitiendo registrar desviaciones o ajustes de carga sin alterar la plantilla original.
+3. **Historial de entrenamientos y calendario deportivo:**
+   - Proveer vistas interactivas en la aplicación web y móvil para explorar el historial cronológico de sesiones completadas, visualizar la frecuencia semanal de entrenamiento y consultar los volúmenes totales de carga movilizados.
 
-El proveedor Gemini deberá implementarse detrás de AiProvider, con límites, trazabilidad de contexto y sin claves en clientes. ReleaseStorage puede recibir una implementación S3 o R2 tras definir retención, acceso y costos. También se requieren verificación de correo, recuperación de contraseña, políticas de expiración y una estrategia de respaldo.
+## 12.2 Extracción automática de marcas personales (`source: WORKOUT`)
 
-## 12.3 Calidad
+Una de las principales ventajas de la arquitectura de marcas implementada en la fase 2 es que el modelo `PersonalRecord` y la base de datos ya incluyen el atributo enumerado `RecordSource` (`MANUAL` y `WORKOUT`), tal como se justificó en el [ADR 0007](../adr/0007-personal-record-model.md):
 
-Las fases posteriores deben agregar pruebas e2e de web y móvil, pruebas de migración, observabilidad y evaluación de accesibilidad. La priorización depende de requisitos y evidencia futura, por lo que no se asignan fechas ni se presenta este listado como compromiso de implementación.
+- En la fase 3 se desarrollará un servicio interceptor que, al confirmarse la persistencia de un `WorkoutResult`, analizará cada serie realizada.
+- Si una serie supera el valor canónico normalizado (`normalizedValue`) de la mejor marca previa del atleta para dicho movimiento y repeticiones, el sistema insertará automáticamente una nueva fila en `PersonalRecord` con el atributo `source: WORKOUT`.
+- Esta automatización respetará el principio de no sobrescritura de marcas: la evolución histórica se mantendrá inmutable, permitiendo al atleta distinguir si un récord fue establecido de forma aislada en un intento manual o durante la ejecución de una rutina estructurada.
 
-> **PENDIENTE:** priorización, responsables, criterios de éxito y plan de fases; responsable: tesista y asesoría.
+## 12.3 Asistente deportivo inteligente con Google Gemini
 
-## 12.4 Criterios para continuar
+La fase 2 sentó las bases para una integración ética y técnicamente sólida de la inteligencia artificial al crear el servicio `ProgressSnapshotService`:
 
-El dominio de movimientos debe comenzar con un vocabulario y una política de propiedad. Un movimiento podría ser global, creado por usuario o ambas cosas; cada alternativa afecta autorización, duplicados y búsqueda. Las rutinas y sesiones deberán diferenciar planeación de ejecución, conservar unidades y permitir correcciones sin perder trazabilidad. Los resultados y PRs necesitan reglas explícitas para decidir qué marca es válida; no basta con calcular el máximo de un número sin contexto de movimiento, fecha y unidad.
+- **Activación del proveedor `GeminiAiProvider`:** En la fase 3 se completará la implementación del proveedor de inteligencia artificial dentro de `apps/api/src/ai`, consumiendo el SDK oficial de Google Gemini en el backend y validando la presencia de la variable segura `GEMINI_API_KEY`.
+- **Inyección de contexto determinista:** El asistente de IA no consultará directamente la base de datos ni calculará números o porcentajes deportivos. En su lugar, el sistema serializará la estructura `AthleteProgressSnapshot` generada de forma purista por `@garfit/domain`.
+- **Interpretación cualitativa y recomendaciones:** Con el historial matemático ya resuelto (mejores marcas, desmejoras, cambios porcentuales y tiempo transcurrido), el modelo de lenguaje se concentrará exclusivamente en labores donde destaca: redactar explicaciones motivacionales en lenguaje natural, sugerir variaciones de ejercicios para grupos musculares rezagados y advertir sobre estancamientos o sobrecargas potenciales.
 
-Las estadísticas y evolución deberán indicar periodo, conjunto de datos, fórmula y tratamiento de datos incompletos. Las gráficas no deben ocultar que faltan registros ni convertir una interpolación en una observación. Una vez existan cálculos deterministas, la IA podrá explicar resultados en lenguaje natural; no deberá ser la fuente de una marca, porcentaje o recomendación numérica. Esta separación permite probar el cálculo sin depender de respuesta probabilística.
+## 12.4 Deuda técnica y resolución de limitaciones de la fase 2
 
-Para correo y recuperación de contraseña se requerirán tokens de un solo uso, expiración, limitación de intentos, plantillas y pruebas de no enumeración de cuentas. Para S3/R2 se deberá decidir cifrado, credenciales, URLs de descarga, retención, costo y migración desde local. Para pruebas móviles e2e se necesitarán dispositivos o emuladores definidos, datos semilla, limpieza y evidencia reproducible. Cada tarea debe pasar de propuesta a requisito antes de declararse parte de una fase.
+Para garantizar que el crecimiento del sistema no degrade la calidad del software, la fase 3 debe subsanar de manera formal la deuda técnica identificada durante la fase 2:
+
+1. **Cobertura unitaria en paquetes compartidos:**
+   - Escribir pruebas unitarias específicas en `packages/validation/src/index.test.ts` para cubrir los nuevos esquemas de Zod incorporados en la fase 2 (`createRecordSchema`, `updateRecordSchema`, `movementQuerySchema`, etc.), elevando su cobertura del 34.88 % actual hacia el 100 %.
+   - Diseñar pruebas unitarias en `packages/api-client/src/index.test.ts` para validar sistemáticamente todos los métodos de consumo REST del catálogo y marcas personales (`listMovements`, `getMovement`, `createRecord`, `updateRecord`, `deleteRecord`, `getRecordSummary`, `getMovementHistory`), incrementando su cobertura desde el 58.49 % actual.
+2. **Pruebas en dispositivos móviles físicos y automatización E2E:**
+   - Implementar una suite de pruebas automatizadas de extremo a extremo para la aplicación móvil (`apps/mobile`) utilizando herramientas modernas como Maestro o Detox, superando la dependencia exclusiva de pruebas estáticas y de exportación.
+   - Ejecutar pruebas de usabilidad y verificación en dispositivos móviles físicos reales sobre diversas versiones de Android e iOS, evaluando tiempos de respuesta táctil, comportamiento sin conexión y consumo de batería.
+3. **Evaluación de usabilidad con atletas reales:**
+   - Diseñar y ejecutar un protocolo formal de evaluación de usabilidad con estudiantes y deportistas de la comunidad universitaria de la Universidad Autónoma de Tlaxcala (UATx).
+   - Aplicar instrumentos estandarizados de medición de experiencia de usuario, tales como el cuestionario SUS (*System Usability Scale*), para obtener retroalimentación empírica sobre la claridad del catálogo y la visualización de progresos.
+4. **Pruebas de rendimiento y estrés bajo concurrencia:**
+   - Ejecutar pruebas de carga sintética mediante herramientas como K6 para evaluar la latencia y estabilidad de los endpoints de la API NestJS y la base de datos PostgreSQL ante ráfagas concurrentes de peticiones.
+
+## 12.5 Criterios de transición metodológica
+
+La transición hacia la fase 3 requerirá mantener la disciplina arquitectónica observada hasta el momento:
+
+- Ninguna funcionalidad de entrenamientos o inteligencia artificial se declarará implementada sin contar previamente con sus migraciones de Prisma correspondientes, sus contratos compartidos en `packages/types`, sus pruebas automatizadas en `apps/api/test/` y su respectiva evidencia en la matriz de trazabilidad.
+- Los requerimientos de la fase 3 continuarán clasificados como `Planeado` hasta que la suite de verificación completa concluya satisfactoriamente con código 0 y se archiven las evidencias correspondientes.
