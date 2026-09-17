@@ -80,6 +80,27 @@ describe('GET /workouts/stats', () => {
     ).toBe(3);
   });
 
+  it('compara las métricas del periodo actual con las del anterior', async () => {
+    await completed('Actual uno', 5);
+    await completed('Actual dos', 10);
+    await completed('Anterior', 35);
+    await completed('Fuera de ambas ventanas', 65);
+    const stats = await request(ctx.app.getHttpServer())
+      .get('/workouts/stats')
+      .set(bearer(token))
+      .expect(200);
+    expect(stats.body.periodComparison).toMatchObject({
+      days: 30,
+      current: { workouts: 2, trainingDays: 2, volumeKg: 1000 },
+      previous: { workouts: 1, trainingDays: 1, volumeKg: 500 },
+      change: {
+        workouts: { absolute: 1, percent: 100 },
+        trainingDays: { absolute: 1, percent: 100 },
+        volumeKg: { absolute: 500, percent: 100 },
+      },
+    });
+  });
+
   async function completed(name: string, ago: number) {
     const workout = await createWorkout(ctx.app, token, workoutDraft(name));
     const response = await completeWorkout(
