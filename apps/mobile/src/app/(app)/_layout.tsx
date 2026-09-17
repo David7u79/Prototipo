@@ -11,6 +11,11 @@ export default function AppLayout() {
         name="records/[movementSlug]"
         options={{ title: 'Historial', headerShown: true }}
       />
+      <Stack.Screen
+        name="workouts/new"
+        options={{ title: 'Nuevo entrenamiento', headerShown: true }}
+      />
+      <Stack.Screen name="workouts/[id]" options={{ title: 'Entrenamiento', headerShown: true }} />
     </Stack>
   );
 }
