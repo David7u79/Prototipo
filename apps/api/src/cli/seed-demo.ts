@@ -87,17 +87,25 @@ try {
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
   try {
     const workouts = app.get(WorkoutsService);
-    await completeStrengthWorkout(workouts, user.id, 100, '2025-01-10');
-    await completeStrengthWorkout(workouts, user.id, 100, '2025-01-17');
-    await completeStrengthWorkout(workouts, user.id, 105, '2025-01-24');
-    await completeStrengthWorkout(workouts, user.id, 110, '2025-01-31');
-    await completeRunWorkout(workouts, user.id, '2025-08-20');
+    // Fechas relativas a hoy: así el análisis de progreso (30, 60 o 90 días) siempre
+    // encuentra la progresión de sentadilla al ejecutar la demostración.
+    await completeStrengthWorkout(workouts, user.id, 100, daysAgo(28));
+    await completeStrengthWorkout(workouts, user.id, 100, daysAgo(21));
+    await completeStrengthWorkout(workouts, user.id, 105, daysAgo(14));
+    await completeStrengthWorkout(workouts, user.id, 110, daysAgo(7));
+    await completeRunWorkout(workouts, user.id, daysAgo(10));
   } finally {
     await app.close();
   }
   console.log(`Usuario demo preparado: ${email}`);
 } finally {
   await prisma.$disconnect();
+}
+
+/** Fecha ISO de hace `days` días, para que la demostración sea reciente en cualquier momento. */
+function daysAgo(days: number): string {
+  const date = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  return date.toISOString().slice(0, 10);
 }
 
 async function completeStrengthWorkout(
