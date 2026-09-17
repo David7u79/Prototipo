@@ -12,6 +12,7 @@ Los ADR registran decisiones arquitectónicas aceptadas.
 | [0006](0006-documentation-as-code.md) | Documentación como código |
 | [0007](0007-personal-record-model.md) | Modelo de marcas personales, unidades y catálogo |
 | [0008](0008-workout-result-model.md) | Entrenamientos, resultados, score y marcas derivadas |
+| [0009](0009-ai-analysis-architecture.md) | Análisis con IA: interpretación trazable sobre datos calculados |
 
 ## Plantilla
 
