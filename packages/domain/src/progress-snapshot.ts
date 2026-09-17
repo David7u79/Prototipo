@@ -1,3 +1,4 @@
+import { comparePeriods, type PeriodComparison } from './comparisons.js';
 import { ageInYears } from './dates.js';
 import type { RecordEntry, RecordSeriesSummary } from './records.js';
 import { lowerIsBetter, summarizeAll } from './records.js';
@@ -84,6 +85,8 @@ export interface AthleteProgressSnapshot {
     personalRecordsLast30Days: number;
     personalRecordsFromWorkoutsLast30Days: number;
   };
+  /** El periodo pedido frente al inmediatamente anterior de la misma duración. */
+  periodComparison: PeriodComparison;
   /** Mismas métricas sobre el periodo pedido (30 días por defecto), usado por el análisis de IA. */
   period: {
     days: number;
@@ -244,6 +247,15 @@ export function buildProgressSnapshot(
       personalRecordsLast30Days: countInLastDays(recordDates, 30, now),
       personalRecordsFromWorkoutsLast30Days: countInLastDays(workoutRecordDates, 30, now),
     },
+    periodComparison: comparePeriods(
+      workouts.map((workout) => ({
+        performedOn: workout.performedOn,
+        sets: workout.exercises.flatMap((exercise) => exercise.sets),
+      })),
+      recordDates,
+      periodDays,
+      now,
+    ),
     period: {
       days: periodDays,
       completedWorkouts: countInLastDays(workoutDates, periodDays, now),

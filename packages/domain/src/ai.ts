@@ -1,3 +1,4 @@
+import type { PeriodComparison, PeriodMetrics, WodPerformanceComparison } from './comparisons.js';
 import type { AthleteProgressSnapshot, MovementRecordSummary } from './progress-snapshot.js';
 import type { RecordType, WorkoutType } from './rules.js';
 import type { NormalizedSet, WorkoutScore } from './workouts.js';
@@ -31,6 +32,7 @@ export const AI_EVIDENCE_CATEGORIES = [
   'HISTORY',
   'WOD',
   'MOVEMENT',
+  'COMPARISON',
 ] as const;
 export type AiEvidenceCategory = (typeof AI_EVIDENCE_CATEGORIES)[number];
 
@@ -203,6 +205,130 @@ function dateKeys(dates: readonly string[]): string[] {
 /* Análisis de progreso                                                                        */
 /* ------------------------------------------------------------------------------------------ */
 
+/** Etiquetas de las métricas comparables entre periodos. */
+const PERIOD_METRIC_LABELS: Record<keyof PeriodMetrics, { label: string; unit?: string }> = {
+  workouts: { label: 'Entrenamientos completados' },
+  trainingDays: { label: 'Días con entrenamiento' },
+  volumeKg: { label: 'Volumen de fuerza', unit: 'kg' },
+  personalRecords: { label: 'Marcas personales registradas' },
+};
+
+/**
+ * Hechos de la comparación entre el periodo actual y el anterior. El modelo recibe el cambio
+ * ya calculado: nunca resta ni divide por su cuenta.
+ */
+function addPeriodComparisonFacts(list: FactList, comparison: PeriodComparison): void {
+  const { days } = comparison;
+  for (const key of Object.keys(PERIOD_METRIC_LABELS) as (keyof PeriodMetrics)[]) {
+    const { label, unit } = PERIOD_METRIC_LABELS[key];
+    const id = `period:${days}d:${slugMetric(key)}`;
+    list.add({
+      id: `${id}:current`,
+      category: 'COMPARISON',
+      label: `${label} en los últimos ${days} días`,
+      value: comparison.current[key],
+      unit,
+    });
+    list.add({
+      id: `${id}:previous`,
+      category: 'COMPARISON',
+      label: `${label} en los ${days} días anteriores`,
+      value: comparison.previous[key],
+      unit,
+    });
+    list.add({
+      id: `${id}:change`,
+      category: 'COMPARISON',
+      label: `Cambio de ${label.toLowerCase()} entre ambos periodos`,
+      value: comparison.change[key].absolute,
+      unit,
+    });
+    const percent = comparison.change[key].percent;
+    if (percent !== null) {
+      list.add({
+        id: `${id}:change-percent`,
+        category: 'COMPARISON',
+        label: `Cambio porcentual de ${label.toLowerCase()} entre ambos periodos`,
+        value: percent,
+        unit: '%',
+      });
+    }
+  }
+}
+
+/** `volumeKg` → `volume`, `trainingDays` → `training-days`. */
+function slugMetric(metric: keyof PeriodMetrics): string {
+  if (metric === 'volumeKg') return 'volume';
+  return metric.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
+
+/**
+ * Hechos de la evolución en un mismo WOD: intentos, mejor y última ejecución y la mejora ya
+ * calculada. Los identificadores llevan el slug del WOD para poder citarlos sin ambigüedad.
+ */
+export function wodPerformanceFacts(
+  wodSlug: string,
+  wodName: string,
+  performance: WodPerformanceComparison,
+): AiEvidenceFact[] {
+  const list = new FactList();
+  if (!performance.comparisonAvailable || performance.attempts === 0) return list.facts;
+  const base = `wod:${wodSlug}`;
+  const unit = performance.unit ?? undefined;
+  list.add({
+    id: `${base}:attempts`,
+    category: 'COMPARISON',
+    label: `Ejecuciones registradas de ${wodName}`,
+    value: performance.attempts,
+  });
+  if (performance.best) {
+    list.add({
+      id: `${base}:best`,
+      category: 'COMPARISON',
+      label: `Mejor resultado en ${wodName}`,
+      value: performance.best.display,
+      occurredAt: performance.best.performedOn,
+    });
+  }
+  if (performance.latest) {
+    list.add({
+      id: `${base}:latest`,
+      category: 'COMPARISON',
+      label: `Último resultado en ${wodName}`,
+      value: performance.latest.display,
+      occurredAt: performance.latest.performedOn,
+    });
+  }
+  if (performance.previous) {
+    list.add({
+      id: `${base}:previous`,
+      category: 'COMPARISON',
+      label: `Resultado anterior en ${wodName}`,
+      value: performance.previous.display,
+      occurredAt: performance.previous.performedOn,
+    });
+  }
+  if (performance.change) {
+    list.add({
+      id: `${base}:improvement`,
+      category: 'COMPARISON',
+      label: `Cambio entre las dos últimas ejecuciones de ${wodName}`,
+      value: Math.abs(performance.change.absolute),
+      unit,
+    });
+    if (performance.change.percent !== null) {
+      list.add({
+        id: `${base}:improvement-percent`,
+        category: 'COMPARISON',
+        label: `Cambio porcentual entre las dos últimas ejecuciones de ${wodName}`,
+        value: Math.abs(performance.change.percent),
+        unit: '%',
+      });
+    }
+  }
+  return list.facts;
+}
+
 function addSeriesFacts(
   list: FactList,
   series: MovementRecordSummary,
@@ -355,6 +481,8 @@ export function buildProgressContext(snapshot: AthleteProgressSnapshot): AiConte
     .slice(0, AI_CONTEXT_LIMITS.recordSeries);
   for (const item of series) addSeriesFacts(list, item, days, now);
 
+  addPeriodComparisonFacts(list, snapshot.periodComparison);
+
   const volumes = period.volumeByMovement.slice(0, AI_CONTEXT_LIMITS.volumeMovements);
   for (const volume of volumes) {
     list.add({
@@ -464,6 +592,8 @@ export interface AiWorkoutInput {
     performedOn: string;
     volumeKg: number;
   }[];
+  /** Evolución del atleta en el WOD del que salió este entrenamiento, si viene de uno. */
+  wod: { slug: string; name: string; performance: WodPerformanceComparison } | null;
 }
 
 function describeSet(set: NormalizedSet): string {
@@ -565,6 +695,16 @@ export function buildWorkoutContext(workout: AiWorkoutInput): AiContextBundle {
         value: record.previousBest,
         unit,
       });
+    }
+  }
+
+  if (workout.wod) {
+    for (const fact of wodPerformanceFacts(
+      workout.wod.slug,
+      workout.wod.name,
+      workout.wod.performance,
+    )) {
+      list.add(fact);
     }
   }
 

@@ -245,6 +245,7 @@ describe('contexto de entrenamiento', () => {
           volumeKg: 900,
         },
       ],
+      wod: null,
     });
     expect(context.sufficient).toBe(true);
     expect(context.facts).toEqual(
@@ -270,6 +271,7 @@ describe('contexto de entrenamiento', () => {
       exercises: [],
       personalRecords: [],
       previousWorkouts: [],
+      wod: null,
     });
     expect(context.sufficient).toBe(false);
     expect(context.facts.find((fact) => fact.id === 'workout:name')?.value).toBe(
@@ -292,6 +294,7 @@ describe('contexto de entrenamiento', () => {
       exercises: [],
       personalRecords: [],
       previousWorkouts: [],
+      wod: null,
     }).facts;
     expect(facts).toContainEqual(expect.objectContaining({ category: 'WORKOUT', value: notes }));
     expect(facts.some((fact) => typeof fact.value === 'number' && fact.value === 500)).toBe(false);

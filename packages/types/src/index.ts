@@ -14,6 +14,8 @@ import type {
   AiEvidenceFact,
   AthleteProgressSnapshot,
   Change,
+  PeriodComparison,
+  WodPerformanceComparison,
   DistanceUnit,
   ExperienceLevel,
   LoadUnit,
@@ -39,6 +41,8 @@ export type {
   AiEvidenceFact,
   AthleteProgressSnapshot,
   Change,
+  PeriodComparison,
+  WodPerformanceComparison,
   DistanceUnit,
   LoadUnit,
   WorkoutScore,
@@ -503,6 +507,8 @@ export interface WorkoutStatsResponse {
   /** Últimas marcas derivadas de entrenamientos (máximo 5). */
   recentPersonalRecords: PersonalRecord[];
   volumeByMovementLast30Days: { movement: MovementRef; volumeKg: number }[];
+  /** Últimos 30 días frente a los 30 anteriores; diferencias descriptivas, sin juicio. */
+  periodComparison: PeriodComparison;
 }
 
 /* ---------------------------------------------------------------------------------------- */
@@ -557,4 +563,33 @@ export interface AiAnalysisResponse {
   missingData: string[];
   /** Qué datos se usaron, para mostrarlo al atleta. */
   dataUsed: AiDataUsed[];
+}
+
+/** Fila del historial `GET /ai/analyses`: lo justo para listar y abrir el detalle. */
+export interface AiAnalysisSummary {
+  id: string;
+  type: AiAnalysisType;
+  status: 'COMPLETED' | 'INSUFFICIENT_DATA';
+  /** Entrenamiento, WOD o movimiento analizado; `null` en el análisis de progreso. */
+  targetId: string | null;
+  /** Texto legible del objetivo (nombre del entrenamiento, del WOD o del movimiento). */
+  targetLabel: string | null;
+  periodDays: number | null;
+  provider: AiProviderName;
+  model: string;
+  /** Primeras líneas del resumen, para reconocerlo en la lista. */
+  summary: string;
+  createdAt: string;
+}
+
+export interface AiAnalysisFilters {
+  type?: AiAnalysisType;
+  page?: number;
+  limit?: number;
+}
+
+/** `GET /wods/:slug/performance`: evolución del atleta autenticado en ese WOD. */
+export interface WodPerformanceResponse {
+  wod: { slug: string; name: string; workoutType: WorkoutType; isBenchmark: boolean };
+  performance: WodPerformanceComparison;
 }

@@ -8,9 +8,12 @@
  * @packageDocumentation
  */
 import type {
+  AiAnalysisFilters,
   AiAnalysisResponse,
+  AiAnalysisSummary,
   AiConsentResponse,
   AiStatusResponse,
+  WodPerformanceResponse,
   ApiErrorBody,
   AthleteProfile,
   AuthProvidersResponse,
@@ -186,6 +189,14 @@ export function createApiClient(options: ApiClientOptions) {
         request<WodDetail>('GET', `/wods/${encodeURIComponent(slug)}`, undefined, true),
       /** Crea un WOD personal y privado. */
       create: (input: CreateWodInput) => request<WodDetail>('POST', '/wods', input, true),
+      /** Evolución del atleta autenticado en ese WOD, calculada por `@garfit/domain`. */
+      performance: (slug: string) =>
+        request<WodPerformanceResponse>(
+          'GET',
+          `/wods/${encodeURIComponent(slug)}/performance`,
+          undefined,
+          true,
+        ),
     },
 
     workouts: {
@@ -257,6 +268,30 @@ export function createApiClient(options: ApiClientOptions) {
           undefined,
           true,
         ),
+      /**
+       * Análisis ya generados del propio atleta. Abrirlos no gasta cuota: se leen de la base,
+       * no se vuelven a generar.
+       */
+      analyses: {
+        list: (filters: AiAnalysisFilters = {}) =>
+          request<Paginated<AiAnalysisSummary>>(
+            'GET',
+            `/ai/analyses${toQueryString(filters)}`,
+            undefined,
+            true,
+          ),
+        get: (id: string) =>
+          request<AiAnalysisResponse>(
+            'GET',
+            `/ai/analyses/${encodeURIComponent(id)}`,
+            undefined,
+            true,
+          ),
+        remove: (id: string) =>
+          request<void>('DELETE', `/ai/analyses/${encodeURIComponent(id)}`, undefined, true),
+        /** Borra todo el historial de análisis del atleta. */
+        removeAll: () => request<void>('DELETE', '/ai/analyses', undefined, true),
+      },
     },
 
     releases: {
