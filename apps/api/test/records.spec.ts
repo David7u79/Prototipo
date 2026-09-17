@@ -91,6 +91,8 @@ describe('marcas personales', () => {
         recordType: 'TIME',
         value: 1500,
         unit: 'SECOND',
+        distanceValue: 5,
+        distanceUnit: 'KILOMETER',
         performedAt: daysAgo(1),
       });
       expect(run.status).toBe(201);
@@ -227,6 +229,8 @@ describe('marcas personales', () => {
         recordType: 'TIME',
         value,
         unit: 'SECOND',
+        distanceValue: 5,
+        distanceUnit: 'KILOMETER',
         performedAt,
       });
       await post(run(1600, daysAgo(40))).expect(201);

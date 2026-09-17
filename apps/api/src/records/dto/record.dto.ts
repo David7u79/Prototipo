@@ -5,6 +5,8 @@ import {
   RECORD_TYPES,
   RECORD_UNITS,
   RECORD_VALUE_MAX_DECIMALS,
+  DISTANCE_UNITS,
+  type DistanceUnit,
   type RecordType,
   type RecordUnit,
   SLUG_MAX_LENGTH,
@@ -67,6 +69,17 @@ export class CreateRecordDto {
   @Max(RECORD_REPETITIONS_LIMITS.max)
   repetitions: number | null = null;
 
+  @ApiPropertyOptional({ type: Number, nullable: true, description: 'Distancia cronometrada' })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: RECORD_VALUE_MAX_DECIMALS })
+  @IsPositive()
+  distanceValue: number | null = null;
+
+  @ApiPropertyOptional({ enum: DISTANCE_UNITS, enumName: 'DistanceUnit', nullable: true })
+  @IsOptional()
+  @IsIn(DISTANCE_UNITS)
+  distanceUnit: DistanceUnit | null = null;
+
   @ApiProperty({ format: 'date', example: '2026-05-20' })
   @Matches(ISO_DATE_PATTERN, { message: ISO_DATE_MESSAGE })
   performedAt!: string;
@@ -98,6 +111,17 @@ export class UpdateRecordDto {
   @Min(RECORD_REPETITIONS_LIMITS.min)
   @Max(RECORD_REPETITIONS_LIMITS.max)
   repetitions?: number | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: RECORD_VALUE_MAX_DECIMALS })
+  @IsPositive()
+  distanceValue?: number | null;
+
+  @ApiPropertyOptional({ enum: DISTANCE_UNITS, enumName: 'DistanceUnit', nullable: true })
+  @IsOptional()
+  @IsIn(DISTANCE_UNITS)
+  distanceUnit?: DistanceUnit | null;
 
   @ApiPropertyOptional({ format: 'date' })
   @IsOptional()

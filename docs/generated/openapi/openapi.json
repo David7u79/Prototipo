@@ -925,6 +925,374 @@
         ]
       }
     },
+    "/wods": {
+      "get": {
+        "operationId": "WodsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wods"
+        ]
+      },
+      "post": {
+        "operationId": "WodsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWodDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wods"
+        ]
+      }
+    },
+    "/wods/{slug}": {
+      "get": {
+        "operationId": "WodsController_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "wods"
+        ]
+      }
+    },
+    "/workouts": {
+      "get": {
+        "operationId": "WorkoutsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "post": {
+        "operationId": "WorkoutsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/workouts/stats": {
+      "get": {
+        "operationId": "WorkoutsController_stats",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/workouts/{id}": {
+      "get": {
+        "operationId": "WorkoutsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "patch": {
+        "operationId": "WorkoutsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      },
+      "delete": {
+        "operationId": "WorkoutsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/workouts/{id}/start": {
+      "post": {
+        "operationId": "WorkoutsController_start",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/workouts/{id}/results": {
+      "put": {
+        "operationId": "WorkoutsController_results",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResultsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
+    "/workouts/{id}/complete": {
+      "post": {
+        "operationId": "WorkoutsController_complete",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteWorkoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "workouts"
+        ]
+      }
+    },
     "/releases/latest/android": {
       "get": {
         "operationId": "ReleasesController_latestAndroid",
@@ -1469,7 +1837,8 @@
           "ELLIPTICAL_MACHINE",
           "STEPMILL_MACHINE",
           "SKIERG_MACHINE",
-          "UPPER_BODY_ERGOMETER"
+          "UPPER_BODY_ERGOMETER",
+          "ROWING_MACHINE"
         ]
       },
       "MuscleGroup": {
@@ -1785,6 +2154,23 @@
             "type": "number",
             "nullable": true
           },
+          "distanceValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceUnit": {
+            "type": "string",
+            "enum": [
+              "METER",
+              "KILOMETER",
+              "MILE"
+            ],
+            "nullable": true
+          },
+          "distanceMeters": {
+            "type": "number",
+            "nullable": true
+          },
           "performedAt": {
             "type": "string",
             "format": "date"
@@ -1820,6 +2206,9 @@
           "unit",
           "normalizedValue",
           "repetitions",
+          "distanceValue",
+          "distanceUnit",
+          "distanceMeters",
           "performedAt",
           "notes",
           "source",
@@ -1866,6 +2255,10 @@
             ]
           },
           "repetitions": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceMeters": {
             "type": "number",
             "nullable": true
           },
@@ -1916,6 +2309,7 @@
           "key",
           "recordType",
           "repetitions",
+          "distanceMeters",
           "lowerIsBetter",
           "count",
           "first",
@@ -1955,6 +2349,35 @@
           "items"
         ]
       },
+      "RecordOriginResponse": {
+        "type": "object",
+        "properties": {
+          "workoutId": {
+            "type": "string"
+          },
+          "workoutName": {
+            "type": "string"
+          },
+          "performedOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "setNumber": {
+            "type": "number"
+          },
+          "reps": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "workoutId",
+          "workoutName",
+          "performedOn",
+          "setNumber",
+          "reps"
+        ]
+      },
       "PersonalRecordResponse": {
         "type": "object",
         "properties": {
@@ -1987,6 +2410,23 @@
             "type": "number",
             "nullable": true
           },
+          "distanceValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceUnit": {
+            "type": "string",
+            "enum": [
+              "METER",
+              "KILOMETER",
+              "MILE"
+            ],
+            "nullable": true
+          },
+          "distanceMeters": {
+            "type": "number",
+            "nullable": true
+          },
           "performedAt": {
             "type": "string",
             "format": "date"
@@ -2012,6 +2452,15 @@
           },
           "movement": {
             "$ref": "#/components/schemas/MovementRefResponse"
+          },
+          "origin": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/RecordOriginResponse"
+              }
+            ]
           }
         },
         "required": [
@@ -2021,12 +2470,16 @@
           "unit",
           "normalizedValue",
           "repetitions",
+          "distanceValue",
+          "distanceUnit",
+          "distanceMeters",
           "performedAt",
           "notes",
           "source",
           "createdAt",
           "updatedAt",
-          "movement"
+          "movement",
+          "origin"
         ]
       },
       "RecentImprovementResponse": {
@@ -2104,6 +2557,10 @@
             "type": "number",
             "nullable": true
           },
+          "distanceMeters": {
+            "type": "number",
+            "nullable": true
+          },
           "lowerIsBetter": {
             "type": "boolean"
           },
@@ -2157,6 +2614,7 @@
           "key",
           "recordType",
           "repetitions",
+          "distanceMeters",
           "lowerIsBetter",
           "count",
           "first",
@@ -2184,6 +2642,14 @@
         "required": [
           "movement",
           "series"
+        ]
+      },
+      "DistanceUnit": {
+        "type": "string",
+        "enum": [
+          "METER",
+          "KILOMETER",
+          "MILE"
         ]
       },
       "CreateRecordDto": {
@@ -2219,6 +2685,19 @@
             "minimum": 1,
             "maximum": 100,
             "description": "Obligatorio en WEIGHT (1 = 1RM); null en el resto"
+          },
+          "distanceValue": {
+            "type": "number",
+            "nullable": true,
+            "description": "Distancia cronometrada"
+          },
+          "distanceUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ]
           },
           "performedAt": {
             "type": "string",
@@ -2256,6 +2735,18 @@
             "type": "number",
             "nullable": true
           },
+          "distanceValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ]
+          },
           "performedAt": {
             "type": "string",
             "format": "date"
@@ -2266,6 +2757,75 @@
             "maxLength": 500
           }
         }
+      },
+      "WodExerciseDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWodDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "object"
+          },
+          "workoutType": {
+            "type": "string",
+            "enum": [
+              "STRENGTH",
+              "FOR_TIME",
+              "AMRAP",
+              "EMOM",
+              "CARDIO",
+              "CUSTOM"
+            ]
+          },
+          "durationSeconds": {
+            "type": "object"
+          },
+          "rounds": {
+            "type": "object"
+          },
+          "intervalSeconds": {
+            "type": "object"
+          },
+          "repScheme": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WodExerciseDto"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "workoutType",
+          "repScheme",
+          "exercises"
+        ]
+      },
+      "CreateWorkoutDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateWorkoutDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "ResultsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CompleteWorkoutDto": {
+        "type": "object",
+        "properties": {}
       },
       "LatestReleaseResponse": {
         "type": "object",

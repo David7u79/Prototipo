@@ -1,7 +1,7 @@
-import type { HistoryPoint, RecordEntry, RecordSeriesSummary } from '@garfit/domain';
+import type { DistanceUnit, HistoryPoint, RecordEntry, RecordSeriesSummary } from '@garfit/domain';
 import { lowerIsBetter } from '@garfit/domain';
 import { toIsoDate } from '../common/iso-date.js';
-import type { Movement, PersonalRecord } from '../generated/prisma/client.js';
+import type { Movement, PersonalRecord, WorkoutResult } from '../generated/prisma/client.js';
 import type {
   MovementRefResponse,
   PersonalRecordResponse,
@@ -10,7 +10,14 @@ import type {
   RecordSeriesWithHistoryResponse,
 } from './dto/record-responses.dto.js';
 
-export type RecordRow = PersonalRecord & { movement: Movement };
+type RecordOriginRow = WorkoutResult & {
+  workoutExercise: { workout: { id: string; name: string; performedOn: Date | null } };
+};
+
+export type RecordRow = PersonalRecord & {
+  movement: Movement;
+  workoutResult?: RecordOriginRow | null;
+};
 
 /** Fila de BD → entrada que entiende el cálculo de @garfit/domain. */
 export function toRecordEntry(row: PersonalRecord): RecordEntry {
@@ -44,6 +51,9 @@ function toRecordFields(row: PersonalRecord) {
     unit: row.unit,
     normalizedValue: Number(row.normalizedValue),
     repetitions: row.repetitions,
+    distanceValue: row.distanceValue === null ? null : Number(row.distanceValue),
+    distanceUnit: toDistanceUnit(row.distanceUnit),
+    distanceMeters: row.distanceMeters === null ? null : Number(row.distanceMeters),
     performedAt: toIsoDate(row.performedAt),
     notes: row.notes,
     source: row.source,
@@ -53,7 +63,16 @@ function toRecordFields(row: PersonalRecord) {
 }
 
 export function toPersonalRecord(row: RecordRow): PersonalRecordResponse {
-  return { ...toRecordFields(row), movement: toMovementRef(row.movement) };
+  const origin = row.workoutResult
+    ? {
+        workoutId: row.workoutResult.workoutExercise.workout.id,
+        workoutName: row.workoutResult.workoutExercise.workout.name,
+        performedOn: toIsoDate(row.workoutResult.workoutExercise.workout.performedOn!),
+        setNumber: row.workoutResult.setNumber,
+        reps: row.workoutResult.reps,
+      }
+    : null;
+  return { ...toRecordFields(row), movement: toMovementRef(row.movement), origin };
 }
 
 /**
@@ -75,6 +94,7 @@ export function toSeriesResponse(
     key: series.key,
     recordType: series.recordType,
     repetitions: series.repetitions,
+    distanceMeters: numberOrNull(rowOf(series.first.id, rowsById).distanceMeters),
     lowerIsBetter: lowerIsBetter(series.recordType),
     count: series.count,
     first: entry(series.first),
@@ -84,6 +104,14 @@ export function toSeriesResponse(
     bestImprovement: series.bestImprovement,
     totalProgress: series.totalProgress,
   };
+}
+
+function numberOrNull(value: { toString(): string } | null): number | null {
+  return value === null ? null : Number(value);
+}
+
+function toDistanceUnit(value: PersonalRecord['distanceUnit']): DistanceUnit | null {
+  return value === 'METER' || value === 'KILOMETER' || value === 'MILE' ? value : null;
 }
 
 export function toSeriesWithHistory(

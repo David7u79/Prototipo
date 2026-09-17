@@ -59,7 +59,11 @@ describe('ProgressSnapshotService', () => {
       ageYears: 26,
       trainingYears: 6,
     });
-    expect(snapshot.totals).toEqual({ movementsWithRecords: 2, records: 3 });
+    expect(snapshot.totals).toEqual({
+      movementsWithRecords: 2,
+      records: 3,
+      completedWorkouts: 0,
+    });
     const squat = snapshot.records.find((item) => item.movementSlug === 'barbell-full-squat');
     expect(squat).toMatchObject({
       recordType: 'WEIGHT',
@@ -77,7 +81,11 @@ describe('ProgressSnapshotService', () => {
     const user = await ctx.prisma.user.findFirstOrThrow();
     const snapshot = await ctx.app.get(ProgressSnapshotService).build(user.id);
     expect(snapshot.athlete.preferredUnits).toBe('METRIC');
-    expect(snapshot.totals).toEqual({ movementsWithRecords: 0, records: 0 });
+    expect(snapshot.totals).toEqual({
+      movementsWithRecords: 0,
+      records: 0,
+      completedWorkouts: 0,
+    });
     expect(snapshot.records).toEqual([]);
   });
 });

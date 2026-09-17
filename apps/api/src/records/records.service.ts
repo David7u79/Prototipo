@@ -7,9 +7,11 @@ import {
   isValidIsoDate,
   RECORD_LIMITS,
   RECORD_MIN_DATE,
+  requiresDistanceQualifier,
   type RecordEntry,
   type RecordType,
   type RecordUnit,
+  type DistanceUnit,
   seriesKey,
   summarizeAll,
   summarizeSeries,
@@ -49,6 +51,8 @@ interface RecordValues {
   unit: RecordUnit;
   repetitions: number | null;
   performedAt: string;
+  distanceValue: number | null;
+  distanceUnit: DistanceUnit | null;
 }
 
 /**
@@ -83,6 +87,12 @@ export class RecordsService {
         unit: dto.unit,
         normalizedValue: toCanonical(dto.value, dto.unit),
         repetitions: dto.repetitions,
+        distanceValue: dto.distanceValue,
+        distanceUnit: dto.distanceUnit,
+        distanceMeters:
+          dto.distanceValue === null || dto.distanceUnit === null
+            ? null
+            : toCanonical(dto.distanceValue, dto.distanceUnit),
         performedAt: fromIsoDate(dto.performedAt),
         notes: emptyToNull(dto.notes),
         source: 'MANUAL',
@@ -101,7 +111,17 @@ export class RecordsService {
     if ((dto.value === undefined) !== (dto.unit === undefined)) {
       throw validationFailed('El valor y la unidad se envían juntos');
     }
+    if ((dto.distanceValue === undefined) !== (dto.distanceUnit === undefined)) {
+      throw validationFailed('La distancia y su unidad se envían juntas');
+    }
     const record = await this.findOwnedRecord(userId, id);
+    if (record.source === 'WORKOUT') {
+      throw new ApiException(
+        409,
+        'RECORD_MANAGED_BY_WORKOUT',
+        'La marca pertenece a un entrenamiento',
+      );
+    }
 
     // Las reglas se comprueban sobre el resultado final (valores nuevos + los que no cambian).
     const next: RecordValues = {
@@ -109,6 +129,12 @@ export class RecordsService {
       unit: dto.unit ?? record.unit,
       repetitions: dto.repetitions === undefined ? record.repetitions : dto.repetitions,
       performedAt: dto.performedAt ?? toIsoDate(record.performedAt),
+      distanceValue:
+        dto.distanceValue === undefined ? numberOrNull(record.distanceValue) : dto.distanceValue,
+      distanceUnit:
+        dto.distanceUnit === undefined
+          ? (record.distanceUnit as DistanceUnit | null)
+          : dto.distanceUnit,
     };
     assertRecordValues(record.recordType, next);
 
@@ -123,6 +149,16 @@ export class RecordsService {
             }
           : {}),
         ...(dto.repetitions !== undefined ? { repetitions: dto.repetitions } : {}),
+        ...(dto.distanceValue !== undefined && dto.distanceUnit !== undefined
+          ? {
+              distanceValue: dto.distanceValue,
+              distanceUnit: dto.distanceUnit,
+              distanceMeters:
+                dto.distanceValue === null || dto.distanceUnit === null
+                  ? null
+                  : toCanonical(dto.distanceValue, dto.distanceUnit),
+            }
+          : {}),
         ...(dto.performedAt !== undefined ? { performedAt: fromIsoDate(dto.performedAt) } : {}),
         ...(dto.notes !== undefined ? { notes: emptyToNull(dto.notes) } : {}),
       },
@@ -135,6 +171,13 @@ export class RecordsService {
   async remove(userId: string, id: string): Promise<void> {
     assertValidId(id);
     const record = await this.findOwnedRecord(userId, id);
+    if (record.source === 'WORKOUT') {
+      throw new ApiException(
+        409,
+        'RECORD_MANAGED_BY_WORKOUT',
+        'La marca pertenece a un entrenamiento',
+      );
+    }
     await this.prisma.personalRecord.update({
       where: { id: record.id },
       data: { deletedAt: new Date() },
@@ -197,7 +240,10 @@ export class RecordsService {
   private activeRows(userId: string, movementId?: string): Promise<RecordRow[]> {
     return this.prisma.personalRecord.findMany({
       where: { userId, deletedAt: null, ...(movementId ? { movementId } : {}) },
-      include: { movement: true },
+      include: {
+        movement: true,
+        workoutResult: { include: { workoutExercise: { include: { workout: true } } } },
+      },
     });
   }
 
@@ -226,6 +272,18 @@ function assertRecordValues(recordType: RecordType, values: RecordValues): void 
   if (recordType !== 'WEIGHT' && values.repetitions !== null) {
     throw validationFailed('Las repeticiones sólo aplican a marcas de peso');
   }
+  const hasDistance = values.distanceValue !== null || values.distanceUnit !== null;
+  if (requiresDistanceQualifier(recordType)) {
+    if (values.distanceValue === null || values.distanceUnit === null) {
+      throw validationFailed('Indica la distancia sobre la que se midió el tiempo');
+    }
+    const meters = toCanonical(values.distanceValue, values.distanceUnit);
+    if (meters < RECORD_LIMITS.DISTANCE.min || meters > RECORD_LIMITS.DISTANCE.max) {
+      throw invalidValue('La distancia está fuera del rango permitido');
+    }
+  } else if (hasDistance) {
+    throw validationFailed('La distancia sólo califica marcas de tiempo');
+  }
   if (!isValidIsoDate(values.performedAt)) throw validationFailed('La fecha no existe');
   if (!isNotInFuture(values.performedAt)) {
     throw validationFailed('La fecha no puede estar en el futuro');
@@ -241,6 +299,10 @@ function assertValidId(id: string): void {
 
 function emptyToNull(text: string | null): string | null {
   return text ? text : null;
+}
+
+function numberOrNull(value: { toString(): string } | null): number | null {
+  return value === null ? null : Number(value);
 }
 
 /** Orden por fecha de realización y, a igual fecha, por fecha de registro. */

@@ -4,9 +4,12 @@
  */
 import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
+import { NestFactory } from '@nestjs/core';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PASSWORD_MIN_LENGTH, toCanonical } from '@garfit/domain';
+import { AppModule } from '../app.module.js';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { WorkoutsService } from '../workouts/workouts.service.js';
 
 if (process.env.NODE_ENV === 'production') {
   throw new Error('La semilla demo no se puede ejecutar en producción');
@@ -20,9 +23,6 @@ if (!databaseUrl) throw new Error('DATABASE_URL es obligatoria');
 const email = (process.env.DEMO_USER_EMAIL ?? 'demo@garfit.example').trim().toLowerCase();
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
 const records = [
-  ['barbell-full-squat', 'WEIGHT', 100, 'KILOGRAM', 1, '2025-01-10'],
-  ['barbell-full-squat', 'WEIGHT', 105, 'KILOGRAM', 1, '2025-03-10'],
-  ['barbell-full-squat', 'WEIGHT', 110, 'KILOGRAM', 1, '2025-06-10'],
   ['barbell-bench-press', 'WEIGHT', 75, 'KILOGRAM', 1, '2025-04-10'],
   ['barbell-bench-press', 'WEIGHT', 80, 'KILOGRAM', 1, '2025-07-10'],
   ['push-up', 'REPS', 30, 'REPETITION', null, '2025-05-10'],
@@ -69,6 +69,7 @@ try {
     },
   });
   await prisma.personalRecord.deleteMany({ where: { userId: user.id } });
+  await prisma.workout.deleteMany({ where: { userId: user.id } });
   const movementIds = new Map(movements.map((movement) => [movement.slug, movement.id]));
   await prisma.personalRecord.createMany({
     data: records.map(([slug, recordType, value, unit, repetitions, performedAt]) => ({
@@ -83,7 +84,120 @@ try {
       source: 'MANUAL',
     })),
   });
+  const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
+  try {
+    const workouts = app.get(WorkoutsService);
+    await completeStrengthWorkout(workouts, user.id, 100, '2025-01-10');
+    await completeStrengthWorkout(workouts, user.id, 105, '2025-03-10');
+    await completeRunWorkout(workouts, user.id, '2025-08-20');
+  } finally {
+    await app.close();
+  }
   console.log(`Usuario demo preparado: ${email}`);
 } finally {
   await prisma.$disconnect();
+}
+
+async function completeStrengthWorkout(
+  workouts: WorkoutsService,
+  userId: string,
+  loadValue: number,
+  performedOn: string,
+) {
+  const workout = await workouts.create(
+    userId,
+    workoutDraft({
+      name: `Sentadilla ${loadValue} kg`,
+      workoutType: 'STRENGTH',
+      exercises: [exercise('barbell-full-squat')],
+    }),
+  );
+  await workouts.complete(userId, workout.id, {
+    performedOn,
+    results: {
+      score: null,
+      exercises: [
+        {
+          exerciseId: workout.exercises[0]!.id,
+          sets: [set({ reps: 1, loadValue, loadUnit: 'KILOGRAM' })],
+        },
+      ],
+    },
+  });
+}
+
+async function completeRunWorkout(workouts: WorkoutsService, userId: string, performedOn: string) {
+  const workout = await workouts.create(
+    userId,
+    workoutDraft({
+      name: 'Carrera 5 km',
+      workoutType: 'CARDIO',
+      exercises: [exercise('run')],
+    }),
+  );
+  await workouts.complete(userId, workout.id, {
+    performedOn,
+    results: {
+      score: null,
+      exercises: [
+        {
+          exerciseId: workout.exercises[0]!.id,
+          sets: [
+            set({
+              distanceValue: 5,
+              distanceUnit: 'KILOMETER',
+              durationSeconds: 1420,
+            }),
+          ],
+        },
+      ],
+    },
+  });
+}
+function exercise(movementSlug: string) {
+  return {
+    movementSlug,
+    targetSets: null,
+    targetReps: null,
+    targetLoadValue: null,
+    targetLoadUnit: null,
+    targetDistanceValue: null,
+    targetDistanceUnit: null,
+    targetDurationSeconds: null,
+    restSeconds: null,
+    notes: null,
+  };
+}
+function workoutDraft(values: {
+  name: string;
+  workoutType: 'STRENGTH' | 'CARDIO';
+  exercises: ReturnType<typeof exercise>[];
+}) {
+  return {
+    ...values,
+    description: null,
+    notes: null,
+    durationSeconds: null,
+    rounds: null,
+    intervalSeconds: null,
+    repScheme: [],
+  };
+}
+function set(values: {
+  reps?: number;
+  loadValue?: number;
+  loadUnit?: 'KILOGRAM';
+  distanceValue?: number;
+  distanceUnit?: 'KILOMETER';
+  durationSeconds?: number;
+}) {
+  return {
+    setNumber: 1,
+    reps: values.reps ?? null,
+    loadValue: values.loadValue ?? null,
+    loadUnit: values.loadUnit ?? null,
+    distanceValue: values.distanceValue ?? null,
+    distanceUnit: values.distanceUnit ?? null,
+    durationSeconds: values.durationSeconds ?? null,
+  };
 }
