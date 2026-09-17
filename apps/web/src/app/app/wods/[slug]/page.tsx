@@ -6,6 +6,10 @@ import { serverApi } from '@/lib/auth';
 export default async function WodPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const wod = await serverApi().wods.get(slug);
+  const aiAvailable = await serverApi()
+    .ai.status()
+    .then((status) => status.enabled && status.configured)
+    .catch(() => false);
   const prescription = [
     wod.repScheme.join('-'),
     wod.rounds && `${wod.rounds} rondas`,
@@ -45,6 +49,14 @@ export default async function WodPage({ params }: { params: Promise<{ slug: stri
         <input name="slug" type="hidden" value={wod.slug} />
         <button className="rounded-lg bg-brand px-4 py-2 text-white">Usar este WOD</button>
       </form>
+      {aiAvailable && (
+        <Link
+          className="mt-3 inline-block rounded-lg border border-line px-4 py-2 font-semibold"
+          href={`/app/ai?type=wod&slug=${wod.slug}`}
+        >
+          Explicar WOD
+        </Link>
+      )}
     </section>
   );
 }

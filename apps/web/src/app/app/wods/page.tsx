@@ -12,7 +12,12 @@ export default async function WodsPage({ searchParams }: Props) {
   const items = [...data.items].sort((a, b) => Number(b.isBenchmark) - Number(a.isBenchmark));
   return (
     <section className="mx-auto max-w-4xl">
-      <h1 className="text-3xl font-bold">WODs</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">WODs</h1>
+        <Link className="rounded-lg bg-brand px-4 py-2 text-white" href="/app/wods/new">
+          Nuevo WOD
+        </Link>
+      </div>
       <form className="mt-5 flex gap-2">
         <input defaultValue={q.search} name="search" placeholder="Buscar WOD" />
         <select defaultValue={q.workoutType} name="workoutType">

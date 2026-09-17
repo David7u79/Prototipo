@@ -17,6 +17,10 @@ export default async function MovementDetailPage({ params }: Props) {
   const data = await movementData((await params).slug);
   if (!data) notFound();
   const { movement, records, profile } = data;
+  const aiAvailable = await serverApi()
+    .ai.status()
+    .then((status) => status.enabled && status.configured)
+    .catch(() => false);
   const series0 = records?.series[0];
   const best = series0?.best;
   const units = profile?.preferredUnits ?? 'METRIC';
@@ -53,6 +57,14 @@ export default async function MovementDetailPage({ params }: Props) {
       >
         Registrar una marca
       </Link>
+      {aiAvailable && (
+        <Link
+          className="ml-3 inline-block rounded-lg border border-line px-4 py-2 font-semibold"
+          href={`/app/ai?type=movement&slug=${movement.slug}`}
+        >
+          Explicar con IA
+        </Link>
+      )}
       {best && series0 && (
         <div className="mt-6 rounded-2xl border border-line bg-panel p-5">
           <p className="font-semibold">

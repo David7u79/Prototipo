@@ -2,11 +2,11 @@
 import Layout from '../layouts/Layout.astro';
 
 const assistantCapabilities = [
-  ['Analizar', 'Ayudará a leer patrones en la actividad registrada y a darles contexto.'],
-  ['Explicar', 'Podrá aclarar conceptos, movimientos y WODs de tu entrenamiento.'],
+  ['Analizar', 'Lee patrones en los datos de entrenamiento de cada atleta y les da contexto.'],
+  ['Explicar', 'Presenta observaciones trazables a los datos que las sustentan, además de explicar movimientos y WODs.'],
   [
     'Distinguir',
-    'Los PRs y estadísticas se calculan con código determinista; la IA los interpreta.',
+    'Las métricas se calculan siempre con código de GarFit; el modelo sólo las interpreta.',
   ],
 ] as const;
 ---
@@ -21,7 +21,8 @@ const assistantCapabilities = [
       <h1 class="display m-0 max-w-4xl">Contexto para interpretar tu entrenamiento.</h1>
       <p class="copy mt-6">
         El asistente de GarFit está pensado para analizar entrenamientos y progreso, y para
-        explicar movimientos y WODs de forma comprensible.
+        explicar movimientos y WODs de forma comprensible. Cada análisis parte de los datos de
+        entrenamiento del atleta y muestra la evidencia que lo sustenta.
       </p>
     </div>
   </section>
@@ -41,9 +42,9 @@ const assistantCapabilities = [
       <div class="mt-10 max-w-3xl rounded-2xl border border-line bg-surface p-6">
         <h2 class="m-0 text-xl font-bold">Cómo se integrará</h2>
         <p class="leading-7 text-muted">
-          La IA usará Google Gemini a través del servidor de GarFit; nunca se conectará desde
-          el dispositivo. Esta función está en desarrollo y no reemplaza a un profesional de
-          la salud.
+        La IA requiere consentimiento y usa Google Gemini a través del servidor de GarFit; nunca
+        se conecta desde el dispositivo. Es un prototipo académico: no promete optimización
+        científica del rendimiento ni resultados médicos, y no reemplaza a un profesional de la salud.
         </p>
       </div>
     </div>
