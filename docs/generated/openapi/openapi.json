@@ -935,7 +935,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PaginatedWodsResponse"
                 }
               }
             }
@@ -969,7 +969,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/WodDetailResponse"
                 }
               }
             }
@@ -1004,7 +1004,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/WodDetailResponse"
                 }
               }
             }
@@ -1030,7 +1030,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/PaginatedWorkoutsResponse"
                 }
               }
             }
@@ -1060,7 +1060,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1083,7 +1090,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "$ref": "#/components/schemas/WorkoutStatsResponse"
                 }
               }
             }
@@ -1114,7 +1121,14 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1150,7 +1164,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1204,7 +1225,14 @@
         ],
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1242,7 +1270,14 @@
         },
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1280,7 +1315,14 @@
         },
         "responses": {
           "201": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkoutDetailResponse"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1339,7 +1381,15 @@
         ],
         "responses": {
           "200": {
-            "description": "APK; cabecera X-Checksum-Sha256 con su SHA-256"
+            "description": "APK; cabecera X-Checksum-Sha256 con su SHA-256",
+            "content": {
+              "application/vnd.android.package-archive": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
           },
           "400": {
             "description": "VALIDATION_FAILED",
@@ -2758,6 +2808,289 @@
           }
         }
       },
+      "WorkoutType": {
+        "type": "string",
+        "enum": [
+          "STRENGTH",
+          "FOR_TIME",
+          "AMRAP",
+          "EMOM",
+          "CARDIO",
+          "CUSTOM"
+        ]
+      },
+      "WodSummaryResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "workoutType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutType"
+              }
+            ]
+          },
+          "durationSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "rounds": {
+            "type": "number",
+            "nullable": true
+          },
+          "intervalSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "repScheme": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "isBenchmark": {
+            "type": "boolean"
+          },
+          "isPersonal": {
+            "type": "boolean"
+          },
+          "exerciseCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "workoutType",
+          "durationSeconds",
+          "rounds",
+          "intervalSeconds",
+          "repScheme",
+          "isBenchmark",
+          "isPersonal",
+          "exerciseCount"
+        ]
+      },
+      "PaginatedWodsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WodSummaryResponse"
+            }
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "WodMovementResponse": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementCategory"
+              }
+            ]
+          },
+          "equipment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Equipment"
+              }
+            ]
+          },
+          "recordTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "category",
+          "equipment",
+          "recordTypes"
+        ]
+      },
+      "LoadUnit": {
+        "type": "string",
+        "enum": [
+          "KILOGRAM",
+          "POUND"
+        ]
+      },
+      "WodExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "position": {
+            "type": "number"
+          },
+          "movement": {
+            "$ref": "#/components/schemas/WodMovementResponse"
+          },
+          "reps": {
+            "type": "number",
+            "nullable": true
+          },
+          "loadValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "loadUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoadUnit"
+              }
+            ]
+          },
+          "distanceValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ]
+          },
+          "durationSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "position",
+          "movement",
+          "reps",
+          "loadValue",
+          "loadUnit",
+          "distanceValue",
+          "distanceUnit",
+          "durationSeconds",
+          "notes"
+        ]
+      },
+      "WodDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "workoutType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutType"
+              }
+            ]
+          },
+          "durationSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "rounds": {
+            "type": "number",
+            "nullable": true
+          },
+          "intervalSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "repScheme": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "isBenchmark": {
+            "type": "boolean"
+          },
+          "isPersonal": {
+            "type": "boolean"
+          },
+          "exerciseCount": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WodExerciseResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "workoutType",
+          "durationSeconds",
+          "rounds",
+          "intervalSeconds",
+          "repScheme",
+          "isBenchmark",
+          "isPersonal",
+          "exerciseCount",
+          "description",
+          "source",
+          "exercises"
+        ]
+      },
       "WodExerciseDto": {
         "type": "object",
         "properties": {}
@@ -2811,9 +3144,585 @@
           "exercises"
         ]
       },
+      "WorkoutStatus": {
+        "type": "string",
+        "enum": [
+          "DRAFT",
+          "IN_PROGRESS",
+          "COMPLETED"
+        ]
+      },
+      "WorkoutWodResponse": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ]
+      },
+      "WorkoutListItemResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "workoutType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutType"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutStatus"
+              }
+            ]
+          },
+          "performedOn": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "wod": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutWodResponse"
+              }
+            ]
+          },
+          "movements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "headline": {
+            "type": "string",
+            "nullable": true
+          },
+          "personalRecordCount": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "workoutType",
+          "status",
+          "performedOn",
+          "completedAt",
+          "createdAt",
+          "wod",
+          "movements",
+          "headline",
+          "personalRecordCount"
+        ]
+      },
+      "PaginatedWorkoutsResponse": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutListItemResponse"
+            }
+          },
+          "page": {
+            "type": "number"
+          },
+          "limit": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "totalPages": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "MovementVolumeResponse": {
+        "type": "object",
+        "properties": {
+          "movement": {
+            "$ref": "#/components/schemas/MovementRefResponse"
+          },
+          "volumeKg": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "movement",
+          "volumeKg"
+        ]
+      },
+      "WorkoutStatsResponse": {
+        "type": "object",
+        "properties": {
+          "totalCompleted": {
+            "type": "number"
+          },
+          "last7Days": {
+            "type": "number"
+          },
+          "last30Days": {
+            "type": "number"
+          },
+          "lastWorkout": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutListItemResponse"
+              }
+            ]
+          },
+          "personalRecordsFromWorkoutsLast30Days": {
+            "type": "number"
+          },
+          "recentPersonalRecords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalRecordResponse"
+            }
+          },
+          "volumeByMovementLast30Days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovementVolumeResponse"
+            }
+          }
+        },
+        "required": [
+          "totalCompleted",
+          "last7Days",
+          "last30Days",
+          "lastWorkout",
+          "personalRecordsFromWorkoutsLast30Days",
+          "recentPersonalRecords",
+          "volumeByMovementLast30Days"
+        ]
+      },
       "CreateWorkoutDto": {
         "type": "object",
         "properties": {}
+      },
+      "WorkoutScoreResponse": {
+        "type": "object",
+        "properties": {
+          "timeSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "repsAtTimeCap": {
+            "type": "number",
+            "nullable": true
+          },
+          "rounds": {
+            "type": "number",
+            "nullable": true
+          },
+          "extraReps": {
+            "type": "number",
+            "nullable": true
+          },
+          "completed": {
+            "type": "boolean",
+            "nullable": true
+          }
+        },
+        "required": [
+          "timeSeconds",
+          "repsAtTimeCap",
+          "rounds",
+          "extraReps",
+          "completed"
+        ]
+      },
+      "WorkoutMovementResponse": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "category": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MovementCategory"
+              }
+            ]
+          },
+          "equipment": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Equipment"
+              }
+            ]
+          },
+          "recordTypes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecordType"
+            }
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "category",
+          "equipment",
+          "recordTypes"
+        ]
+      },
+      "WorkoutSetResultResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "setNumber": {
+            "type": "number"
+          },
+          "reps": {
+            "type": "number",
+            "nullable": true
+          },
+          "loadValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "loadUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoadUnit"
+              }
+            ]
+          },
+          "loadKg": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "distanceUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ]
+          },
+          "distanceMeters": {
+            "type": "number",
+            "nullable": true
+          },
+          "durationSeconds": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "setNumber",
+          "reps",
+          "loadValue",
+          "loadUnit",
+          "loadKg",
+          "distanceValue",
+          "distanceUnit",
+          "distanceMeters",
+          "durationSeconds"
+        ]
+      },
+      "WorkoutExerciseResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number"
+          },
+          "movement": {
+            "$ref": "#/components/schemas/WorkoutMovementResponse"
+          },
+          "targetSets": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetReps": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetLoadValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetLoadUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LoadUnit"
+              }
+            ]
+          },
+          "targetDistanceValue": {
+            "type": "number",
+            "nullable": true
+          },
+          "targetDistanceUnit": {
+            "nullable": true,
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DistanceUnit"
+              }
+            ]
+          },
+          "targetDurationSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "restSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutSetResultResponse"
+            }
+          },
+          "volumeKg": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "movement",
+          "targetSets",
+          "targetReps",
+          "targetLoadValue",
+          "targetLoadUnit",
+          "targetDistanceValue",
+          "targetDistanceUnit",
+          "targetDurationSeconds",
+          "restSeconds",
+          "notes",
+          "results",
+          "volumeKg"
+        ]
+      },
+      "DerivedPersonalRecordResponse": {
+        "type": "object",
+        "properties": {
+          "record": {
+            "$ref": "#/components/schemas/PersonalRecordResponse"
+          },
+          "previousBest": {
+            "type": "number",
+            "nullable": true
+          },
+          "change": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ChangeResponse"
+              }
+            ]
+          }
+        },
+        "required": [
+          "record",
+          "previousBest",
+          "change"
+        ]
+      },
+      "WorkoutDetailResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "workoutType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutType"
+              }
+            ]
+          },
+          "status": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutStatus"
+              }
+            ]
+          },
+          "performedOn": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "wod": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutWodResponse"
+              }
+            ]
+          },
+          "movements": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "headline": {
+            "type": "string",
+            "nullable": true
+          },
+          "personalRecordCount": {
+            "type": "number"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "durationSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "rounds": {
+            "type": "number",
+            "nullable": true
+          },
+          "intervalSeconds": {
+            "type": "number",
+            "nullable": true
+          },
+          "repScheme": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "score": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/WorkoutScoreResponse"
+              }
+            ]
+          },
+          "volumeKg": {
+            "type": "number"
+          },
+          "exercises": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkoutExerciseResponse"
+            }
+          },
+          "personalRecords": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DerivedPersonalRecordResponse"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "workoutType",
+          "status",
+          "performedOn",
+          "completedAt",
+          "createdAt",
+          "wod",
+          "movements",
+          "headline",
+          "personalRecordCount",
+          "description",
+          "notes",
+          "startedAt",
+          "updatedAt",
+          "durationSeconds",
+          "rounds",
+          "intervalSeconds",
+          "repScheme",
+          "score",
+          "volumeKg",
+          "exercises",
+          "personalRecords"
+        ]
       },
       "UpdateWorkoutDto": {
         "type": "object",

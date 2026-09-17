@@ -25,7 +25,10 @@ export class ReleasesController {
 
   @Get('android/:version/download')
   @ApiProduces('application/vnd.android.package-archive')
-  @ApiOkResponse({ description: 'APK; cabecera X-Checksum-Sha256 con su SHA-256' })
+  @ApiOkResponse({
+    description: 'APK; cabecera X-Checksum-Sha256 con su SHA-256',
+    schema: { type: 'string', format: 'binary' },
+  })
   @ApiBadRequestResponse({ type: ApiErrorResponse, description: 'VALIDATION_FAILED' })
   @ApiNotFoundResponse({ type: ApiErrorResponse, description: 'RELEASE_NOT_FOUND' })
   async downloadAndroid(
