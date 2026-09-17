@@ -5,8 +5,8 @@
 La implementación de la fase 2 en el backend extiende la arquitectura modular de NestJS 12 incorporando los módulos especializados en el dominio deportivo, adaptando perfiles y orquestando tareas CLI:
 
 - **Módulo de movimientos (`apps/api/src/movements`):**
-  - `movements.controller.ts`: Expone `GET /movements` con el decorador `@UseGuards(JwtAuthGuard)`, admitiendo parámetros de consulta validados mediante `MovementQueryDto`. Expone asimismo `GET /movements/:slug` para la recuperación de fichas individuales.
-  - `movements.service.ts`: Construye dinámicamente el objeto `where` de Prisma filtrando por `isActive: true`. Ejecuta búsquedas con el operador `contains` (con modo `insensitive`) sobre el campo `name`, resuelve filtros de enumeraciones directas (`category`, `equipment`, `difficulty`), evalúa la presencia de tipos de marca con el operador de arrays `has` sobre `recordTypes`, y cruza grupos musculares mediante `hasSome` sobre `primaryMuscles` y `secondaryMuscles`.
+  - `movements.controller.ts`: Expone `GET /movements` con el decorador `@UseGuards(JwtAuthGuard)`, admitiendo parámetros de consulta validados. Expone asimismo `GET /movements/:slug` para la recuperación de fichas individuales.
+  - `movements.service.ts`: Construye dinámicamente el objeto `where` de Prisma filtrando por `isActive: true`. Ejecuta búsquedas por `name`, resuelve filtros directos de `category`, `equipment` y `difficulty`, evalúa tipos admitidos en `recordTypes` y grupos musculares primarios o secundarios.
   - `dto/movement-query.dto.ts`: Define las restricciones de entrada: `search` (máximo 80 caracteres), `category`, `equipment`, `recordType`, `difficulty`, `muscle` y parámetros de paginación (`page` mínimo 1, `limit` entre 1 y 50).
   - `movement.mapper.ts`: Proyecta los campos de base de datos a las interfaces públicas `MovementSummary` y `MovementDetail`.
 - **Módulo de marcas personales (`apps/api/src/records`):**
@@ -39,7 +39,7 @@ El código de negocio central reside en bibliotecas independientes dentro de `pa
 - **`@garfit/validation` (`packages/validation/src`):**
   - Expone esquemas de Zod reutilizables para clientes (`createRecordSchema`, `updateRecordSchema`, `athleteProfileSchema`, `loginSchema`, `registerSchema`).
 - **`@garfit/api-client` (`packages/api-client/src`):**
-  - Cliente de consumo HTTP tipado con métodos asíncronos para movimientos (`listMovements`, `getMovement`), marcas (`listRecords`, `getRecordSummary`, `getMovementHistory`, `createRecord`, `updateRecord`, `deleteRecord`) y perfil deportivo (`getProfile`, `updateProfile`).
+  - Cliente de consumo HTTP tipado con métodos asíncronos para movimientos, marcas (`list`, `summary`, `forMovement`, `create`, `update`, `remove`) y perfil deportivo (`ProfileService.get`, `ProfileService.upsert`).
 
 ## 8.3 Aplicación web (`apps/web`)
 
@@ -105,6 +105,120 @@ flowchart LR
 4. **Semilla de demostración (`pnpm db:seed:demo`):** Ejecuta `seed-demo.ts` para pruebas manuales y presentaciones académicas. Requiere que la variable `DEMO_USER_PASSWORD` se encuentre definida con un mínimo de 8 caracteres y aborta la ejecución si `NODE_ENV === 'production'`. Crea el usuario `demo@garfit.example` con contraseña segura, perfil intermedio y 8 marcas históricas distribuidas cronológicamente en sentadilla con barra (100, 105 y 110 kg), press de banca (75 y 80 kg), flexiones de pecho (30 y 38 repeticiones) y plancha abdominal (60 segundos).
 
 ## 8.6 Entorno de ejecución y scripts de desarrollo
+
+## 8.7 Implementación de la fase 3
+
+El núcleo está en `packages/domain/src/workouts.ts`: valida prescripciones y resultados, normaliza unidades, calcula volumen y score, deriva candidatos y selecciona mejoras estrictas. `records.ts` incorpora el calificador `distanceMeters` a las series `TIME`; `progress-snapshot.ts` resume entrenamientos, volumen y tendencias sin utilizar IA.
+
+La API implementa rutas y servicios en `apps/api/src/workouts/workouts.controller.ts`, `workouts.service.ts`, `workouts.mapper.ts` y `dto/workout.dto.ts`; los WODs están en `apps/api/src/wods/`. La finalización se protege mediante transacción, bloqueo asesor por `userId` y transición condicional. `apps/api/src/records/records.service.ts` expone el origen y rechaza operar una marca gestionada por entrenamiento.
+
+La web utiliza `apps/web/src/app/app/workouts/` para listado, constructor, detalle y edición, y `apps/web/src/app/app/wods/` para consulta de plantillas. En móvil, `apps/mobile/src/app/(app)/workouts/`, `wods/` y las pestañas `train.tsx`, `history.tsx` e `index.tsx` consumen los mismos contratos. La semilla incorpora 1319 movimientos del dataset, siete curados de origen `garfit` y seis benchmarks: fran, grace, helen, diane, karen y cindy.
+
+A continuación se detalla la implementación técnica de la fase 3 por cada componente del monorepo:
+
+### 8.7.1 Lógica de negocio y reglas deportivas (`packages/domain`)
+
+El paquete `@garfit/domain` concentra las reglas puras e inmutables del dominio deportivo, garantizando que los cálculos sean deterministas y no dependan de la base de datos ni de interfaces de usuario:
+
+- **Módulo de entrenamientos (`packages/domain/src/workouts.ts`):**
+  - `validatePrescription(workoutType, prescription)`: Verifica la validez de los parámetros globales de programación (`durationSeconds`, `rounds`, `intervalSeconds`, `repScheme`). Aplica las restricciones de `WORKOUT_LIMITS` y las directivas por tipo: exige duración en `AMRAP`; exige duración e intervalo múltiplo en `EMOM`; admite corte o esquema en `FOR_TIME`; y prohíbe parámetros globales en `STRENGTH` y `CARDIO`.
+  - `normalizeSet(set)`: Convierte los valores de una serie realizada a unidades canónicas internacionales (`loadKg`, `distanceMeters`, `durationSeconds`) mediante `toCanonical`. Comprueba la coexistencia obligatoria de valor y unidad para cargas y distancias, valida que las repeticiones sean enteros dentro de los límites y rechaza series que carezcan por completo de métricas.
+  - `setVolumeKg(set)` y `totalVolumeKg(sets)`: Computan el volumen acumulado (repeticiones × carga en kg). El cálculo opera de forma exacta serie a serie y redondea a 3 decimales (`roundTo`). Lanza una excepción `RangeError` si recibe valores negativos o `NaN`.
+  - `validateScore(workoutType, score)`: Valida el resultado global de la sesión. En `FOR_TIME` exige tiempo o repeticiones al corte de forma mutuamente excluyente; en `AMRAP` exige rondas completadas; en `EMOM` exige el indicador booleano de intervalos completados (`completed`); y en las modalidades basadas en series (`STRENGTH`, `CARDIO`, `CUSTOM`) prohíbe la presencia de score global.
+  - `formatScore(workoutType, score)`: Genera la representación textual estandarizada del score ("13:42", "Límite · 142 reps", "8 rondas + 7 reps", "Completado" / "No completado").
+  - `summarizeSets(workoutType, sets)`: Extrae el resumen principal de una sesión basada en series: volumen acumulado para fuerza (`Volumen 500 kg`) o el esfuerzo mayor de distancia y tiempo en cardio (`5 km · 23:40`).
+  - `recordCandidates(workoutType, exercises)`: Analiza las series de entrenamientos de tipo `STRENGTH` o `CARDIO` para deducir potenciales marcas personales (peso con repeticiones, repeticiones corporales, duración isométrica, distancia o tiempo cronometrado por distancia), filtrando estrictamente por los tipos admitidos por el ejercicio (`Movement.recordTypes`).
+  - `candidateKey(entry)`: Construye la clave determinista de agrupación (`movementId|seriesKey`), discriminando marcas de fuerza por número de repeticiones (1RM frente a 5RM) o marcas de cardio por distancia cronometrada (5k frente a 10k).
+  - `selectNewRecords(candidates, history)`: Cruza los candidatos contra el historial del atleta seleccionando únicamente las mejoras estrictas (`isBetter`), devolviendo además la mejor marca previa (`previousBest`) para proyectar el incremento.
+  - `countInLastDays(dates, days, now)` y `countPerWeek(dates, weeks, now)`: Funciones puras de agregación cronológica para contabilizar sesiones en ventanas móviles de 7 y 30 días y secuencias semanales para el panel de control.
+- **Módulo de marcas (`packages/domain/src/records.ts`):** Incorpora el calificador `distanceMeters` a la clave de serie `seriesKey` para marcas de tipo `TIME` (`requiresDistanceQualifier`), permitiendo que un récord de tiempo en 5 km y otro en 10 km coexistan en series independientes.
+- **Instantánea de progreso (`packages/domain/src/progress-snapshot.ts`):** Consolida el historial y perfil del atleta en estructuras deterministas listas para auditoría, resumiendo volumen y tendencias sin interactuar con modelos de IA.
+
+### 8.7.2 Catálogo curado y plantillas de referencia (`packages/movements`)
+
+El paquete `@garfit/movements` provee la taxonomía deportiva y enriquece el catálogo con ejercicios y rutinas estándar:
+
+- **Movimientos curados (`packages/movements/src/curated.ts`):** Define con la constante `CURATED_SOURCE = 'garfit'` 7 movimientos fundamentales que no formaban parte del dataset original: `rowing-ergometer`, `air-squat`, `wall-ball`, `box-jump`, `double-under`, `toes-to-bar` y `barbell-clean-and-jerk`. Cada movimiento especifica su categoría anatómica, equipamiento, grupos musculares primarios y secundarios, e instrucciones de ejecución originales en español. La función `curatedMovements` deriva sus `recordTypes` automáticamente mediante `recordTypesFor`.
+- **WODs benchmark (`packages/movements/src/benchmark-wods.ts`):** Especifica con `BENCHMARK_SOURCE = 'garfit-benchmarks'` 6 plantillas de entrenamiento funcional de uso común: `fran`, `grace`, `helen`, `diane`, `karen` y `cindy`. Define para cada una el tipo de entrenamiento, esquema de repeticiones, rondas programadas y la colección estructurada de ejercicios con sus cargas oficiales publicadas.
+
+### 8.7.3 Esquemas de validación y cliente HTTP (`@garfit/validation` y `@garfit/api-client`)
+
+- **Contratos Zod (`packages/validation/src/index.ts`):**
+  - `createWorkoutSchema`: Unión discriminada estricta que admite creación libre (requiere `name`, `workoutType`, `exercises` y valida la prescripción con `checkPrescription`) o creación a partir de WOD (requiere `wodSlug` y admite `name` alternativo).
+  - `updateWorkoutSchema`: Controla la modificación de borradores en estado `DRAFT`, permitiendo actualizar nombre, descripción, notas o la lista completa de ejercicios prescritos.
+  - `workoutExerciseInputSchema`: Valida los ejercicios prescritos, exigiendo la correspondencia estricta entre valor y unidad mediante la función auxiliar `pairIssue`.
+  - `workoutSetInputSchema`: Valida individualmente cada serie ejecutada delegando en `normalizeSet`.
+  - `workoutScoreInputSchema`: Valida la estructura y rangos de las métricas de score global.
+  - `workoutResultsSchema`: Valida el conjunto de resultados ejecutados, verificando que no existan ejercicios duplicados ni series con identificador `setNumber` repetido en un mismo ejercicio, y limitando a 300 el total de series por sesión.
+  - `completeWorkoutSchema`: Valida el payload de finalización (`performedOn` y objeto opcional `results`).
+  - `workoutFiltersSchema` y `wodFiltersSchema`: Validan parámetros de consulta para listados paginados.
+- **Cliente HTTP (`packages/api-client/src/index.ts`):**
+  - Métodos del espacio de nombres `workouts`: `list(filters)`, `stats()`, `get(id)`, `create(input)`, `update(id, input)`, `remove(id)`, `start(id)`, `saveResults(id, input)` y `complete(id, input)`.
+  - Métodos del espacio de nombres `wods`: `list(filters)`, `get(slug)` y `create(input)`.
+  - Gestión tipada de excepciones a través de `ApiError`, preservando códigos funcionales estables (`WORKOUT_INCOMPLETE`, `WORKOUT_INVALID_STATE`, `RECORD_MANAGED_BY_WORKOUT`, `WOD_NOT_FOUND`).
+
+### 8.7.4 Módulos de la API NestJS y persistencia transaccional (`apps/api`)
+
+- **Controladores y rutas:**
+  - `WorkoutsController` (`apps/api/src/workouts/workouts.controller.ts`):
+    - `GET /workouts`: Consulta paginada filtrada por modalidad, estado, ejercicio y fechas.
+    - `GET /workouts/stats`: Estadísticas de volumen y frecuencia para el panel de control.
+    - `POST /workouts`: Creación de un entrenamiento libre o derivado de un WOD.
+    - `GET /workouts/:id`: Recuperación de la ficha técnica con series ejecutadas y marcas derivadas.
+    - `PATCH /workouts/:id`: Modificación de datos o ejercicios de un borrador.
+    - `DELETE /workouts/:id`: Borrado lógico que responde con código HTTP 204.
+    - `POST /workouts/:id/start`: Inicio de la sesión y registro de `startedAt`.
+    - `PUT /workouts/:id/results`: Guardado intermedio de series y score.
+    - `POST /workouts/:id/complete`: Finalización de la sesión y cálculo de marcas personales.
+  - `WodsController` (`apps/api/src/wods/wods.controller.ts`):
+    - `GET /wods`: Listado consolidado de benchmarks públicos y plantillas personales.
+    - `GET /wods/:slug`: Detalle de prescripción de un WOD.
+    - `POST /wods`: Creación de un WOD personal del usuario.
+- **Algoritmo de finalización (`complete`) paso a paso (`WorkoutsService.complete`):**
+  1. *Transacción interactiva:* La operación completa se ejecuta dentro de un bloque `this.prisma.$transaction(async (tx) => ...)`.
+  2. *Bloqueo asesor exclusivo por atleta:* Se invoca `tx.$executeRaw` ejecutando `SELECT pg_advisory_xact_lock(hashtext(${userId}))`. Este candado a nivel de transacción en PostgreSQL serializa todas las finalizaciones concurrentes del mismo atleta, evitando condiciones de carrera en el cómputo de récords.
+  3. *Evaluación de idempotencia:* Se consulta el estado del entrenamiento; si `workout.status === 'COMPLETED'`, la transacción retorna de inmediato el registro sin duplicar operaciones ni generar nuevas marcas.
+  4. *Reemplazo atómico de series y score:* Si la petición incluye `dto.results`, se ejecuta `replaceResults(tx, workout, dto.results)`, purgando resultados previos (`tx.workoutResult.deleteMany`) e insertando las series normalizadas y el score (`tx.workoutScore.upsert`).
+  5. *Comprobación de completitud obligatoria:* Se evalúa `workoutIncompleteDetails(current)`. Si la sesión de fuerza no tiene series con repeticiones, o la de cardio carece de distancia/duración, o el score de `FOR_TIME`, `AMRAP` o `EMOM` incumple `validateScore`, se cancela la transacción lanzando `ApiException(422, 'WORKOUT_INCOMPLETE', ...)`.
+  6. *Transición condicional:* Se actualiza el entrenamiento mediante `tx.workout.updateMany({ where: { id, userId, deletedAt: null, status: { not: 'COMPLETED' } }, data: { status: 'COMPLETED', completedAt: new Date(), performedOn } })`.
+  7. *Derivación y persistencia de marcas:* Si `transition.count > 0`, se invoca `createRecords(tx, userId, id)`. Se calculan los candidatos con `recordCandidates`, se obtienen las mejores marcas históricas activas del atleta, se filtran con `selectNewRecords` y se insertan las nuevas filas en `PersonalRecord` con `source: 'WORKOUT'` y `workoutResultId` enlazado a la serie generadora.
+- **Borrado lógico y retiro de marcas (`WorkoutsService.remove`):**
+  - La operación de borrado se ejecuta en una transacción atómica que actualiza `deletedAt = new Date()` en la tabla `Workout` y, de forma coordinada, en todos los `PersonalRecord` que apunten a resultados de dicho entrenamiento (`workoutResult: { workoutExercise: { workoutId: id } }`), retirando las marcas de todos los cálculos sin perder trazabilidad.
+
+### 8.7.5 Protección de marcas personales derivadas (`apps/api/src/records`)
+
+Para preservar la veracidad del historial deportivo y evitar discrepancias entre una marca y la sesión que la generó:
+
+- **Bloqueo de mutación directa (`RECORD_MANAGED_BY_WORKOUT`):**
+  - En `RecordsService.findOwnedRecord`, si el registro recuperado posee `record.source === 'WORKOUT'`, el servidor interrumpe la petición lanzando `ApiException(409, 'RECORD_MANAGED_BY_WORKOUT', 'Esta marca proviene de un entrenamiento: gestiónala desde el entrenamiento')`.
+  - Este candado aplica de manera simétrica ante `PATCH /records/:id` y `DELETE /records/:id`. La única vía para modificar o anular una marca derivada consiste en rectificar o eliminar el entrenamiento que la originó.
+- **Trazabilidad de origen:** El mapper `toPersonalRecord` incluye el objeto `origin` (`workoutId`, `workoutName`, `performedOn`, `setNumber`, `reps`), informando al cliente sobre la procedencia exacta de la marca.
+
+### 8.7.6 Aplicación web y Server Actions (`apps/web`)
+
+- **Rutas de la interfaz web (`apps/web/src/app/app`):**
+  - `workouts/page.tsx`: Listado con pestañas de "Pendientes" e "Historial" y filtros por tipo, estado y fecha.
+  - `workouts/new/page.tsx`: Vista del constructor de sesiones sustentada en `WorkoutBuilder`.
+  - `workouts/[id]/page.tsx`: Pantalla interactiva que despliega el estado activo o la vista completada (`Completed`) con cálculo de volumen, score y marcas personales logradas.
+  - `workouts/[id]/edit/page.tsx`: Formulario de edición reservado exclusivamente a borradores.
+  - `wods/page.tsx` y `wods/[slug]/page.tsx`: Explorador de WODs con catálogo de benchmarks y botón "Usar este WOD".
+- **Server Actions (`apps/web/src/app/workout-actions.ts`):**
+  - Funciones asíncronas de servidor: `createWorkout`, `updateWorkout`, `startWorkout`, `saveWorkoutResults`, `completeWorkout`, `removeWorkout` y `useWod`.
+  - *Manejo de `redirect()` fuera de bloques try/catch:* En el modelo de servidor de Next.js, la función `redirect()` opera lanzando internamente un error de control denominado `NEXT_REDIRECT`. Si la invocación a `redirect()` se sitúa dentro de un bloque `try/catch`, la excepción es capturada indebidamente como un fallo genérico, frustrando la navegación del usuario. Por esta razón técnica, todas las invocaciones a `redirect()` en las acciones de entrenamiento se ubican estrictamente después y fuera de los bloques de captura de errores de la API.
+
+### 8.7.7 Aplicación móvil (`apps/mobile`)
+
+La aplicación nativa en Expo SDK 57 (`apps/mobile/src/app/(app)`) adapta el flujo deportivo al entorno móvil:
+
+- **Pestaña Entrenar (`(tabs)/train.tsx`):** Provee accesos a "Nuevo entrenamiento" y "Desde un WOD", además de listar borradores y entrenamientos en curso en "Continúa donde lo dejaste".
+- **Pestaña Historial (`(tabs)/history.tsx`):** Renderiza sesiones completadas agrupadas cronológicamente con `groupWorkouts` sobre un componente `FlatList` con soporte de paginación infinita.
+- **Pestaña Inicio (`(tabs)/index.tsx`):** Integra el componente `WorkoutSummary` para exponer el conteo semanal y mensual de entrenamientos, marcas de los últimos 30 días y enlace directo al último entrenamiento.
+- **Pantallas operativas:** `workouts/new.tsx` (constructor táctil con selectores de tipo `Choice`), `workouts/[id].tsx` (ejecución con registro dinámico de series y selector interactivo de score) y `wods/index.tsx` / `wods/[slug].tsx` (catálogo y clonación de WODs).
+
+### 8.7.8 Semillas e inicialización de datos (`apps/api/src/cli`)
+
+- **`seed-movements.ts` (`pnpm db:seed`):** Carga idempotente en lotes de 200 registros que inicializa los 1319 movimientos del catálogo, los 7 movimientos curados y los 6 WODs benchmark de referencia.
+- **`seed-demo.ts` (`pnpm db:seed:demo`):** Genera el atleta de demostración `demo@garfit.example` con 5 marcas manuales y 3 entrenamientos cerrados ejecutados mediante instancias directas de `WorkoutsService`, verificando la derivación de marcas en fuerza y carrera de resistencia.
 
 El proyecto emplea scripts de orquestación centralizados en la raíz del monorepo mediante Turborepo y pnpm:
 

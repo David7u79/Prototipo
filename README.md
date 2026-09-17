@@ -6,7 +6,7 @@ análisis personalizados mediante inteligencia artificial.
 
 GarFit es actualmente un prototipo académico y no constituye una aplicación oficial de la Universidad Autónoma de Tlaxcala.
 
-## Estado (Fase 2: Dominio deportivo)
+## Estado (Fase 3: entrenamientos, WODs y progreso)
 
 La **fase 2** implementa el núcleo del dominio deportivo para el atleta:
 - **Catálogo de movimientos:** 1319 movimientos normalizados con búsqueda por texto, filtros combinados (categoría, equipamiento, tipo de marca, dificultad, grupos musculares) y paginación determinista.
@@ -17,7 +17,9 @@ La **fase 2** implementa el núcleo del dominio deportivo para el atleta:
 - **Resumen en dashboard:** visualización de totales, marcas recientes y última mejora alcanzada.
 - **Frontera de IA:** servicio `ProgressSnapshotService` para generar resúmenes estructurados de progreso determinista listos para contextualizar modelos de lenguaje sin delegarles cálculos numéricos.
 
-**Pendiente para fase 3:** catálogo y definición de entrenamientos estructurados (`Workout`, `WorkoutExercise`, WODs), registro de sesiones de entrenamiento (`WorkoutResult`), generación automática de marcas personales derivadas de entrenamientos (`source: WORKOUT`), y asistente interactivo con Gemini.
+La fase 3 incorpora entrenamientos personales (`Workout`) y plantillas (`Wod`), resultados por serie, score por modalidad, historial, estadísticas y marcas automáticas trazables. La comparación de `TIME` exige la misma distancia. El asistente interactivo con Gemini permanece pendiente; el snapshot determinista está preparado como frontera futura.
+
+Los benchmarks incluidos son definiciones de uso común redactadas por el proyecto y no tienen afiliación con marcas.
 
 **Fuera de alcance:** GarFit está enfocado exclusivamente en el progreso del atleta individual; no es un sistema de gestión de gimnasios (no incluye membresías, cobros, reservas, control de acceso por torniquetes, clases grupales ni esquemas multi-tenant SaaS).
 
@@ -98,7 +100,7 @@ pnpm dev
 
 1. `pnpm db:up`: Levanta PostgreSQL en el puerto local `5442` (bases `garfit` y `garfit_test`).
 2. `pnpm db:migrate`: Aplica las migraciones de Prisma en la base de datos de desarrollo.
-3. `pnpm db:seed`: Carga de manera idempotente los 1319 movimientos en la base de datos (~6 s).
+3. `pnpm db:seed`: Carga idempotentemente 1319 movimientos, siete curados y seis WODs benchmark.
 4. `pnpm dev`: Inicia concurrentemente la API (`localhost:4000`), la Web (`localhost:3000`) y la Landing (`localhost:4321`) con recarga en vivo de paquetes.
 
 Para iniciar la aplicación móvil Expo (que requiere terminal interactiva):
@@ -126,10 +128,10 @@ DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo
 | `pnpm build` | Compila todos los paquetes y aplicaciones del monorepo (5 tareas) |
 | `pnpm lint` | Ejecuta validación estática de código con ESLint 9 |
 | `pnpm typecheck` | Comprueba tipado estático de TypeScript en todo el monorepo (11 tareas) |
-| `pnpm test` | Ejecuta la suite completa de pruebas automatizadas con Vitest (143 pruebas) |
+| `pnpm test` | Ejecuta la suite completa de pruebas automatizadas con Vitest (195 pruebas) |
 | `pnpm test:coverage` | Genera reportes de cobertura de código para API, web y paquetes |
-| `pnpm evidence:web` | Ejecuta las pruebas E2E de Playwright y produce capturas de evidencia |
-| `pnpm db:seed` | Siembra idempotente del catálogo de movimientos (1319 registros) |
+| `pnpm evidence:web` | Ejecuta todos los flujos E2E de Playwright y produce capturas de evidencia |
+| `pnpm db:seed` | Siembra idempotente del catálogo, curados y WODs benchmark |
 | `pnpm db:seed:demo` | Crea el usuario demo con marcas de prueba (requiere `DEMO_USER_PASSWORD`) |
 | `pnpm docs:generate` | Regenera contratos OpenAPI, diagrama ERD, TypeDoc y resumen de cobertura |
 | `pnpm docs:check` | Comprueba que los artefactos generados versionados coincidan con el código |
@@ -139,6 +141,7 @@ DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo
 Los reportes de verificación con resultados inmutables y capturas fechadas se conservan en:
 - [Evidencia de fase 1 (2026-09-16)](docs/evidence/fase-1/pruebas-2026-09-16.md)
 - [Evidencia de fase 2 (2026-09-16)](docs/evidence/fase-2/pruebas-2026-09-16.md) y [capturas del recorrido E2E](docs/evidence/fase-2/capturas/)
+- [Evidencia de fase 3 (2026-09-17)](docs/evidence/fase-3/pruebas-2026-09-17.md) y [capturas del recorrido E2E](docs/evidence/fase-3/capturas/)
 
 ## Publicación de instalador Android
 

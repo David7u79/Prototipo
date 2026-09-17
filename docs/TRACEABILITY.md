@@ -1,5 +1,25 @@
 # Matriz de trazabilidad
 
+## 0. Requerimientos implementados (Fase 3)
+
+| Requerimiento | Implementación concreta (rutas) | Prueba automatizada (`fichero › describe › it`) | Resultado | Evidencia |
+| --- | --- | --- | --- | --- |
+| RF-13 | `apps/api/src/workouts/workouts.service.ts`; `apps/api/src/workouts/workouts.controller.ts` | `apps/api/test/workouts.spec.ts › workouts › crea libre conservando orden y objetivos` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RF-14 | `apps/api/src/workouts/workouts.service.ts`; `apps/api/src/wods/wods.service.ts` | `apps/api/test/workouts.spec.ts › workouts › crea desde WOD copiando prescripción y rechaza WOD inexistente` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RF-15 | `apps/api/src/workouts/workouts.service.ts`; `packages/domain/src/workouts.ts` | `apps/api/test/workouts.spec.ts › workouts › reemplaza ejercicios en draft, inicia y bloquea PATCH en progreso` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RF-16 | `apps/api/src/workouts/workouts.service.ts`; `packages/domain/src/workouts.ts` | `apps/api/test/workouts.spec.ts › workouts › guarda resultados canónicos y valida score, ejercicio, duplicados y límite de series` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RF-17 | `apps/api/src/workouts/workouts.service.ts`; `apps/web/src/app/app/workouts/[id]/page.tsx` | `apps/api/test/workouts.smoke.spec.ts › workouts smoke › no completa FOR_TIME sin score` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md); capturas 13 y 14 |
+| RF-18 | `apps/api/src/records/records.service.ts`; `packages/domain/src/workouts.ts` | `apps/api/test/workout-records.spec.ts › marcas derivadas de workouts › crea 1RM, informa cambio y no registra empates o regresiones` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md); captura 15 |
+| RF-19 | `apps/api/src/workouts/workouts.service.ts`; `apps/web/src/app/app/workouts/page.tsx` | `apps/api/test/workout-stats.spec.ts › GET /workouts/stats › calcula ventanas, último, volumen y omite drafts y borrados` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md); capturas 16 y 17 |
+| RF-20 | `apps/api/src/wods/wods.service.ts`; `apps/web/src/app/app/wods/page.tsx` | `apps/api/test/wods.spec.ts › WODs › crea WOD privado, lo aísla y devuelve 404 a otro atleta` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RF-21 | `packages/domain/src/records.ts`; `apps/api/src/records/records.service.ts` | `apps/api/test/workout-records.spec.ts › marcas derivadas de workouts › crea TIME y DISTANCE para cardio, separando 5k y 10k` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RF-22 | `apps/web/src/app/app/workouts/`; `apps/mobile/src/app/(app)/workouts/` | `apps/web/e2e/workout-flow.spec.ts › athlete-flow workout-flow` | Pasa en web; móvil PENDIENTE | [fase 3](evidence/fase-3/pruebas-2026-09-17.md); capturas 10 a 17 |
+| RNF-13 | `apps/api/src/workouts/workouts.service.ts` | `apps/api/test/workout-records.spec.ts › marcas derivadas de workouts › es idempotente y serializa completados concurrentes` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RNF-14 | `apps/api/src/workouts/workouts.service.ts` | `apps/api/test/workouts.smoke.spec.ts › workouts smoke › completar dos veces en paralelo crea una sola marca` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RNF-15 | `apps/api/src/workouts/workouts.service.ts`; `apps/api/src/records/records.service.ts` | `apps/api/test/records.spec.ts › marcas personales › PATCH /records/:id › no permite modificar ni borrar una marca derivada y expone su origen` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RNF-16 | `packages/domain/src/workouts.ts`; `packages/domain/src/progress-snapshot.ts` | `packages/domain/src/workouts.test.ts › marcas y ventanas › deriva candidatos y conserva la primera serie empatada` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+| RNF-17 | `packages/domain/src/rules.ts`; `apps/api/src/workouts/dto/workout.dto.ts` | `apps/api/test/workouts.spec.ts › workouts › rechaza movimiento inválido, campos extra y más de treinta ejercicios` | Pasa | [fase 3](evidence/fase-3/pruebas-2026-09-17.md) |
+
 La evidencia formal de ejecución se encuentra documentada en los informes inmutables por fase:
 - [Pruebas de fase 1](evidence/fase-1/pruebas-2026-09-16.md)
 - [Pruebas de fase 2](evidence/fase-2/pruebas-2026-09-16.md) y [capturas del flujo E2E](evidence/fase-2/capturas/)

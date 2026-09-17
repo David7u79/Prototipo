@@ -114,6 +114,14 @@ En cumplimiento de un reporte académico transparente, se documentan los cinco d
 
 ## 10.4 Limitaciones y aspectos no evaluados (PENDIENTE)
 
+## 10.5 Resultados de la fase 3
+
+Al cierre del 17 de septiembre de 2026 se ejecutaron 195 pruebas: API 102/102 en 18 ficheros, dominio 43, web 20, validación 11, movimientos 10 y cliente API 9. La cobertura de líneas fue API 96.66 %, dominio 93.66 %, movimientos 100 %, validación 92.78 %, cliente API 87.87 % y web 10.06 %; esta última mide todo `src`, por lo que las pantallas se verificaron además con E2E.
+
+Playwright ejecutó dos flujos contra API y web compiladas. El flujo de entrenamiento recorrió dos sesiones de fuerza (100 y 105 kg, con primera marca y mejora de +5 kg), historial, origen no editable y un `FOR_TIME` de 5:30. La prueba API confirmó 100 kg como primera marca, 105 kg como mejora frente a 100, empate sin marca y `409 RECORD_MANAGED_BY_WORKOUT` al intentar modificar una marca derivada. La semilla idempotente cargó 1319 movimientos, siete curados y seis WODs; la semilla demo creó tres entrenamientos completados con una, una y dos marcas derivadas.
+
+No se midieron usuarios reales ni se verificó el móvil en dispositivo o emulador, por lo que ambos resultados permanecen PENDIENTES.
+
 En concordancia con los principios del trabajo de titulación, se declara explícitamente como **PENDIENTE**:
 
 > **PENDIENTE:**

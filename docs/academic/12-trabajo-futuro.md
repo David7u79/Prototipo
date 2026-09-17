@@ -36,7 +36,7 @@ Para garantizar que el crecimiento del sistema no degrade la calidad del softwar
 
 1. **Cobertura unitaria en paquetes compartidos:**
    - Escribir pruebas unitarias específicas en `packages/validation/src/index.test.ts` para cubrir los nuevos esquemas de Zod incorporados en la fase 2 (`createRecordSchema`, `updateRecordSchema`, `movementQuerySchema`, etc.), elevando su cobertura del 34.88 % actual hacia el 100 %.
-   - Diseñar pruebas unitarias en `packages/api-client/src/index.test.ts` para validar sistemáticamente todos los métodos de consumo REST del catálogo y marcas personales (`listMovements`, `getMovement`, `createRecord`, `updateRecord`, `deleteRecord`, `getRecordSummary`, `getMovementHistory`), incrementando su cobertura desde el 58.49 % actual.
+   - Ampliar las pruebas unitarias del cliente API sobre sus métodos de recursos, conservando las pruebas existentes de rutas de movimientos, marcas, WODs y entrenamientos.
 2. **Pruebas en dispositivos móviles físicos y automatización E2E:**
    - Implementar una suite de pruebas automatizadas de extremo a extremo para la aplicación móvil (`apps/mobile`) utilizando herramientas modernas como Maestro o Detox, superando la dependencia exclusiva de pruebas estáticas y de exportación.
    - Ejecutar pruebas de usabilidad y verificación en dispositivos móviles físicos reales sobre diversas versiones de Android e iOS, evaluando tiempos de respuesta táctil, comportamiento sin conexión y consumo de batería.
@@ -47,6 +47,12 @@ Para garantizar que el crecimiento del sistema no degrade la calidad del softwar
    - Ejecutar pruebas de carga sintética mediante herramientas como K6 para evaluar la latencia y estabilidad de los endpoints de la API NestJS y la base de datos PostgreSQL ante ráfagas concurrentes de peticiones.
 
 ## 12.5 Criterios de transición metodológica
+
+## 12.6 Agenda posterior a la fase 3
+
+La fase 4 puede utilizar `AthleteProgressSnapshot` como entrada estructurada de IA, sin alterar los cálculos deterministas que lo forman; aún no existe endpoint de snapshot para ese fin. También se propone reabrir entrenamientos con recálculo seguro de marcas posteriores, comparar scores entre ejecuciones del mismo WOD y construir un editor avanzado de WODs.
+
+Debe completarse la verificación en dispositivo Android. Permanecen como deuda el aviso de PostgreSQL ante consultas concurrentes de la semilla demo, la cobertura unitaria baja de web, posibles tipos de rutas Expo obsoletos localmente, la creación de WOD personal ausente de web, la serie propia para `TIME` sin distancia heredado, Google OAuth sin credenciales y el snapshot sin endpoint.
 
 La transición hacia la fase 3 requerirá mantener la disciplina arquitectónica observada hasta el momento:
 
