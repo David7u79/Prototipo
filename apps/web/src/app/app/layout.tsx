@@ -15,7 +15,7 @@ const navigation: NavigationItem[] = [
   { href: '/app/records', label: 'Marcas' },
   { label: 'Progreso' },
   { href: '/app/movements', label: 'Movimientos' },
-  { label: 'Asistente IA' },
+  { href: '/app/ai', label: 'Asistente IA' },
 ];
 
 function NavigationLink({ item }: { item: NavigationItem }) {

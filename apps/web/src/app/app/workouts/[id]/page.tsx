@@ -16,6 +16,12 @@ export default async function WorkoutPage({
   const { confirm, notice } = await searchParams;
   const workout = await serverApi().workouts.get(id);
   const completed = workout.status === 'COMPLETED';
+  const aiAvailable =
+    completed &&
+    (await serverApi()
+      .ai.status()
+      .then((status) => status.enabled && status.configured)
+      .catch(() => false));
   return (
     <section className="mx-auto max-w-4xl">
       <Link className="underline" href="/app/workouts">
@@ -31,7 +37,17 @@ export default async function WorkoutPage({
       {notice === 'not-editable' && <p role="alert">Sólo se pueden editar borradores.</p>}
       {workout.headline && <p className="mt-2 text-xl">{workout.headline}</p>}
       {completed ? (
-        <Completed workout={workout} />
+        <>
+          <Completed workout={workout} />
+          {aiAvailable && (
+            <Link
+              className="mt-5 inline-block rounded-lg border border-line px-4 py-2 font-semibold"
+              href={`/app/ai?workoutId=${workout.id}`}
+            >
+              Analizar entrenamiento
+            </Link>
+          )}
+        </>
       ) : (
         <>
           <ul className="mt-5 space-y-2">

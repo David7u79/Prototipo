@@ -2,6 +2,7 @@ import { ApiError } from '@garfit/api-client';
 import { redirect } from 'next/navigation';
 import { ProfileForm } from '@/components/profile-form';
 import { serverApi } from '@/lib/auth';
+import { revokeAiConsentFromProfile } from '@/app/ai-actions';
 
 async function profileData() {
   try {
@@ -20,6 +21,9 @@ async function profileData() {
 }
 export default async function ProfilePage() {
   const [user, profile] = await profileData();
+  const aiStatus = await serverApi()
+    .ai.status()
+    .catch(() => null);
   return (
     <section className="mx-auto max-w-2xl">
       <p className="text-sm font-semibold text-brand">Cuenta</p>
@@ -33,6 +37,18 @@ export default async function ProfilePage() {
         </p>
       </div>
       <ProfileForm profile={profile} />
+      {aiStatus?.consentGivenAt && (
+        <section className="mt-6 rounded-2xl border border-line bg-panel p-5">
+          <h2 className="font-semibold">Análisis con IA</h2>
+          <p className="mt-2 text-sm text-muted">
+            Al revocar el consentimiento, GarFit dejará de enviar tus datos deportivos al proveedor
+            para nuevos análisis.
+          </p>
+          <form action={revokeAiConsentFromProfile} className="mt-3">
+            <button className="underline">Revocar consentimiento</button>
+          </form>
+        </section>
+      )}
     </section>
   );
 }

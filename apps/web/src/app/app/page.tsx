@@ -80,6 +80,15 @@ export default async function Dashboard() {
           <p className="text-2xl font-bold">{workoutStats.personalRecordsFromWorkoutsLast30Days}</p>
         </article>
       </div>
+      <article className="mt-4 rounded-2xl border border-line bg-panel p-5">
+        <h2 className="font-semibold">Asistente IA</h2>
+        <p className="mt-2 text-sm text-muted">
+          Interpreta tus datos deportivos con evidencia trazable.
+        </p>
+        <Link className="mt-2 inline-block underline" href="/app/ai">
+          Ir al análisis
+        </Link>
+      </article>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <article className="rounded-2xl border border-line bg-panel p-5">
           <h2 className="font-semibold">Última marca</h2>
