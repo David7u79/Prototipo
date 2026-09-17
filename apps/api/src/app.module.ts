@@ -11,6 +11,8 @@ import { ProfileModule } from './profile/profile.module.js';
 import { ReleasesModule } from './releases/releases.module.js';
 import { MovementsModule } from './movements/movements.module.js';
 import { RecordsModule } from './records/records.module.js';
+import { WodsModule } from './wods/wods.module.js';
+import { WorkoutsModule } from './workouts/workouts.module.js';
 
 @Module({
   imports: [
@@ -27,6 +29,8 @@ import { RecordsModule } from './records/records.module.js';
     ProfileModule,
     MovementsModule,
     RecordsModule,
+    WodsModule,
+    WorkoutsModule,
     ReleasesModule,
     AiModule,
   ],

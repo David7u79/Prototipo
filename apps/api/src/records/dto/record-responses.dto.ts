@@ -3,6 +3,8 @@ import {
   RECORD_SOURCES,
   RECORD_TYPES,
   RECORD_UNITS,
+  DISTANCE_UNITS,
+  type DistanceUnit,
   type RecordSource,
   type RecordType,
   type RecordUnit,
@@ -40,6 +42,9 @@ class RecordFieldsResponse {
   @ApiProperty({ enum: RECORD_UNITS, enumName: 'RecordUnit' }) unit!: RecordUnit;
   @ApiProperty({ description: 'kg, repeticiones, metros o segundos' }) normalizedValue!: number;
   @ApiProperty({ type: Number, nullable: true }) repetitions!: number | null;
+  @ApiProperty({ type: Number, nullable: true }) distanceValue!: number | null;
+  @ApiProperty({ enum: DISTANCE_UNITS, nullable: true }) distanceUnit!: DistanceUnit | null;
+  @ApiProperty({ type: Number, nullable: true }) distanceMeters!: number | null;
   @ApiProperty({ format: 'date' }) performedAt!: string;
   @ApiProperty({ type: String, nullable: true }) notes!: string | null;
   @ApiProperty({ enum: RECORD_SOURCES, enumName: 'RecordSource' }) source!: RecordSource;
@@ -47,8 +52,17 @@ class RecordFieldsResponse {
   @ApiProperty({ format: 'date-time' }) updatedAt!: string;
 }
 
+export class RecordOriginResponse {
+  @ApiProperty() workoutId!: string;
+  @ApiProperty() workoutName!: string;
+  @ApiProperty({ format: 'date' }) performedOn!: string;
+  @ApiProperty() setNumber!: number;
+  @ApiProperty({ type: Number, nullable: true }) reps!: number | null;
+}
+
 export class PersonalRecordResponse extends RecordFieldsResponse {
   @ApiProperty({ type: MovementRefResponse }) movement!: MovementRefResponse;
+  @ApiProperty({ type: RecordOriginResponse, nullable: true }) origin!: RecordOriginResponse | null;
 }
 
 export class RecordHistoryEntryResponse extends RecordFieldsResponse {
@@ -60,6 +74,7 @@ export class RecordSeriesResponse {
   @ApiProperty({ example: 'WEIGHT:1' }) key!: string;
   @ApiProperty({ enum: RECORD_TYPES, enumName: 'RecordType' }) recordType!: RecordType;
   @ApiProperty({ type: Number, nullable: true }) repetitions!: number | null;
+  @ApiProperty({ type: Number, nullable: true }) distanceMeters!: number | null;
   @ApiProperty() lowerIsBetter!: boolean;
   @ApiProperty() count!: number;
   @ApiProperty({ type: RecordHistoryEntryResponse }) first!: RecordHistoryEntryResponse;

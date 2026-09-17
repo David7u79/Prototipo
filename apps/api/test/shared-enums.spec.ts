@@ -5,6 +5,8 @@ import {
   RECORD_SOURCES,
   RECORD_TYPES,
   RECORD_UNITS,
+  WORKOUT_STATUSES,
+  WORKOUT_TYPES,
   UNIT_SYSTEMS,
 } from '@garfit/domain';
 import {
@@ -24,6 +26,8 @@ import {
   RecordType,
   RecordUnit,
   UnitSystem,
+  WorkoutStatus,
+  WorkoutType,
 } from '../src/generated/prisma/enums.js';
 
 describe('enums compartidos', () => {
@@ -34,6 +38,8 @@ describe('enums compartidos', () => {
     expect(Object.values(RecordType)).toEqual(RECORD_TYPES);
     expect(Object.values(RecordUnit)).toEqual(RECORD_UNITS);
     expect(Object.values(RecordSource)).toEqual(RECORD_SOURCES);
+    expect(Object.values(WorkoutType)).toEqual(WORKOUT_TYPES);
+    expect(Object.values(WorkoutStatus)).toEqual(WORKOUT_STATUSES);
     expect(Object.values(MovementCategory)).toEqual(MOVEMENT_CATEGORIES);
     expect(Object.values(Equipment)).toEqual(EQUIPMENT);
     expect(Object.values(MuscleGroup)).toEqual(MUSCLE_GROUPS);
