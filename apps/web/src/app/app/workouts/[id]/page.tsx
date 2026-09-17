@@ -106,7 +106,9 @@ function Completed({
       <section className="mt-5">
         <h2 className="font-bold">
           {workout.personalRecords.length
-            ? `${workout.personalRecords.length} marcas personales`
+            ? `${workout.personalRecords.length} ${
+                workout.personalRecords.length === 1 ? 'marca personal' : 'marcas personales'
+              }`
             : 'Sin marcas nuevas esta vez'}
         </h2>
         {workout.personalRecords.map((item) => (

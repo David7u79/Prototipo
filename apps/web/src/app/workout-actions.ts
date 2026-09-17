@@ -43,12 +43,14 @@ export async function createWorkout(
     intervalSeconds: nullableNumber(formData, 'intervalSeconds'),
   });
   if (!parsed.success) return { errors: parsed.error.flatten().fieldErrors, message: '' };
+  // redirect() lanza NEXT_REDIRECT: debe quedar fuera del try/catch o se trataría como error.
+  let workoutId: string;
   try {
-    const workout = await serverApi().workouts.create(parsed.data);
-    redirect(`/app/workouts/${workout.id}`);
+    workoutId = (await serverApi().workouts.create(parsed.data)).id;
   } catch (error) {
     return { errors: {}, message: apiErrorMessage(error) };
   }
+  redirect(`/app/workouts/${workoutId}`);
 }
 
 export async function updateWorkout(
@@ -64,10 +66,10 @@ export async function updateWorkout(
   const id = String(formData.get('id'));
   try {
     await serverApi().workouts.update(id, parsed.data);
-    redirect(`/app/workouts/${id}`);
   } catch (error) {
     return { errors: {}, message: apiErrorMessage(error) };
   }
+  redirect(`/app/workouts/${id}`);
 }
 
 export async function startWorkout(formData: FormData): Promise<void> {
@@ -102,15 +104,18 @@ export async function completeWorkout(
     ...resultsFromForm(formData),
     score: scoreFor(String(formData.get('type')) as never, formData),
   };
+  let workoutId: string;
   try {
-    const workout = await serverApi().workouts.complete(String(formData.get('id')), { results });
-    redirect(`/app/workouts/${workout.id}`);
+    workoutId = (await serverApi().workouts.complete(String(formData.get('id')), { results })).id;
   } catch (error) {
     if (error instanceof ApiError && error.code === 'WORKOUT_INCOMPLETE') {
       return { errors: {}, message: error.body.details?.join(' ') ?? error.message };
     }
     return { errors: {}, message: apiErrorMessage(error) };
   }
+  revalidatePath('/app');
+  revalidatePath('/app/workouts');
+  redirect(`/app/workouts/${workoutId}`);
 }
 
 export async function removeWorkout(formData: FormData): Promise<void> {
