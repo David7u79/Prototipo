@@ -94,7 +94,10 @@ export class RecordsService {
 
   async update(userId: string, id: string, dto: UpdateRecordDto): Promise<PersonalRecordResponse> {
     assertValidId(id);
-    if (Object.keys(dto).length === 0) throw validationFailed('No hay cambios que guardar');
+    // Los campos de clase del DTO existen aunque no lleguen en el cuerpo: se cuentan los definidos.
+    if (Object.values(dto).every((field) => field === undefined)) {
+      throw validationFailed('No hay cambios que guardar');
+    }
     if ((dto.value === undefined) !== (dto.unit === undefined)) {
       throw validationFailed('El valor y la unidad se envían juntos');
     }
