@@ -2,10 +2,12 @@ import Link from 'next/link';
 import { formatDuration, formatRecordValue } from '@garfit/domain';
 import { WORKOUT_TYPE_LABELS } from '@garfit/validation';
 import { useWod } from '@/app/workout-actions';
+import { WodPerformance } from '@/components/wod-performance';
 import { serverApi } from '@/lib/auth';
 export default async function WodPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const wod = await serverApi().wods.get(slug);
+  const api = serverApi();
+  const [wod, performance] = await Promise.all([api.wods.get(slug), api.wods.performance(slug)]);
   const aiAvailable = await serverApi()
     .ai.status()
     .then((status) => status.enabled && status.configured)
@@ -57,6 +59,7 @@ export default async function WodPage({ params }: { params: Promise<{ slug: stri
           Explicar WOD
         </Link>
       )}
+      <WodPerformance performance={performance.performance} />
     </section>
   );
 }

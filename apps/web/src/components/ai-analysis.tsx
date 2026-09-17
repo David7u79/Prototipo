@@ -20,7 +20,13 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short' }).format(date);
 }
 
-export function AiAnalysis({ analysis }: { analysis: AiAnalysisResponse }) {
+export function AiAnalysis({
+  analysis,
+  saved = false,
+}: {
+  analysis: AiAnalysisResponse;
+  saved?: boolean;
+}) {
   const insufficient = analysis.status === 'INSUFFICIENT_DATA';
   return (
     <article className="mt-8 rounded-2xl border border-line bg-panel p-5">
@@ -29,6 +35,11 @@ export function AiAnalysis({ analysis }: { analysis: AiAnalysisResponse }) {
         {analysisGeneratedLabel(analysis.cached, analysis.provider)} ·{' '}
         {formatDate(analysis.generatedAt)}
       </p>
+      {saved && (
+        <p className="mt-1 text-sm text-muted">
+          Análisis guardado · Modelo: {analysis.model ?? 'No disponible'}
+        </p>
+      )}
       <AnalysisSection title="Resumen">
         <p>{analysis.summary}</p>
       </AnalysisSection>

@@ -3,6 +3,7 @@ import { ApiError } from '@garfit/api-client';
 import { redirect } from 'next/navigation';
 import { serverApi } from '@/lib/auth';
 import { formatChange, formatValue } from '@/lib/records';
+import { formatPeriodChange } from '@/lib/comparisons';
 
 async function dashboardData() {
   try {
@@ -27,6 +28,7 @@ export default async function Dashboard() {
   const movementsWithRecords = summary?.movementsWithRecords ?? 0;
   const totalRecords = summary?.totalRecords ?? 0;
   const recentRecords = summary?.recentRecords ?? [];
+  const period = workoutStats.periodComparison;
 
   return (
     <section className="mx-auto max-w-4xl">
@@ -61,6 +63,38 @@ export default async function Dashboard() {
           <p className="mt-3 text-2xl font-bold">{totalRecords}</p>
         </article>
       </div>
+      <section className="mt-6">
+        <h2 className="text-xl font-bold">Comparación de periodos</h2>
+        <p className="mt-1 text-sm text-muted">
+          Últimos {period.days} días frente a los {period.days} días anteriores.
+        </p>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <PeriodMetric
+            label="Entrenamientos"
+            current={period.current.workouts}
+            previous={period.previous.workouts}
+            change={formatPeriodChange(period.change.workouts)}
+          />
+          <PeriodMetric
+            label="Días entrenados"
+            current={period.current.trainingDays}
+            previous={period.previous.trainingDays}
+            change={formatPeriodChange(period.change.trainingDays)}
+          />
+          <PeriodMetric
+            label="Volumen (kg)"
+            current={period.current.volumeKg}
+            previous={period.previous.volumeKg}
+            change={formatPeriodChange(period.change.volumeKg)}
+          />
+          <PeriodMetric
+            label="Marcas"
+            current={period.current.personalRecords}
+            previous={period.previous.personalRecords}
+            change={formatPeriodChange(period.change.personalRecords)}
+          />
+        </div>
+      </section>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <article className="rounded-2xl border border-line bg-panel p-5">
           <h2 className="font-semibold">Último entrenamiento</h2>
@@ -149,5 +183,26 @@ export default async function Dashboard() {
         </section>
       )}
     </section>
+  );
+}
+
+function PeriodMetric({
+  label,
+  current,
+  previous,
+  change,
+}: {
+  label: string;
+  current: number;
+  previous: number;
+  change: string;
+}) {
+  return (
+    <article className="rounded-2xl border border-line bg-panel p-4">
+      <h3 className="font-semibold">{label}</h3>
+      <p className="mt-2">Actual: {current}</p>
+      <p className="text-sm text-muted">Anterior: {previous}</p>
+      <p className="text-sm text-muted">Diferencia: {change}</p>
+    </article>
   );
 }

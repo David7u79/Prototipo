@@ -66,3 +66,13 @@ export async function explainWod(_state: AiState, formData: FormData) {
 export async function explainMovement(_state: AiState, formData: FormData) {
   return run(() => serverApi().ai.explainMovement(String(formData.get('slug'))));
 }
+
+export async function removeAiAnalysis(id: string) {
+  await serverApi().ai.analyses.remove(id);
+  revalidatePath('/app/ai');
+}
+
+export async function removeAllAiAnalyses() {
+  await serverApi().ai.analyses.removeAll();
+  revalidatePath('/app/ai');
+}
