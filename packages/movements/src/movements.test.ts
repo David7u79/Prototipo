@@ -1,7 +1,9 @@
-import { RECORD_TYPES, SLUG_PATTERN } from '@garfit/domain';
+import { RECORD_TYPES, SLUG_PATTERN, validatePrescription } from '@garfit/domain';
 import catalogJson from '../data/catalog.json' with { type: 'json' };
 import { describe, expect, it } from 'vitest';
 import { recordTypesFor } from './record-types.js';
+import { curatedMovements } from './curated.js';
+import { BENCHMARK_WODS } from './benchmark-wods.js';
 import {
   type CatalogMovement,
   slugify,
@@ -120,5 +122,36 @@ describe('catálogo generado (datos reales)', () => {
     const bySlug = new Map(catalog.movements.map((movement) => [movement.slug, movement]));
     expect(bySlug.get('barbell-full-squat')?.recordTypes).toContain('WEIGHT');
     expect(bySlug.get('jump-rope')?.recordTypes).toContain('DISTANCE');
+  });
+});
+
+describe('movimientos curados y WODs benchmark', () => {
+  const catalog = catalogJson as unknown as { movements: CatalogMovement[] };
+
+  it('mantiene siete curados válidos, sin colisiones y con tipos derivados', () => {
+    const curated = curatedMovements();
+    const catalogSlugs = new Set(catalog.movements.map((movement) => movement.slug));
+    expect(curated).toHaveLength(7);
+    expect(new Set(curated.map((movement) => movement.slug)).size).toBe(7);
+    for (const movement of curated) {
+      expect(SLUG_PATTERN.test(movement.slug)).toBe(true);
+      expect(catalogSlugs.has(movement.slug)).toBe(false);
+      expect(MOVEMENT_CATEGORIES).toContain(movement.category);
+      expect(EQUIPMENT).toContain(movement.equipment);
+      expect(movement.recordTypes).toEqual(recordTypesFor(movement));
+    }
+  });
+
+  it('referencia movimientos existentes, prescripciones válidas y pares completos', () => {
+    const slugs = new Set([...catalog.movements, ...curatedMovements()].map((item) => item.slug));
+    expect(new Set(BENCHMARK_WODS.map((wod) => wod.slug)).size).toBe(BENCHMARK_WODS.length);
+    for (const wod of BENCHMARK_WODS) {
+      expect(validatePrescription(wod.workoutType, wod)).toEqual([]);
+      for (const exercise of wod.exercises) {
+        expect(slugs.has(exercise.movementSlug)).toBe(true);
+        expect(exercise.loadValue === null).toBe(exercise.loadUnit === null);
+        expect(exercise.distanceValue === null).toBe(exercise.distanceUnit === null);
+      }
+    }
   });
 });

@@ -7,6 +7,7 @@ import {
   seriesKey,
   summarizeAll,
   summarizeSeries,
+  requiresDistanceQualifier,
 } from './records.js';
 
 let sequence = 0;
@@ -47,6 +48,15 @@ describe('seriesKey', () => {
     expect(seriesKey({ recordType: 'WEIGHT', repetitions: 5 })).toBe('WEIGHT:5');
     expect(seriesKey({ recordType: 'WEIGHT', repetitions: null })).toBe('WEIGHT:1');
     expect(seriesKey({ recordType: 'REPS', repetitions: null })).toBe('REPS');
+  });
+
+  it('califica TIME por distancia y conserva TIME histórico sin distancia', () => {
+    expect(seriesKey({ recordType: 'TIME', repetitions: null, distanceMeters: 5000 })).toBe(
+      'TIME@5000m',
+    );
+    expect(seriesKey({ recordType: 'TIME', repetitions: null, distanceMeters: null })).toBe('TIME');
+    expect(requiresDistanceQualifier('TIME')).toBe(true);
+    expect(requiresDistanceQualifier('WEIGHT')).toBe(false);
   });
 });
 
@@ -144,6 +154,24 @@ describe('summarizeSeries', () => {
       summarizeSeries([
         entry({ normalizedValue: 100, repetitions: 1 }),
         entry({ normalizedValue: 80, repetitions: 5 }),
+      ]),
+    ).toThrow();
+    expect(() =>
+      summarizeSeries([
+        entry({
+          recordType: 'TIME',
+          unit: 'SECOND',
+          repetitions: null,
+          distanceMeters: 5000,
+          normalizedValue: 1500,
+        }),
+        entry({
+          recordType: 'TIME',
+          unit: 'SECOND',
+          repetitions: null,
+          distanceMeters: 10000,
+          normalizedValue: 3000,
+        }),
       ]),
     ).toThrow();
   });

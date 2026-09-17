@@ -123,4 +123,50 @@ describe('buildProgressSnapshot', () => {
     });
     expect(snapshot.records).toEqual([]);
   });
+
+  it('ordena y limita entrenamientos, agrega volumen y cuenta marcas de WORKOUT', () => {
+    const workouts = Array.from({ length: 11 }, (_, index) => ({
+      performedOn: `2026-06-${String(index + 20).padStart(2, '0')}`,
+      workoutType: 'STRENGTH' as const,
+      name: `W${index}`,
+      score: {
+        timeSeconds: null,
+        repsAtTimeCap: null,
+        rounds: null,
+        extraReps: null,
+        completed: null,
+      },
+      personalRecords: 0,
+      exercises: [
+        {
+          movementSlug: 'squat',
+          movementName: 'Squat',
+          sets: [{ reps: 5, loadKg: 100, distanceMeters: null, durationSeconds: null }],
+        },
+      ],
+    }));
+    const snapshot = buildProgressSnapshot(
+      null,
+      [
+        {
+          movementSlug: 'squat',
+          movementName: 'Squat',
+          entries: [{ ...entries([[100, '2026-07-01']])[0]!, source: 'WORKOUT' }],
+        },
+      ],
+      NOW,
+      workouts,
+    );
+    expect(snapshot.recentWorkouts).toHaveLength(10);
+    expect(snapshot.recentWorkouts[0]?.name).toBe('W10');
+    expect(snapshot.recentWorkouts[0]?.volumeKg).toBe(500);
+    expect(snapshot.volumeByMovementLast30Days).toEqual([
+      { movementSlug: 'squat', movementName: 'Squat', volumeKg: 5500 },
+    ]);
+    expect(snapshot.trends).toMatchObject({
+      workoutsLast7Days: 6,
+      workoutsLast30Days: 11,
+      personalRecordsFromWorkoutsLast30Days: 1,
+    });
+  });
 });
