@@ -4,11 +4,13 @@ packages:
 
 # pnpm 11 no ejecuta scripts de instalación salvo los listados aquí.
 allowBuilds:
+  '@google/genai': false # preinstall no-op
   '@nestjs/core': true
   '@prisma/engines': true
   '@scarf/scarf': false # telemetría
   esbuild: true
   prisma: true
+  protobufjs: false # dependencia de @google/genai; no requiere compilación
   puppeteer: true
   sharp: true
   unrs-resolver: true
