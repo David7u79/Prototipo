@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module.js';
 import type { Env } from '../common/config/env.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { WorkoutsModule } from '../workouts/workouts.module.js';
+import { WodsModule } from '../wods/wods.module.js';
 import { AiController } from './ai.controller.js';
 import { AiService } from './ai.service.js';
 import { AiProvider } from './ai.provider.js';
@@ -12,7 +13,7 @@ import { GeminiAiProvider } from './gemini-ai.provider.js';
 import { ProgressSnapshotService } from './progress-snapshot.service.js';
 
 @Module({
-  imports: [AuthModule, PrismaModule, WorkoutsModule],
+  imports: [AuthModule, PrismaModule, WorkoutsModule, WodsModule],
   controllers: [AiController],
   providers: [
     GeminiAiProvider,

@@ -61,3 +61,26 @@ export class AiAnalysisResponse {
   @ApiProperty({ type: [String] }) missingData!: string[];
   @ApiProperty({ type: [AiDataUsedResponse] }) dataUsed!: AiDataUsedResponse[];
 }
+
+export class AiAnalysisSummaryResponse {
+  @ApiProperty() id!: string;
+  @ApiProperty({ enum: AI_ANALYSIS_TYPES, enumName: 'AiAnalysisType' }) type!: AiAnalysisType;
+  @ApiProperty({ enum: ['COMPLETED', 'INSUFFICIENT_DATA'], enumName: 'AiAnalysisStatus' })
+  status!: 'COMPLETED' | 'INSUFFICIENT_DATA';
+  @ApiProperty({ type: String, nullable: true }) targetId!: string | null;
+  @ApiProperty({ type: String, nullable: true }) targetLabel!: string | null;
+  @ApiProperty({ type: Number, nullable: true }) periodDays!: number | null;
+  @ApiProperty({ enum: ['GEMINI', 'FAKE'], enumName: 'AiProviderName' })
+  provider!: 'GEMINI' | 'FAKE';
+  @ApiProperty() model!: string;
+  @ApiProperty() summary!: string;
+  @ApiProperty({ format: 'date-time' }) createdAt!: string;
+}
+
+export class PaginatedAiAnalysesResponse {
+  @ApiProperty({ type: [AiAnalysisSummaryResponse] }) items!: AiAnalysisSummaryResponse[];
+  @ApiProperty() page!: number;
+  @ApiProperty() limit!: number;
+  @ApiProperty() total!: number;
+  @ApiProperty() totalPages!: number;
+}

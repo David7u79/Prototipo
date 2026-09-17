@@ -1,4 +1,4 @@
-import { type WorkoutType, validatePrescription } from '@garfit/domain';
+import { compareWodPerformance, type WorkoutType, validatePrescription } from '@garfit/domain';
 import { Injectable } from '@nestjs/common';
 import { ApiException } from '../common/api-exception.filter.js';
 import { movementNotFound } from '../movements/movements.service.js';
@@ -68,6 +68,61 @@ export class WodsService {
         durationSeconds: exercise.durationSeconds,
         notes: exercise.notes,
       })),
+    };
+  }
+
+  async performance(userId: string, slug: string) {
+    const wod = await this.prisma.wod.findFirst({
+      where: { slug, OR: [{ ownerId: null }, { ownerId: userId }] },
+      include: { exercises: { select: { reps: true } } },
+    });
+    if (!wod) throw wodNotFound();
+    const attempts = await this.prisma.workout.findMany({
+      where: {
+        userId,
+        wodId: wod.id,
+        deletedAt: null,
+        status: 'COMPLETED',
+        performedOn: { not: null },
+      },
+      include: {
+        score: true,
+        exercises: { include: { results: { orderBy: { setNumber: 'asc' } } } },
+      },
+    });
+    const repsPerRound = wod.exercises.every((exercise) => exercise.reps !== null)
+      ? wod.exercises.reduce((total, exercise) => total + exercise.reps!, 0)
+      : null;
+    return {
+      wod: {
+        slug: wod.slug,
+        name: wod.name,
+        workoutType: wod.workoutType,
+        isBenchmark: wod.isBenchmark,
+      },
+      performance: compareWodPerformance(
+        wod.workoutType,
+        attempts.map((attempt) => ({
+          workoutId: attempt.id,
+          performedOn: attempt.performedOn!.toISOString().slice(0, 10),
+          score: attempt.score ?? {
+            timeSeconds: null,
+            repsAtTimeCap: null,
+            rounds: null,
+            extraReps: null,
+            completed: null,
+          },
+          sets: attempt.exercises.flatMap((exercise) =>
+            exercise.results.map((result) => ({
+              reps: result.reps,
+              loadKg: numberOrNull(result.loadKg),
+              distanceMeters: numberOrNull(result.distanceMeters),
+              durationSeconds: result.durationSeconds,
+            })),
+          ),
+        })),
+        { repsPerRound },
+      ),
     };
   }
 

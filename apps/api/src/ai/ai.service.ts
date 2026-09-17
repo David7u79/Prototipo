@@ -21,6 +21,7 @@ import {
   MUSCLE_GROUP_LABELS,
 } from '@garfit/movements';
 import type { AiAnalysisResponse, AiConsentResponse, AiStatusResponse } from '@garfit/types';
+import type { AiAnalysisFilters } from '@garfit/types';
 import { aiModelOutputJsonSchema, aiModelOutputSchema } from '@garfit/validation';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -28,6 +29,7 @@ import type { Env } from '../common/config/env.js';
 import { ApiException } from '../common/api-exception.filter.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { WorkoutsService } from '../workouts/workouts.service.js';
+import { WodsService } from '../wods/wods.service.js';
 import { buildAiUserContent } from './ai-prompt.js';
 import { AiProvider, AiProviderError } from './ai.provider.js';
 import { PROMPT_VERSION, SYSTEM_INSTRUCTION } from './prompts/progress-analysis.js';
@@ -54,6 +56,7 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly snapshots: ProgressSnapshotService,
     private readonly workouts: WorkoutsService,
+    private readonly wods: WodsService,
     private readonly provider: AiProvider,
     private readonly config: ConfigService<Env, true>,
   ) {}
@@ -89,6 +92,58 @@ export class AiService {
   async revokeConsent(userId: string): Promise<AiConsentResponse> {
     await this.prisma.user.update({ where: { id: userId }, data: { aiConsentAt: null } });
     return { consentGivenAt: null };
+  }
+
+  async list(userId: string, filters: AiAnalysisFilters) {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+    const where = { userId, ...(filters.type ? { type: filters.type } : {}) };
+    const [total, rows] = await this.prisma.$transaction([
+      this.prisma.aiAnalysis.count({ where }),
+      this.prisma.aiAnalysis.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+    const targetLabels = await this.targetLabels(rows);
+    return {
+      items: rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        status: row.status,
+        targetId: row.targetId,
+        targetLabel: row.targetId
+          ? (targetLabels.get(`${row.type}:${row.targetId}`) ?? null)
+          : null,
+        periodDays: row.periodDays,
+        provider: row.provider as 'GEMINI' | 'FAKE',
+        model: row.model,
+        summary: (row.responseJson as unknown as { output: AiModelOutput }).output.summary,
+        createdAt: row.createdAt.toISOString(),
+      })),
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async getAnalysis(userId: string, id: string): Promise<AiAnalysisResponse> {
+    const row = await this.prisma.aiAnalysis.findFirst({ where: { id, userId } });
+    if (!row) throw new ApiException(404, 'NOT_FOUND', 'No encontramos ese análisis');
+    return this.response(row, true);
+  }
+
+  async removeAnalysis(userId: string, id: string): Promise<void> {
+    const removed = await this.prisma.aiAnalysis.deleteMany({ where: { id, userId } });
+    if (removed.count === 0)
+      throw new ApiException(404, 'NOT_FOUND', 'No encontramos ese análisis');
+  }
+
+  async removeAllAnalyses(userId: string): Promise<void> {
+    await this.prisma.aiAnalysis.deleteMany({ where: { userId } });
   }
 
   async analyzeProgress(userId: string, periodDays: 30 | 60 | 90): Promise<AiAnalysisResponse> {
@@ -185,6 +240,13 @@ export class AiService {
         movementSlug,
         ...previous,
       })),
+      wod: workout.wod
+        ? {
+            slug: workout.wod.slug,
+            name: workout.wod.name,
+            performance: (await this.wods.performance(userId, workout.wod.slug)).performance,
+          }
+        : null,
     });
     return this.process({
       userId,
@@ -335,6 +397,32 @@ export class AiService {
     });
     this.logger.log(`type=${input.type} model=${this.provider.model} durationMs=${row.durationMs}`);
     return this.response(row, false);
+  }
+
+  private async targetLabels(
+    rows: { type: AiAnalysisType; targetId: string | null }[],
+  ): Promise<Map<string, string>> {
+    const ids = (type: AiAnalysisType) =>
+      rows.flatMap((row) => (row.type === type && row.targetId ? [row.targetId] : []));
+    const [workouts, wods, movements] = await Promise.all([
+      this.prisma.workout.findMany({
+        where: { id: { in: ids('WORKOUT_ANALYSIS') } },
+        select: { id: true, name: true },
+      }),
+      this.prisma.wod.findMany({
+        where: { slug: { in: ids('WOD_EXPLANATION') } },
+        select: { slug: true, name: true },
+      }),
+      this.prisma.movement.findMany({
+        where: { slug: { in: ids('MOVEMENT_EXPLANATION') } },
+        select: { slug: true, name: true },
+      }),
+    ]);
+    return new Map([
+      ...workouts.map((row) => [`WORKOUT_ANALYSIS:${row.id}`, row.name] as const),
+      ...wods.map((row) => [`WOD_EXPLANATION:${row.slug}`, row.name] as const),
+      ...movements.map((row) => [`MOVEMENT_EXPLANATION:${row.slug}`, row.name] as const),
+    ]);
   }
 
   private ensureAvailable(): void {

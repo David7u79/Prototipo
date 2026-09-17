@@ -3,7 +3,11 @@ import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nest
 import { CurrentUser, JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import type { AuthenticatedUser } from '../auth/jwt.strategy.js';
 import { CreateWodDto, WodFiltersDto } from './dto/wod.dto.js';
-import { PaginatedWodsResponse, WodDetailResponse } from './dto/wod-responses.dto.js';
+import {
+  PaginatedWodsResponse,
+  WodDetailResponse,
+  WodPerformanceResponse,
+} from './dto/wod-responses.dto.js';
 import { WodsService } from './wods.service.js';
 
 @ApiTags('wods')
@@ -17,6 +21,12 @@ export class WodsController {
     @Query() filters: WodFiltersDto,
   ) {
     return this.wods.list(user.id, filters);
+  }
+  @Get(':slug/performance') @ApiOkResponse({ type: WodPerformanceResponse }) performance(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('slug') slug: string,
+  ) {
+    return this.wods.performance(user.id, slug);
   }
   @Get(':slug') @ApiOkResponse({ type: WodDetailResponse }) get(
     @CurrentUser() user: AuthenticatedUser,
