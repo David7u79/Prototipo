@@ -13,7 +13,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" options={{ title: 'Inicio', tabBarLabel: 'Inicio' }} />
       <Tabs.Screen name="train" options={{ title: 'Entrenar', tabBarLabel: 'Entrenar' }} />
       <Tabs.Screen name="history" options={{ title: 'Historial', tabBarLabel: 'Historial' }} />
-      <Tabs.Screen name="progress" options={{ title: 'Progreso', tabBarLabel: 'Progreso' }} />
+      <Tabs.Screen name="progress" options={{ title: 'Marcas', tabBarLabel: 'Marcas' }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarLabel: 'Perfil' }} />
     </Tabs>
   );
