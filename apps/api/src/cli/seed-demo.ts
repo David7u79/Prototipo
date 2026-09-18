@@ -1,171 +1,209 @@
 /**
- * Crea o reinicia un atleta de demostración con perfil y marcas plausibles.
- * Nunca en producción; la contraseña sale de DEMO_USER_PASSWORD. Uso: `pnpm db:seed:demo`.
+ * Restablece exclusivamente la cuenta de demostración con datos reproducibles.
+ * La contraseña y el correo siempre provienen del entorno para no versionar credenciales.
  */
 import 'dotenv/config';
 import { hash } from '@node-rs/argon2';
 import { NestFactory } from '@nestjs/core';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PASSWORD_MIN_LENGTH, toCanonical } from '@garfit/domain';
-import { AppModule } from '../app.module.js';
+import { PASSWORD_MIN_LENGTH } from '@garfit/domain';
 import { PrismaClient } from '../generated/prisma/client.js';
-import { WorkoutsService } from '../workouts/workouts.service.js';
+import type { AiService } from '../ai/ai.service.js';
+import type { RecordsService } from '../records/records.service.js';
+import type { WorkoutsService } from '../workouts/workouts.service.js';
 
-if (process.env.NODE_ENV === 'production') {
-  throw new Error('La semilla demo no se puede ejecutar en producción');
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+if (process.env.NODE_ENV === 'production' && process.env.DEMO_ALLOW_PRODUCTION !== 'true') {
+  throw new Error('En producción define DEMO_ALLOW_PRODUCTION=true para confirmar el reinicio demo');
 }
-const password = process.env.DEMO_USER_PASSWORD;
-if (!password || password.length < PASSWORD_MIN_LENGTH) {
+
+const email = requiredEnvironment('DEMO_USER_EMAIL').toLowerCase();
+const password = requiredEnvironment('DEMO_USER_PASSWORD');
+if (password.length < PASSWORD_MIN_LENGTH) {
   throw new Error(`DEMO_USER_PASSWORD debe tener al menos ${PASSWORD_MIN_LENGTH} caracteres`);
 }
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) throw new Error('DATABASE_URL es obligatoria');
-const email = (process.env.DEMO_USER_EMAIL ?? 'demo@garfit.example').trim().toLowerCase();
+const databaseUrl = requiredEnvironment('DATABASE_URL');
+
+// El proveedor simulado deja una evidencia local y repetible durante la defensa.
+if (process.env.NODE_ENV !== 'production') {
+  process.env.AI_PROVIDER = 'fake';
+}
+
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: databaseUrl }) });
-const records = [
-  ['barbell-bench-press', 'WEIGHT', 75, 'KILOGRAM', 1, '2025-04-10'],
-  ['barbell-bench-press', 'WEIGHT', 80, 'KILOGRAM', 1, '2025-07-10'],
-  ['push-up', 'REPS', 30, 'REPETITION', null, '2025-05-10'],
-  ['push-up', 'REPS', 38, 'REPETITION', null, '2025-08-10'],
-  ['front-plank-with-twist', 'DURATION', 60, 'SECOND', null, '2025-08-15'],
-] as const;
 
 try {
-  const movements = await prisma.movement.findMany({
-    where: { slug: { in: records.map((item) => item[0]) } },
-  });
-  if (movements.length !== new Set(records.map((item) => item[0])).size) {
-    throw new Error('Falta el catálogo: ejecuta pnpm db:seed antes de la semilla demo');
-  }
-  const user = await prisma.user.upsert({
-    where: { email },
-    update: { name: 'Atleta demo' },
-    create: { email, name: 'Atleta demo' },
-  });
-  await prisma.authAccount.upsert({
-    where: { userId_provider: { userId: user.id, provider: 'LOCAL' } },
-    update: { providerAccountId: email, passwordHash: await hash(password, { algorithm: 2 }) },
-    create: {
-      userId: user.id,
-      provider: 'LOCAL',
-      providerAccountId: email,
-      passwordHash: await hash(password, { algorithm: 2 }),
-    },
-  });
-  await prisma.athleteProfile.upsert({
-    where: { userId: user.id },
-    update: {
-      displayName: 'Atleta demo',
-      experienceLevel: 'INTERMEDIATE',
-      primaryGoal: 'STRENGTH',
-      preferredUnits: 'METRIC',
-    },
-    create: {
-      userId: user.id,
-      displayName: 'Atleta demo',
-      experienceLevel: 'INTERMEDIATE',
-      primaryGoal: 'STRENGTH',
-      preferredUnits: 'METRIC',
-    },
-  });
-  await prisma.personalRecord.deleteMany({ where: { userId: user.id } });
-  await prisma.workout.deleteMany({ where: { userId: user.id } });
-  const movementIds = new Map(movements.map((movement) => [movement.slug, movement.id]));
-  await prisma.personalRecord.createMany({
-    data: records.map(([slug, recordType, value, unit, repetitions, performedAt]) => ({
-      userId: user.id,
-      movementId: movementIds.get(slug)!,
-      recordType,
-      value,
-      unit,
-      normalizedValue: toCanonical(value, unit),
-      repetitions,
-      performedAt: new Date(`${performedAt}T00:00:00.000Z`),
-      source: 'MANUAL',
-    })),
-  });
+  await assertCatalog();
+  const user = await prepareUser();
+  await clearDemoData(user.id);
+
+  // AppModule lee el entorno al cargarse; se importa después de fijar el proveedor fake.
+  const [{ AppModule }, { AiService }, { RecordsService }, { WorkoutsService }] = await Promise.all([
+    import('../app.module.js'),
+    import('../ai/ai.service.js'),
+    import('../records/records.service.js'),
+    import('../workouts/workouts.service.js'),
+  ]);
   const app = await NestFactory.createApplicationContext(AppModule, { logger: false });
   try {
     const workouts = app.get(WorkoutsService);
-    // Fechas relativas a hoy: así el análisis de progreso (30, 60 o 90 días) siempre
-    // encuentra la progresión de sentadilla al ejecutar la demostración.
-    await completeStrengthWorkout(workouts, user.id, 100, daysAgo(28));
-    await completeStrengthWorkout(workouts, user.id, 100, daysAgo(21));
-    await completeStrengthWorkout(workouts, user.id, 105, daysAgo(14));
-    await completeStrengthWorkout(workouts, user.id, 110, daysAgo(7));
-    await completeRunWorkout(workouts, user.id, daysAgo(10));
+    const records = app.get(RecordsService);
+    const ai = app.get(AiService);
+    await createManualRecords(records, user.id);
+    await createHistoricalWorkouts(workouts, user.id);
+    await ai.giveConsent(user.id);
+    await ai.analyzeProgress(user.id, 30);
   } finally {
     await app.close();
   }
-  console.log(`Usuario demo preparado: ${email}`);
+  await printSummary(user.id);
 } finally {
   await prisma.$disconnect();
 }
 
-/** Fecha ISO de hace `days` días, para que la demostración sea reciente en cualquier momento. */
-function daysAgo(days: number): string {
-  const date = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-  return date.toISOString().slice(0, 10);
+function requiredEnvironment(name: 'DATABASE_URL' | 'DEMO_USER_EMAIL' | 'DEMO_USER_PASSWORD'): string {
+  const value = process.env[name]?.trim();
+  if (!value) {
+    throw new Error(`${name} es obligatoria`);
+  }
+  return value;
+}
+
+async function assertCatalog(): Promise<void> {
+  const required = ['barbell-full-squat', 'barbell-deadlift', 'barbell-bench-press'];
+  const movements = await prisma.movement.findMany({
+    where: { slug: { in: required }, isActive: true },
+    select: { slug: true },
+  });
+  const fran = await prisma.wod.findUnique({ where: { slug: 'fran' }, select: { id: true } });
+  if (movements.length !== required.length || !fran) {
+    throw new Error('Falta el catálogo; ejecuta demo:reset para sembrarlo antes de la cuenta demo');
+  }
+}
+
+async function prepareUser() {
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { name: 'Atleta demo', aiConsentAt: null },
+    create: { email, name: 'Atleta demo' },
+  });
+  const passwordHash = await hash(password, { algorithm: 2 });
+  await prisma.authAccount.upsert({
+    where: { userId_provider: { userId: user.id, provider: 'LOCAL' } },
+    update: { providerAccountId: email, passwordHash },
+    create: { userId: user.id, provider: 'LOCAL', providerAccountId: email, passwordHash },
+  });
+  await prisma.athleteProfile.upsert({
+    where: { userId: user.id },
+    update: profileData(),
+    create: { userId: user.id, ...profileData() },
+  });
+  return user;
+}
+
+function profileData() {
+  return {
+    displayName: 'Atleta demo',
+    experienceLevel: 'INTERMEDIATE' as const,
+    primaryGoal: 'STRENGTH' as const,
+    preferredUnits: 'METRIC' as const,
+  };
+}
+
+async function clearDemoData(userId: string): Promise<void> {
+  // Se eliminan primero las marcas porque algunas apuntan a resultados con restricción NoAction.
+  await prisma.personalRecord.deleteMany({ where: { userId } });
+  await prisma.workout.deleteMany({ where: { userId } });
+  await prisma.wod.deleteMany({ where: { ownerId: userId } });
+  await prisma.aiAnalysis.deleteMany({ where: { userId } });
+  await prisma.session.deleteMany({ where: { userId } });
+}
+
+async function createManualRecords(records: RecordsService, userId: string): Promise<void> {
+  await records.create(userId, {
+    movementSlug: 'barbell-bench-press',
+    recordType: 'WEIGHT',
+    value: 82.5,
+    unit: 'KILOGRAM',
+    repetitions: 1,
+    distanceValue: null,
+    distanceUnit: null,
+    performedAt: daysAgo(18),
+    notes: 'Marca manual de referencia para la demostración.',
+  });
+}
+
+async function createHistoricalWorkouts(workouts: WorkoutsService, userId: string): Promise<void> {
+  await completeStrengthWorkout(workouts, userId, 'Sentadilla 90 kg', 'barbell-full-squat', 90, 27);
+  await completeStrengthWorkout(workouts, userId, 'Peso muerto 120 kg', 'barbell-deadlift', 120, 24);
+  await completeFran(workouts, userId, 330, 23);
+  await completeStrengthWorkout(workouts, userId, 'Sentadilla 100 kg', 'barbell-full-squat', 100, 20);
+  await completeStrengthWorkout(workouts, userId, 'Peso muerto 135 kg', 'barbell-deadlift', 135, 16);
+  await completeFran(workouts, userId, 306, 15);
+  await completeStrengthWorkout(workouts, userId, 'Sentadilla 105 kg', 'barbell-full-squat', 105, 13);
+  await completeStrengthWorkout(workouts, userId, 'Peso muerto 145 kg', 'barbell-deadlift', 145, 10);
+  await completeStrengthWorkout(workouts, userId, 'Sentadilla 110 kg', 'barbell-full-squat', 110, 6);
+  await completeFran(workouts, userId, 288, 5);
+
+  // Estas sesiones caen en la ventana anterior para que la comparación de periodos sea visible.
+  await completeStrengthWorkout(workouts, userId, 'Sentadilla técnica 80 kg', 'barbell-full-squat', 80, 38);
+  await completeStrengthWorkout(workouts, userId, 'Peso muerto técnico 110 kg', 'barbell-deadlift', 110, 48);
 }
 
 async function completeStrengthWorkout(
   workouts: WorkoutsService,
   userId: string,
+  name: string,
+  movementSlug: string,
   loadValue: number,
-  performedOn: string,
-) {
-  const workout = await workouts.create(
-    userId,
-    workoutDraft({
-      name: `Sentadilla ${loadValue} kg`,
-      workoutType: 'STRENGTH',
-      exercises: [exercise('barbell-full-squat')],
-    }),
-  );
+  days: number,
+): Promise<void> {
+  const workout = await workouts.create(userId, {
+    name,
+    description: null,
+    notes: null,
+    workoutType: 'STRENGTH',
+    durationSeconds: null,
+    rounds: null,
+    intervalSeconds: null,
+    repScheme: [],
+    exercises: [exercise(movementSlug)],
+  });
+  await workouts.start(userId, workout.id);
   await workouts.complete(userId, workout.id, {
-    performedOn,
+    performedOn: daysAgo(days),
     results: {
       score: null,
-      exercises: [
-        {
-          exerciseId: workout.exercises[0]!.id,
-          sets: Array.from({ length: 5 }, (_, index) =>
-            set({ setNumber: index + 1, reps: 5, loadValue, loadUnit: 'KILOGRAM' }),
-          ),
-        },
-      ],
+      exercises: [{ exerciseId: workout.exercises[0]!.id, sets: [set(loadValue)] }],
     },
   });
 }
 
-async function completeRunWorkout(workouts: WorkoutsService, userId: string, performedOn: string) {
-  const workout = await workouts.create(
-    userId,
-    workoutDraft({
-      name: 'Carrera 5 km',
-      workoutType: 'CARDIO',
-      exercises: [exercise('run')],
-    }),
-  );
+async function completeFran(
+  workouts: WorkoutsService,
+  userId: string,
+  timeSeconds: number,
+  days: number,
+): Promise<void> {
+  const workout = await workouts.create(userId, {
+    wodSlug: 'fran',
+    description: null,
+    notes: null,
+    durationSeconds: null,
+    rounds: null,
+    intervalSeconds: null,
+    repScheme: [],
+  });
+  await workouts.start(userId, workout.id);
   await workouts.complete(userId, workout.id, {
-    performedOn,
+    performedOn: daysAgo(days),
     results: {
-      score: null,
-      exercises: [
-        {
-          exerciseId: workout.exercises[0]!.id,
-          sets: [
-            set({
-              distanceValue: 5,
-              distanceUnit: 'KILOMETER',
-              durationSeconds: 1420,
-            }),
-          ],
-        },
-      ],
+      score: { timeSeconds, repsAtTimeCap: null, rounds: null, extraReps: null, completed: null },
+      exercises: [],
     },
   });
 }
+
 function exercise(movementSlug: string) {
   return {
     movementSlug,
@@ -180,37 +218,31 @@ function exercise(movementSlug: string) {
     notes: null,
   };
 }
-function workoutDraft(values: {
-  name: string;
-  workoutType: 'STRENGTH' | 'CARDIO';
-  exercises: ReturnType<typeof exercise>[];
-}) {
+
+function set(loadValue: number) {
   return {
-    ...values,
-    description: null,
-    notes: null,
+    setNumber: 1,
+    reps: 1,
+    loadValue,
+    loadUnit: 'KILOGRAM' as const,
+    distanceValue: null,
+    distanceUnit: null,
     durationSeconds: null,
-    rounds: null,
-    intervalSeconds: null,
-    repScheme: [],
   };
 }
-function set(values: {
-  setNumber?: number;
-  reps?: number;
-  loadValue?: number;
-  loadUnit?: 'KILOGRAM';
-  distanceValue?: number;
-  distanceUnit?: 'KILOMETER';
-  durationSeconds?: number;
-}) {
-  return {
-    setNumber: values.setNumber ?? 1,
-    reps: values.reps ?? null,
-    loadValue: values.loadValue ?? null,
-    loadUnit: values.loadUnit ?? null,
-    distanceValue: values.distanceValue ?? null,
-    distanceUnit: values.distanceUnit ?? null,
-    durationSeconds: values.durationSeconds ?? null,
-  };
+
+function daysAgo(days: number): string {
+  return new Date(Date.now() - days * DAY_MS).toISOString().slice(0, 10);
+}
+
+async function printSummary(userId: string): Promise<void> {
+  const [workouts, records, analyses, fran] = await Promise.all([
+    prisma.workout.count({ where: { userId, status: 'COMPLETED', deletedAt: null } }),
+    prisma.personalRecord.count({ where: { userId, deletedAt: null } }),
+    prisma.aiAnalysis.count({ where: { userId } }),
+    prisma.workout.count({
+      where: { userId, status: 'COMPLETED', deletedAt: null, wod: { slug: 'fran' } },
+    }),
+  ]);
+  console.log(`Demo lista: entrenamientos=${workouts}; marcas=${records}; análisis=${analyses}; fran=${fran}`);
 }
