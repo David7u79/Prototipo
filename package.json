@@ -2,6 +2,11 @@
   "name": "garfit",
   "private": true,
   "description": "GarFit — seguimiento inteligente del rendimiento deportivo (prototipo académico).",
+  "//version": "Fuente única de la versión de GarFit: `pnpm version:sync` la propaga a apps y a app.json.",
+  "version": "0.9.0-rc.1",
+  "garfit": {
+    "androidVersionCode": 6
+  },
   "packageManager": "pnpm@11.20.0",
   "engines": {
     "node": ">=22.12"
@@ -27,7 +32,9 @@
     "evidence:web": "turbo run build --filter=@garfit/web^... && pnpm --filter @garfit/web evidence",
     "docs:generate": "node scripts/docs/generate.mjs",
     "docs:check": "node scripts/docs/generate.mjs --check",
-    "docs:check-openapi": "node scripts/docs/check-openapi-responses.mjs"
+    "docs:check-openapi": "node scripts/docs/check-openapi-responses.mjs",
+    "version:sync": "node scripts/version/sync.mjs",
+    "version:check": "node scripts/version/sync.mjs --check"
   },
   "devDependencies": {
     "prettier": "^3.9.7",
