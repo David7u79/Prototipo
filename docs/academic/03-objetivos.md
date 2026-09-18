@@ -2,7 +2,7 @@
 
 ## 3.1 Objetivo general
 
-Construir la primera fase del prototipo GarFit como base web y móvil para seguimiento individual deportivo, con autenticación, perfil de atleta, distribución controlada de una aplicación Android y una API central verificable. Este objetivo se limita al alcance implementado y no presupone movimientos, entrenamientos, resultados ni análisis de rendimiento terminados.
+Construir el prototipo GarFit como sistema web y móvil para seguimiento individual deportivo, con autenticación, perfil de atleta, movimientos, marcas, entrenamientos, WODs, análisis con evidencia, distribución controlada de una aplicación Android y API central verificable. El objetivo se acredita dentro del alcance funcional congelado en el release candidate; no presupone validación clínica, impacto deportivo, operación productiva ni disponibilidad de proveedores externos.
 
 ## 3.2 Objetivos específicos
 
@@ -20,7 +20,7 @@ Proveer API NestJS, web Next.js, móvil Expo y landing Astro con tipos, validaci
 
 ### 3.2.4 APK e IA
 
-Permitir que un operador publique por CLI una APK con versión, código y changelog, y que los clientes descarguen sólo una publicación válida. Definir además un proveedor de IA sin claves en clientes que actualmente responde como no implementado; la frontera no constituye un asistente operativo.
+Permitir que un operador publique por CLI una APK con versión, código y changelog, y que los clientes descarguen sólo una publicación válida. Proporcionar análisis de IA con consentimiento, hechos deterministas y evidencia, sin claves en clientes; la integración real con Gemini requiere una clave externa y no se declara verificada sin ella.
 
 > **PENDIENTE:** criterios académicos, instrumentos y umbrales para evaluar el objetivo general; responsable: tesista y asesoría.
 
@@ -30,7 +30,7 @@ El objetivo de identidad se relaciona con los módulos auth, Prisma y las entida
 
 El objetivo de contratos evita que web, móvil y landing inventen sus propias formas de interpretar una respuesta. types declara interfaces, validation expone restricciones de interfaz y api-client concentra la traducción de HTTP a valores o errores. Esta coordinación no convierte los paquetes en autoridad; el objetivo también exige que API aplique validadores propios. La arquitectura busca consistencia sin confundir reutilización con confianza.
 
-El objetivo de IA es preparatorio. AiProvider introduce una dependencia invertida para que controladores de dominio no dependan directamente de Gemini. La implementación que rechaza la operación es una decisión explícita: permite incluir el límite de secreto y la forma de extensión sin simular respuestas inteligentes. El criterio de logro para esta fase es que la frontera existe y no entrega claves a clientes, no que genere análisis.
+El objetivo de IA se implementa mediante `AiProvider`, que separa los controladores de dominio de Gemini. El proveedor simulado permitió verificar consentimiento, contexto, evidencia, historial y presentación sin red. El criterio de logro cubre ese recorrido reproducible y la protección de secretos; no acredita una respuesta de Gemini real, que permanece pendiente de credencial.
 
 ## 3.4 Exclusiones del objetivo
 

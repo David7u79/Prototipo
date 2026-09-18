@@ -160,7 +160,7 @@ pnpm build
 pnpm evidence:web
 ```
 
-El script `evidence:web` compila las dependencias de la aplicación web, ejecuta el escenario `athlete-flow.spec.ts` sobre Chromium headless y deposita las capturas generadas en `docs/evidence/generated/`. Las evidencias oficiales consolidadas se preservan de forma inmutable en `docs/evidence/fase-2/capturas/`.
+El script `evidence:web` compila las dependencias de la aplicación web y ejecuta los siete recorridos de Playwright sobre Chromium headless, incluidos `athlete-flow.spec.ts`, `workout-flow.spec.ts`, `ai-flow.spec.ts`, `wod-flow.spec.ts`, `ai-history.spec.ts`, `wod-performance.spec.ts` y `landing-download.spec.ts`. Las evidencias oficiales consolidadas se preservan de forma inmutable en `docs/evidence/fase-5/capturas/`.
 
 ## 11.6 Diagnóstico y resolución de problemas frecuentes
 
@@ -587,7 +587,7 @@ En móvil, la pantalla `/(app)/ai` se abre desde las acciones de detalle «Anali
 
 1. Abra la landing de GarFit y elija la descarga Android de la release publicada. Revise versión, fecha, notas, tamaño y SHA-256 antes de descargar.
 2. Abra el APK descargado. Android pedirá aceptar la advertencia para instalar desde esa fuente; habilite el permiso para el navegador o gestor de archivos y continúe sólo si reconoce el origen.
-3. En la información de la aplicación compruebe la versión 0.5.0. Para una verificación técnica, calcule SHA-256 del archivo y contraste `e4eabfe20c7dd44d4ef0ca6d448b2ff98f03caf13e4ae7559166cb8f95846bd5`.
+3. En la información de la aplicación compruebe la versión `0.9.0-rc.1` y `versionCode` 6. Para una verificación técnica, calcule SHA-256 del archivo y contraste el valor mostrado por la landing para esa release; no use valores históricos de capturas de fases anteriores.
 4. En Análisis, abra el historial para consultar un resultado previo; hacerlo no solicita un nuevo análisis. Use la acción de borrado de una entrada o del historial completo cuando corresponda.
 5. En el detalle de un WOD, lea intentos, mejor, último y cambio. Si no existe una comparación numérica, lea el motivo mostrado en lugar de inferir una mejora.
 6. En estadísticas de entrenamientos, contraste el periodo actual con el anterior. Los cambios son descriptivos y no son una calificación deportiva.

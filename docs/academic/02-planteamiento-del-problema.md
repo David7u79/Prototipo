@@ -8,7 +8,7 @@ El problema aumenta cuando la misma persona usa web y móvil. Si cada cliente in
 
 ## 2.2 Pregunta de trabajo
 
-La pregunta de esta fase es: ¿cómo construir una base web y móvil para seguimiento individual deportivo que autentique usuarios, conserve un perfil y distribuya una versión Android con contratos y decisiones de seguridad consistentes? La respuesta se verifica con pruebas de integración contra PostgreSQL, pruebas unitarias de paquetes y artefactos generados desde código.
+La pregunta inicial de la fase fue: ¿cómo construir una base web y móvil para seguimiento individual deportivo que autentique usuarios, conserve un perfil y distribuya una versión Android con contratos y decisiones de seguridad consistentes? Al cierre, esa base se extendió con movimientos, marcas, entrenamientos, WODs y análisis con evidencia; la respuesta se verifica con pruebas de integración contra PostgreSQL, pruebas unitarias de paquetes, recorridos E2E y artefactos generados desde código.
 
 La formulación no permite inferir satisfacción, rendimiento físico, aceptación de una población ni eficacia de recomendaciones. El repositorio no contiene encuestas, datos de participantes ni experimentos; por tanto, ninguna de esas conclusiones se deduce de la implementación.
 

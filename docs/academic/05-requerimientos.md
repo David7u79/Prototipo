@@ -4,7 +4,7 @@
 
 Cada requerimiento del sistema se formula identificando de forma explícita el actor involucrado, la acción o comportamiento esperado, un criterio de aceptación verificable, su nivel de prioridad y su estado real de implementación. En el marco metodológico de este proyecto de titulación, el estado "Implementado" denota que la funcionalidad cuenta con código fuente funcional en el repositorio, pruebas automatizadas o de extremo a extremo que comprueban su comportamiento y evidencia documental auditable en la matriz de trazabilidad ([`docs/TRACEABILITY.md`](../TRACEABILITY.md)). Las funcionalidades que carecen de soporte en el modelo de datos o endpoints activos se clasifican rigurosamente como "Planeado".
 
-A continuación se sintetiza el inventario completo de requerimientos funcionales y no funcionales del sistema hasta la fase 2:
+A continuación se conserva el inventario acumulativo de requerimientos. Los estados de las fases iniciales se actualizan al cierre mediante [TRACEABILITY](../TRACEABILITY.md), que es la fuente de comprobación por ruta y prueba.
 
 | ID | Tipo | Descripción, actor y criterio de aceptación | Prioridad | Estado |
 | --- | --- | --- | --- | --- |
@@ -20,10 +20,10 @@ A continuación se sintetiza el inventario completo de requerimientos funcionale
 | RF-10 | Funcional | El atleta visualiza en su panel de control (dashboard) un resumen de marcas personales. Se acepta si muestra el conteo total de marcas, cantidad de movimientos con marca, accesos directos a los registros más recientes y la última mejora conseguida. | Media | Implementado fase 2 |
 | RF-11 | Funcional | El atleta amplía su perfil deportivo con sistema de unidades preferido (`METRIC` o `IMPERIAL`), medidas antropométricas opcionales (peso en kg, altura en cm) y fechas de nacimiento y comienzo de entrenamiento. Se acepta si valida límites biológicos admisibles y previene el registro de campos médicos no autorizados. | Media | Implementado fase 2 |
 | RF-12 | Funcional | El atleta interactúa con el dominio deportivo a través de clientes web y móvil. Se acepta si los flujos de navegación, consulta y captura de marcas operan coordinadamente sobre la API REST común. | Alta | Implementado fase 2 (Web verificada con E2E; Móvil verificado mediante compilación y tipos) |
-| RF-13 | Funcional | El atleta define y consulta plantillas de entrenamiento y rutinas estructuradas (`Workout`, `WorkoutExercise`, WODs). | Alta | Planeado (fase 3) |
-| RF-14 | Funcional | El atleta registra la ejecución de sesiones completas de entrenamiento y sus resultados cuantitativos (`WorkoutResult`). | Alta | Planeado (fase 3) |
-| RF-15 | Funcional | El sistema genera automáticamente marcas personales a partir de los resultados de sesiones de entrenamiento registradas (`source: WORKOUT`). | Media | Planeado (fase 3) |
-| RF-16 | Funcional | El atleta recibe análisis y recomendaciones deportivas adaptativas generadas por un asistente de IA basado en modelos Gemini. | Media | Planeado (fase 3) |
+| RF-13 | Funcional | El atleta define y consulta plantillas de entrenamiento y rutinas estructuradas (`Workout`, `WorkoutExercise`, WODs). | Alta | Implementado; véase TRACEABILITY, sección 0 |
+| RF-14 | Funcional | El atleta registra la ejecución de sesiones completas de entrenamiento y sus resultados cuantitativos (`WorkoutResult`). | Alta | Implementado; véase TRACEABILITY, sección 0 |
+| RF-15 | Funcional | El sistema genera automáticamente marcas personales a partir de los resultados de sesiones de entrenamiento registradas (`source: WORKOUT`). | Media | Implementado; véase TRACEABILITY, sección 0 |
+| RF-16 | Funcional | El atleta recibe análisis y recomendaciones deportivas adaptativas generadas por un asistente de IA basado en modelos Gemini. | Media | Implementado con proveedor simulado; Gemini real PENDIENTE de clave |
 | RNF-01 | No funcional | Almacenamiento seguro de tokens: la aplicación web utiliza cookies `httpOnly` con bandera `SameSite=Lax` y la aplicación móvil emplea `SecureStore`. | Alta | Implementado fase 1 |
 | RNF-02 | No funcional | Gestión robusta de sesiones: tokens de refresco opacos, rotativos y almacenados únicamente como resumen SHA-256 en base de datos, con detección y revocación ante intentos de reutilización. | Alta | Implementado fase 1 |
 | RNF-03 | No funcional | Compartición de contratos y esquemas: los clientes consumen interfaces de TypeScript y validadores compartidos para garantizar coherencia en la comunicación. | Media | Implementado fase 1 |

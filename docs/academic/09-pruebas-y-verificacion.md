@@ -10,7 +10,7 @@ La estrategia de verificación de GarFit responde a un enfoque multinivel diseñ
 
 ## 9.2 Inventario consolidado de pruebas
 
-A continuación se detalla el inventario completo de suites y escenarios automatizados activos en el monorepo (143 pruebas en 21 ficheros):
+El inventario inicial de esta sección corresponde a su corte histórico. El cierre funcional verificó 287 pruebas: API 129, dominio 76, web 39, cliente API 19, validación 14 y movimientos 10; los detalles y las siete rutas E2E constan en la sección 9.7 y en el capítulo 10.
 
 | Fichero de prueba | Componente / Suite (`describe`) | Escenarios evaluados (`it`) |
 | --- | --- | --- |

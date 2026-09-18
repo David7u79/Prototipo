@@ -14,6 +14,8 @@
 12. [Trabajo futuro](12-trabajo-futuro.md)
 13. [Conclusiones](13-conclusiones.md)
 14. [Referencias](14-referencias.md)
+15. [Pendientes externos](PENDIENTES-EXTERNOS.md)
+16. [Cumplimiento de lineamientos](CUMPLIMIENTO-LINEAMIENTOS.md)
 
 > **PENDIENTE:** autores, asesores, fecha, modalidad y demás datos institucionales;
 > responsable: tesista y coordinación académica.

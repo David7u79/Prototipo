@@ -142,10 +142,14 @@ Durante la fase se corrigieron: salida con esquema JSON vacío, validación case
 
 Permanecen PENDIENTES la prueba real con Gemini, pues el smoke devolvió `SKIPPED — GEMINI_API_KEY not configured`, y la validación en dispositivo Android, pues no había dispositivo ni emulador. También quedan la advertencia de `pg` en la semilla concurrente, cobertura unitaria web baja, límite por instancia sin almacén compartido, ausencia de historial y falta de botón para forzar regeneración.
 
-## 10.10 Resultados de la fase 5
+## 10.10 Hechos comprobados al cierre funcional (fase 6)
 
-La fase cerró con 287 pruebas: API 129, dominio 76, web 39, cliente API 19, validación 14 y movimientos 10. La cobertura de líneas fue API 95.03 %, dominio 94.35 %, movimientos 100 %, validación 93.39 %, cliente API 89.74 % y web 12.43 %. Los siete E2E con proveedor simulado pasaron: athlete-flow, workout-flow, ai-flow, wod-flow, ai-history, wod-performance y landing-download. OpenAPI registró 35 rutas con esquemas en todas sus respuestas 2xx.
+El cierre verificó 287 pruebas: API 129, dominio 76, web 39, cliente API 19, validación 14 y movimientos 10. La cobertura de líneas fue API 95.03 %, dominio 94.35 %, movimientos 100 %, validación 93.39 %, cliente API 89.74 % y web 12.43 %. Los siete recorridos E2E de Playwright con proveedor simulado pasaron: `athlete-flow`, `workout-flow`, `ai-flow`, `wod-flow`, `ai-history`, `wod-performance` y `landing-download`. OpenAPI registra 35 rutas, con esquema en todas las respuestas 2xx.
 
-Se verificó un APK `com.garfit.app` 0.5.0, `versionCode` 5, `minSdkVersion` 24 y `targetSdkVersion` 36, de 104 931 518 bytes, firmado V2 con `CN=Android Debug`. Su SHA-256 fue `e4eabfe20c7dd44d4ef0ca6d448b2ff98f03caf13e4ae7559166cb8f95846bd5`; las descargas versionada y estable coincidieron con ese valor. Para Fran hubo dos intentos, mejor 4:48 y cambio −42 s (−12.73 %).
+La versión del release candidate es `0.9.0-rc.1`, con `versionCode` 6 e identificador `com.garfit.app`. La fuente única es el `package.json` raíz y `pnpm version:sync` la propaga; `pnpm version:check` comprueba la sincronización. El artefacto de distribución publicado se mantiene fuera del repositorio y su versión, tamaño y SHA-256 se consultan en la landing antes de descargarlo.
 
-Se corrigieron el QR fijo que no codificaba una URL, la memoria insuficiente de Gradle, el bloqueo asociado a la compilación Gradle, la expectativa de estadísticas y la omisión de unidad al capturar carga o distancia. Permanecen PENDIENTES Gemini real, instalación en dispositivo y Google OAuth; también se reconocen el aviso de `pg` aguas arriba, la baja cobertura unitaria web, el límite de IA por instancia, la URL de API incorporada al APK y la firma de depuración.
+Se corrigieron el QR fijo que no codificaba una URL, la memoria insuficiente de Gradle, el bloqueo asociado a la compilación Gradle, la expectativa de estadísticas y la omisión de unidad al capturar carga o distancia.
+
+## 10.11 Pendientes externos
+
+Los únicos pendientes externos de cierre son la validación real de Gemini sin clave disponible, Google OAuth real sin credenciales y la instalación en dispositivo Android físico sin teléfono ni emulador. No se presentan como hechos comprobados; sus condiciones, preparación y evidencia vigente se detallan en [Pendientes externos](PENDIENTES-EXTERNOS.md).
