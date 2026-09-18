@@ -3,7 +3,8 @@
  * secreto o un número no es válido, la API no acepta tráfico.
  */
 export interface Env {
-  NODE_ENV: string;
+  /** Entornos soportados; cada uno tiene una finalidad operativa documentada. */
+  NODE_ENV: 'development' | 'test' | 'demo' | 'production';
   PORT: number;
   DATABASE_URL: string;
   PUBLIC_API_URL: string;
@@ -61,17 +62,26 @@ export function validateEnvironment(raw: Record<string, unknown>): Env {
 
   const port = positiveInt('PORT', 4000);
   const nodeEnv = text('NODE_ENV') ?? 'development';
+  if (!['development', 'test', 'demo', 'production'].includes(nodeEnv)) {
+    throw new Error('NODE_ENV debe ser development, test, demo o production');
+  }
+  const corsOrigins = list('CORS_ORIGINS');
+  // Las cookies sólo pueden compartirse con orígenes concretos. En producción no se
+  // admite una política abierta, aunque el cliente web actual las conserve en su dominio.
+  if (nodeEnv === 'production' && (corsOrigins.length === 0 || corsOrigins.includes('*'))) {
+    throw new Error('CORS_ORIGINS debe contener orígenes explícitos en production');
+  }
   const provider = text('AI_PROVIDER') ?? 'gemini';
   if (provider !== 'gemini' && provider !== 'fake')
     throw new Error('AI_PROVIDER debe ser gemini o fake');
   if (provider === 'fake' && nodeEnv === 'production')
     throw new Error('AI_PROVIDER=fake no está permitido en producción');
   return {
-    NODE_ENV: nodeEnv,
+    NODE_ENV: nodeEnv as Env['NODE_ENV'],
     PORT: port,
     DATABASE_URL: required('DATABASE_URL'),
     PUBLIC_API_URL: (text('PUBLIC_API_URL') ?? `http://localhost:${port}`).replace(/\/+$/, ''),
-    CORS_ORIGINS: list('CORS_ORIGINS'),
+    CORS_ORIGINS: corsOrigins,
     SWAGGER_ENABLED: text('SWAGGER_ENABLED') === 'true',
     JWT_ACCESS_SECRET: secret,
     JWT_ACCESS_TTL_SECONDS: positiveInt('JWT_ACCESS_TTL_SECONDS', 900),

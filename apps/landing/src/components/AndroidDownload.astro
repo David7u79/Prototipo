@@ -119,7 +119,12 @@ const qrPath = Array.from({ length: qrModules }, (_, row) =>
 
     if (!(status instanceof HTMLElement)) return;
 
-    const apiUrl = root.dataset.apiUrl ?? 'http://localhost:4000';
+    // El atributo se genera a partir de PUBLIC_API_URL durante la construcción.
+    const apiUrl = root.dataset.apiUrl;
+    if (!apiUrl) {
+      showError(status);
+      return;
+    }
     try {
       const release = await createApiClient({ baseUrl: apiUrl }).releases.latestAndroid();
 
