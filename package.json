@@ -38,7 +38,8 @@
     "release:manifest": "node scripts/release/manifest.mjs",
     "release:check": "node scripts/release/check.mjs",
     "security:scan": "node scripts/security/secret-scan.mjs",
-    "docs:facts": "node scripts/docs/facts.mjs"
+    "docs:facts": "node scripts/docs/facts.mjs",
+    "demo:reset": "turbo run build --filter=@garfit/api^... && pnpm --filter @garfit/api demo:reset"
   },
   "devDependencies": {
     "prettier": "^3.9.7",
