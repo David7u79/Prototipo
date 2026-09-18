@@ -1,3 +1,4 @@
+// Genera evidencia documental del release candidate para facilitar una revision reproducible.
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -96,18 +97,28 @@ function writeBuildInfo() {
   const schemaHash = createHash('sha256').update(schema).digest('hex').slice(0, 12);
   // Versión de la app Android: app.json es la única fuente (ADR 0010). El SHA-256 del APK no se
   // genera aquí porque depende del artefacto compilado y vive en la evidencia de la fase.
+  const rootPackage = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'));
   const androidApp = JSON.parse(readFileSync(join(root, 'apps/mobile/app.json'), 'utf8')).expo;
+  const manifestFile = join(root, 'docs/generated/release-manifest.json');
+  const manifest = existsSync(manifestFile)
+    ? JSON.parse(readFileSync(manifestFile, 'utf8'))
+    : null;
+  const applications = ['apps/api', 'apps/web', 'apps/landing', 'apps/mobile']
+    .map(packageInfo);
   const content = [
     '# Información de compilación', '', `- Fecha: ${new Date().toISOString()}`,
+    `- Version de GarFit: ${rootPackage.version}`,
     `- Commit: ${git(['rev-parse', 'HEAD'])}`,
     `- Rama: ${git(['rev-parse', '--abbrev-ref', 'HEAD'])}`,
     `- Cambios sin commit: ${dirty}`, `- Node: ${process.version}`,
     `- pnpm: ${pnpmVersion}`, `- Última migración: ${migrations.at(-1) ?? 'ninguna'}`,
     `- SHA-256 corto de schema.prisma: ${schemaHash}`,
     `- Android: ${androidApp.android.package} ${androidApp.version} (versionCode ${androidApp.android.versionCode})`,
+    `- SHA-256 del APK: ${manifest?.sha256 ?? 'PENDIENTE'}`,
     '',
-    '## Aplicaciones y paquetes', '', versions, '', '## Dependencias clave', '',
-    [...new Set(dependencies)].join('\n'), '',
+    '## Aplicaciones', '', applications.join('\n'), '',
+    '## Aplicaciones y paquetes', '', versions, '',
+    '## Dependencias clave', '', [...new Set(dependencies)].join('\n'), '',
   ].join('\n');
   writeFileSync(join(root, 'docs/generated/BUILD_INFO.md'), content);
 }
