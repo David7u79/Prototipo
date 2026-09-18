@@ -503,6 +503,88 @@ En móvil, la pantalla `/(app)/ai` se abre desde las acciones de detalle «Anali
 
 ## 11.10 Uso de la distribución y comparaciones de fase 5
 
+### 11.10.1 Descargar GarFit desde la landing
+
+1. Abra la página `Descargar GarFit` y localice la tarjeta Android titulada **Lleva GarFit contigo**.
+2. Espere a que termine el mensaje **Consultando la versión disponible…**. La tarjeta informa literalmente `Versión`, el tamaño en MB y `Publicada el` seguido de la fecha de la release.
+3. En la página de descarga se muestra además **Notas de la versión**, la lista de cambios y el campo **SHA-256:**. Estos datos proceden de la última versión publicada, no de una selección manual del usuario.
+4. Seleccione el enlace **Descargar para Android (versión)**; su destino estable es `/releases/android/latest/download`, por lo que siempre resuelve la última release Android publicada.
+5. También puede escanear el código con la indicación **Escanea para descargar en Android**. El QR abre esa misma URL estable `/releases/android/latest/download`; no apunta a un número de versión que pueda quedar obsoleto. Véase la Figura 11.5.
+
+![Figura 11.5. Descarga Android.](../evidence/fase-5/capturas/android-download.png)
+
+*Figura 11.5. Tarjeta Android con versión, tamaño, fecha, enlace de descarga y QR de destino estable.*
+
+### 11.10.2 Instalar el APK en Android
+
+1. Descargue la APK desde el botón disponible de la página, tal como indica **Instalación fuera de Play Store**.
+2. Abra el archivo descargado. Cuando Android lo solicite, habilite la instalación desde esta fuente para el navegador o gestor de archivos que utilizó.
+3. Vuelva al archivo y siga las indicaciones del sistema para concluir la instalación. La advertencia de origen externo es una protección del sistema operativo: continúe sólo si reconoce el origen y ya verificó el archivo.
+4. Esta distribución no se realiza mediante Play Store. La propia página describe el proceso como **Instalación fuera de Play Store** y dice: **Descarga la APK desde el botón disponible**, **Cuando Android lo solicite, habilita la instalación desde esta fuente** y **Abre el archivo descargado y sigue las indicaciones del sistema**. Véase la Figura 11.6.
+
+![Figura 11.6. Información de la release.](../evidence/fase-5/capturas/android-release-info.png)
+
+*Figura 11.6. Notas, SHA-256 e instrucciones de instalación fuera de Play Store de la release publicada.*
+
+### 11.10.3 Comprobar que el archivo es el publicado
+
+1. Antes de instalar, copie el valor presentado tras **SHA-256:** en la landing. Es el hash de la APK publicada.
+2. En Windows, abra PowerShell en la carpeta del archivo y ejecute `Get-FileHash .\nombre-del-archivo.apk -Algorithm SHA256`. Compare el valor de `Hash` con el de la landing, sin omitir ni alterar caracteres.
+3. En Linux o macOS, ejecute `sha256sum nombre-del-archivo.apk`; en macOS también es válido `shasum -a 256 nombre-del-archivo.apk`. Compare el resultado con el SHA-256 de la landing.
+4. Como comprobación adicional de la transferencia, la respuesta de `/releases/android/latest/download` devuelve la cabecera `X-Checksum-Sha256`. Su valor debe coincidir con el mostrado por la landing y con el calculado localmente.
+5. Si alguno de los tres valores difiere, no instale el archivo: vuelva a descargarlo desde **Descargar para Android** y repita la comprobación.
+
+### 11.10.4 Consultar y borrar análisis anteriores en la web
+
+1. En la aplicación web abra **Asistente IA**. Debajo del panel aparece la sección **Análisis recientes**.
+2. Cada fila muestra un enlace con el tipo y el objetivo (`tipo · objetivo`), la fecha, el resumen y el botón **Borrar análisis**. Para análisis de progreso el objetivo no corresponde a un recurso concreto; para entrenamiento, WOD o movimiento se muestra la etiqueta resuelta del recurso.
+3. Seleccione el enlace de una fila para abrir `/app/ai/analyses/:id`. La vista presenta el resultado almacenado, incluida su evidencia, y el enlace **Volver al asistente IA**.
+4. Abrir un análisis guardado no solicita una nueva generación: recupera la respuesta, hechos y datos utilizados que se conservaron al crearlo. Así se mantiene trazabilidad y se evita atribuir una respuesta posterior al análisis histórico.
+5. Para borrar sólo una fila, pulse **Borrar análisis**, confirme con **Sí, borrar** o cancele con **Cancelar**. Para limpiar la lista completa, use **Borrar todo el historial** y la misma confirmación. Véanse las Figuras 11.1 y 11.2.
+
+![Figura 11.1. Historial de análisis guardados.](../evidence/fase-5/capturas/ai-history.png)
+
+*Figura 11.1. Sección Análisis recientes con tipo, objetivo, fecha, resumen y acciones por entrada.*
+
+![Figura 11.2. Detalle de un análisis guardado.](../evidence/fase-5/capturas/ai-history-detail.png)
+
+*Figura 11.2. Un análisis abierto desde el historial conserva el resultado y la evidencia almacenados.*
+
+### 11.10.5 Consentimiento e historial de IA
+
+1. Revocar el consentimiento impide solicitar análisis nuevos hasta volver a aceptarlo.
+2. La revocación no borra automáticamente los análisis anteriores: el historial ya guardado permanece disponible para el mismo usuario, conforme a la política de retención de fase 5.
+3. Si desea retirar esas respuestas conservadas, use **Borrar análisis** en una entrada o **Borrar todo el historial** antes o después de revocar el consentimiento. La limpieza se aplica únicamente al historial de la cuenta autenticada.
+
+### 11.10.6 Leer «Tu rendimiento» de un WOD
+
+1. Abra el detalle del WOD. La tarjeta **Tu rendimiento** aparece cuando la comparación está disponible.
+2. **Mejor** es la mejor ejecución histórica comparable; **Último** es la más reciente; **Anterior** es la inmediatamente previa; y **Cambio** compara únicamente las dos últimas, con valor, unidad y porcentaje cuando éste existe.
+3. La unidad depende del WOD: FOR_TIME compara segundos (menos es mejor), AMRAP compara repeticiones totales y STRENGTH compara volumen en kg. La gráfica **Evolución de resultados del WOD** representa cronológicamente los intentos comparables; sólo se dibuja con más de un resultado.
+4. Con una sola ejecución habrá mejor y último, pero no anterior ni cambio. Con cero resultados aparece **Aún no hay resultados comparables.**
+5. Si no hay comparación disponible, no infiera una mejora: lea el motivo mostrado. Puede deberse a que EMOM sólo registra completitud, AMRAP no tiene un esquema de repeticiones conocido o el tipo no dispone de una magnitud comparable. Véase la Figura 11.3.
+
+![Figura 11.3. Comparación de rendimiento de WOD.](../evidence/fase-5/capturas/wod-performance.png)
+
+*Figura 11.3. Tarjeta Tu rendimiento con mejor, último, anterior, cambio y evolución cronológica.*
+
+### 11.10.7 Leer la comparación de periodos del panel de inicio
+
+1. En el inicio, identifique **Comparación de periodos**. El subtítulo precisa: **Últimos 30 días frente a los 30 días anteriores.**
+2. Para **Entrenamientos**, **Días entrenados**, **Volumen (kg)** y **Marcas**, cada tarjeta expone **Actual**, **Anterior** y **Diferencia**.
+3. Lea la diferencia como la resta entre ambas ventanas equivalentes; el porcentaje puede no estar disponible si el periodo anterior es cero. No expresa diagnóstico, calidad de entrenamiento ni una calificación deportiva: son diferencias descriptivas. Véase la Figura 11.4.
+
+![Figura 11.4. Comparación de periodos.](../evidence/fase-5/capturas/period-comparison.png)
+
+*Figura 11.4. Panel de inicio con diferencias descriptivas entre ventanas consecutivas de 30 días.*
+
+### 11.10.8 Consulta equivalente en la aplicación móvil
+
+1. En móvil abra **Análisis inteligente**. Tras el consentimiento, el bloque **Análisis anteriores** muestra tipo, fecha, `targetLabel` o **Mi progreso**, y hasta tres líneas de resumen.
+2. Toque una entrada con la etiqueta accesible **Abrir análisis de tipo** para cargar el resultado guardado; éste se identifica como **Análisis anterior** cuando procede de historial. El botón **Borrar** elimina una entrada y **Cargar más** continúa la paginación.
+3. La aplicación móvil ofrece los controles **30 días**, **60 días** y **90 días** en **Analizar mi progreso**, además de **Analizar mi último entrenamiento**. El resultado conserva **Resumen**, **Observaciones**, **Sugerencias**, **Datos utilizados** y **Limitaciones**.
+4. La paridad visual y funcional de estas pantallas en un dispositivo Android físico queda **PENDIENTE de validar en dispositivo**. La documentación no afirma una validación de instalación, QR, historial o renderizado móvil fuera de los controles automatizados disponibles.
+
 1. Abra la landing de GarFit y elija la descarga Android de la release publicada. Revise versión, fecha, notas, tamaño y SHA-256 antes de descargar.
 2. Abra el APK descargado. Android pedirá aceptar la advertencia para instalar desde esa fuente; habilite el permiso para el navegador o gestor de archivos y continúe sólo si reconoce el origen.
 3. En la información de la aplicación compruebe la versión 0.5.0. Para una verificación técnica, calcule SHA-256 del archivo y contraste `e4eabfe20c7dd44d4ef0ca6d448b2ff98f03caf13e4ae7559166cb8f95846bd5`.

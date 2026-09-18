@@ -284,6 +284,60 @@ La semilla demo crea el atleta `demo@garfit.example` con cinco entrenamientos co
 
 ## 8.10 Implementación de fase 5
 
+### 8.10.1 Dominio: comparaciones deterministas
+
+`packages/domain/src/comparisons.ts` concentra las reglas porque comparar es una operación deportiva determinista y no una decisión de la IA. `compareWodPerformance` compara únicamente ejecuciones del mismo WOD, ordenadas por fecha e identificador para que el historial sea estable.
+
+| Tipo de WOD | Unidad comparable | Regla aplicada |
+| --- | --- | --- |
+| `FOR_TIME` | segundos (`s`) | Menos segundos es mejor; se exige `timeSeconds`. |
+| `AMRAP` | repeticiones (`reps`) | Calcula rondas × repeticiones por ronda + repeticiones extra. |
+| `STRENGTH` | kilogramos (`kg`) | Suma el volumen de las series. |
+
+Las ejecuciones FOR_TIME que sólo alcanzaron repeticiones al límite, AMRAP sin esquema conocido y STRENGTH sin volumen se descartan, pues no aportan una magnitud equivalente. EMOM informa `SCORE_NO_COMPARABLE`; AMRAP sin prescripción, `ESQUEMA_DESCONOCIDO`; y CUSTOM, CARDIO u otros tipos, `TIPO_NO_SOPORTADO`. Esta separación evita presentar una precisión numérica que los datos no sostienen.
+
+`comparePeriods` forma dos ventanas contiguas de la misma duración: los últimos `days` días y los `days` inmediatamente anteriores. Al filtrar la ventana exterior y excluir la interior, cada entrenamiento y cada fecha de marca pertenece como máximo a una ventana. Se contabilizan entrenamientos, días distintos entrenados, volumen y marcas; la diferencia es aritmética y el porcentaje es nulo cuando el periodo previo vale cero. Por diseño, no califica mejor ni peor.
+
+### 8.10.2 API: contratos, retención y reutilización
+
+Los contratos nuevos autenticados son los siguientes:
+
+| Método | Ruta | Finalidad |
+| --- | --- | --- |
+| `GET` | `/ai/analyses` | Lista el historial con página, límite y filtro de tipo. |
+| `GET` | `/ai/analyses/:id` | Recupera una respuesta guardada del propio usuario. |
+| `DELETE` | `/ai/analyses/:id` | Elimina una entrada propia. |
+| `DELETE` | `/ai/analyses` | Elimina el historial completo del usuario autenticado. |
+| `GET` | `/wods/:slug/performance` | Entrega WOD y comparación de intentos admisibles. |
+| `GET` | `/releases/latest/android` | Describe la última release Android publicada. |
+| `GET` | `/releases/android/latest/download` | Descarga la APK publicada más reciente. |
+
+`AiService` ordena el historial de forma descendente y resuelve `targetLabel` en bloque: nombre de entrenamiento para `WORKOUT_ANALYSIS`, nombre de WOD para `WOD_EXPLANATION` y nombre de movimiento para `MOVEMENT_EXPLANATION`; progreso no tiene objetivo y conserva etiqueta nula. El detalle consulta la fila persistida y devuelve su respuesta ya guardada, por lo que no llama al proveedor de IA de nuevo.
+
+Al analizar un entrenamiento asociado a WOD, `ai.service.ts` reutiliza `wods.performance(userId, slug)` y añade sus hechos resueltos a la evidencia. De ese modo, los datos de mejor, último, anterior y cambio provienen de una única regla de dominio, no de una segunda implementación en IA.
+
+La revocación `DELETE /ai/consent` sólo establece `aiConsentAt` a nulo; no borra `AiAnalysis`. La retención persiste hasta que el usuario borra una entrada o ejecuta `DELETE /ai/analyses`, y las consultas y borrados se limitan siempre por `userId`.
+
+### 8.10.3 Web: lectura de datos ya calculados
+
+La página `/app/ai` carga diez elementos y los presenta bajo **Análisis recientes** mediante `formatAnalysisHistoryRow`; `AiHistoryActions` exige confirmación antes de **Borrar análisis** o **Borrar todo el historial**. La ruta `/app/ai/analyses/[id]` recupera la entidad por identificador y la muestra como guardada, decisión que preserva evidencia y evita regeneración.
+
+`wod-performance.tsx` recibe una comparación ya construida. Muestra **Mejor**, **Último**, **Anterior** y **Cambio**, y calcula únicamente los puntos SVG de **Evolución de resultados del WOD**; no recalcula métricas deportivas en la interfaz. Si el dominio marca indisponibilidad, se traduce el motivo antes que renderizar valores incomparables.
+
+El panel `/app` recibe `periodComparison` de `GET /workouts/stats` y presenta cuatro tarjetas: Entrenamientos, Días entrenados, Volumen (kg) y Marcas. Separar presentación y cálculo permite describir explícitamente la diferencia sin convertirla en recomendación o juicio.
+
+### 8.10.4 Móvil: reutilización del cliente y estado explícito
+
+`apps/mobile/src/app/(app)/ai.tsx` usa el mismo cliente API para estado, consentimiento, generación, listado, detalle y borrado. Mantiene página, total de páginas, carga, apertura y borrado en estados distintos para evitar que una operación oculte otra. Cada tarjeta de **Análisis anteriores** usa `targetLabel` y el resumen truncado a tres líneas; al abrirla, conserva la respuesta servida por historial.
+
+La implementación compila y pasa las verificaciones estáticas, pero la comprobación completa de interacción y renderizado en Android físico permanece **PENDIENTE de validar en dispositivo**. Esta delimitación evita convertir la exportación de la aplicación en una afirmación de validación de dispositivo.
+
+### 8.10.5 Landing, QR y publicación Android
+
+`AndroidDownload.astro` consulta la última release en el navegador para mostrar versión, tamaño, fecha, notas y SHA-256. El QR se genera en tiempo de compilación con `qrcode-generator`: sus módulos SVG codifican `${apiUrl}/releases/android/latest/download`. Elegir la URL estable impide que el QR caduque al publicar una versión posterior y mantiene el mismo destino que el botón **Descargar para Android**.
+
+La publicación reproducible parte de `pnpm --filter @garfit/mobile exec expo prebuild --platform android --clean`, continúa con `gradlew assembleRelease` y termina con `pnpm --filter @garfit/api release:publish`. Para la compilación que agotaba memoria se configuró Gradle con `-Xmx4096m -XX:MaxMetaspaceSize=1024m`. La CLI de publicación calcula tamaño y SHA-256 del APK resultante antes de registrarlo; la descarga devuelve el mismo digest en `X-Checksum-Sha256`, de modo que metadato, cabecera y archivo se pueden contrastar.
+
 En `packages/domain/src/comparisons.ts`, `compareWodPerformance` fija la unidad comparable, el orden cronológico, la mejor ejecución y los motivos de no comparación. `comparePeriods` construye las ventanas actual y previa; ambas funciones permanecen libres de infraestructura. `packages/domain/src/ai.ts` convierte esos resultados en hechos `period:*` y `wod:*`, por lo que la evidencia enviada a la IA contiene valores resueltos.
 
 La API expone historial en `apps/api/src/ai/ai.controller.ts`: `GET /ai/analyses`, `GET /ai/analyses/:id`, `DELETE /ai/analyses/:id` y `DELETE /ai/analyses`. `ai.service.ts` reutiliza el rendimiento del WOD al analizar un entrenamiento. `apps/api/src/wods/wods.service.ts` filtra intentos admisibles y entrega `GET /wods/:slug/performance`; las estadísticas incluyen la comparación de periodos.
