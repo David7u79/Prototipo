@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-09-18T20:28:52.779Z",
+  "total": 289,
+  "packages": {
+    "@garfit/api": {
+      "passed": 131,
+      "total": 131
+    },
+    "@garfit/api-client": {
+      "passed": 19,
+      "total": 19
+    },
+    "@garfit/domain": {
+      "passed": 76,
+      "total": 76
+    },
+    "@garfit/movements": {
+      "passed": 10,
+      "total": 10
+    },
+    "@garfit/validation": {
+      "passed": 14,
+      "total": 14
+    },
+    "@garfit/web": {
+      "passed": 39,
+      "total": 39
+    }
+  }
+}

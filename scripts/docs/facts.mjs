@@ -18,12 +18,27 @@ const openApi = JSON.parse(readText(join(root, 'docs/generated/openapi/openapi.j
 const catalog = JSON.parse(readText(join(root, 'packages/movements/data/catalog.json')));
 const applications = directories(join(root, 'apps'));
 const packages = directories(join(root, 'packages'));
+// La cifra que se cita en la presentación es la que informó el ejecutor de pruebas
+// (`pnpm test:counts`); contar `it(` sobreestima y sólo sirve como aproximación si ese
+// artefacto todavía no existe.
+const countsFile = join(root, 'docs/generated/test-counts.json');
+const executed = existsSync(countsFile) ? JSON.parse(readText(countsFile)) : null;
+const testRows = executed
+  ? [
+      ['Pruebas ejecutadas', String(executed.total), 'Resultado de `pnpm test` (pnpm test:counts)'],
+      ...Object.entries(executed.packages).map(([name, value]) => [
+        `Pruebas: ${name}`, String(value.passed), 'Resultado de `pnpm test` para ese paquete',
+      ]),
+    ]
+  : [
+      ['Pruebas (aproximado)', String([...testStats.values()].reduce((total, value) => total + value, 0)),
+        'Conteo de it( y test(; ejecuta `pnpm test:counts` para la cifra real'],
+      ...[...testStats.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => [
+        `Pruebas: ${name}`, String(count), 'Conteo de it( y test( en sus ficheros de prueba',
+      ]),
+    ];
 const rows = [
-  ['Pruebas', String([...testStats.values()].reduce((total, value) => total + value, 0)),
-    'Conteo de it( y test( en ficheros de prueba'],
-  ...[...testStats.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => [
-    `Pruebas: ${name}`, String(count), 'Conteo de it( y test( en sus ficheros de prueba',
-  ]),
+  ...testRows,
   ['Ficheros de prueba', String(testFiles.length), 'Patrones *.test.* y *.spec.*'],
   ['Recorridos E2E', String(files(join(root, 'apps/web/e2e')).filter(isTestFile).length), 'Ficheros E2E'],
   ['Rutas OpenAPI', String(Object.keys(openApi.paths ?? {}).length), 'paths de openapi.json'],
