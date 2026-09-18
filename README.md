@@ -110,11 +110,15 @@ pnpm dev:mobile
 
 ### Semilla para demostración
 
-Para inicializar un atleta con marcas históricas plausibles (útil para pruebas manuales y demostraciones):
+Para restablecer de forma reproducible la cuenta de la defensa, ejecute:
 ```sh
-DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo
+DEMO_USER_EMAIL=demo@garfit.example DEMO_USER_PASSWORD=<contraseña-demo> pnpm --filter @garfit/api demo:reset
 ```
-*Nota:* `db:seed:demo` exige el catálogo sembrado previamente, valida una longitud mínima de 8 caracteres y se bloquea automáticamente si `NODE_ENV === 'production'`.
+
+El comando aplica migraciones, sincroniza idempotentemente el catálogo y reinicia solamente los
+datos de esa cuenta. Exige ambas variables, valida la longitud mínima de la contraseña y no la
+imprime. En producción se rehúsa salvo que se establezca explícitamente
+`DEMO_ALLOW_PRODUCTION=true`; úselo únicamente con la autorización correspondiente.
 
 ## Scripts disponibles
 
@@ -133,6 +137,7 @@ DEMO_USER_PASSWORD="UnaContraseñaSegura123" pnpm db:seed:demo
 | `pnpm evidence:web` | Ejecuta todos los flujos E2E de Playwright y produce capturas de evidencia |
 | `pnpm db:seed` | Siembra idempotente del catálogo, curados y WODs benchmark |
 | `pnpm db:seed:demo` | Crea el usuario demo con marcas de prueba (requiere `DEMO_USER_PASSWORD`) |
+| `pnpm --filter @garfit/api demo:reset` | Migra, sincroniza catálogo y reinicia únicamente la cuenta indicada por `DEMO_USER_EMAIL` |
 | `pnpm docs:generate` | Regenera contratos OpenAPI, diagrama ERD, TypeDoc y resumen de cobertura |
 | `pnpm docs:check` | Comprueba que los artefactos generados versionados coincidan con el código |
 

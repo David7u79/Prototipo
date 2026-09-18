@@ -16,6 +16,7 @@
     "openapi:export": "nest build && node dist/cli/export-openapi.js",
     "db:seed": "nest build && node dist/cli/seed-movements.js",
     "db:seed:demo": "nest build && node dist/cli/seed-demo.js",
+    "demo:reset": "prisma migrate deploy && pnpm run db:seed && nest build && node dist/cli/seed-demo.js",
     "release:publish": "nest build && node dist/cli/publish-release.js",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
