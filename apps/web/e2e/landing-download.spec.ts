@@ -1,6 +1,10 @@
+import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 
 const evidence = '../../docs/evidence/fase-5/capturas';
+// La versión publicada cambia en cada release: se toma de la fuente única del monorepo en lugar
+// de fijarla aquí, que obligaría a tocar la prueba en cada publicación.
+const { version } = JSON.parse(readFileSync('../../package.json', 'utf8')) as { version: string };
 
 async function screenshot(page: Page, name: string) {
   await page.screenshot({
@@ -17,7 +21,7 @@ async function screenshot(page: Page, name: string) {
 test('descarga y metadatos de la release Android', async ({ page }) => {
   await page.goto('http://localhost:4321/descargar');
 
-  await expect(page.getByText(/Versión 0\.5\.0/)).toBeVisible();
+  await expect(page.getByText(new RegExp(`Versión ${version.replace(/\./g, '\\.')}`))).toBeVisible();
   await expect(page.getByText(/MB/)).toBeVisible();
   await expect(page.getByText(/Publicada el/)).toBeVisible();
 
