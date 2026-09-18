@@ -524,4 +524,6 @@ model AiAnalysis {
 
   /// Búsqueda de caché: mismo usuario, contexto, versión de prompt y modelo.
   @@index([userId, contextHash, promptVersion, model])
+  /// Historial del atleta: filtra por usuario y ordena por fecha descendente.
+  @@index([userId, createdAt])
 }

@@ -1,6 +1,6 @@
 # Resumen de cobertura
 
-Generado: 2026-09-17T23:44:32.492Z
+Generado: 2026-09-18T20:14:44.041Z
 
 | Paquete | Líneas | Sentencias | Funciones | Ramas |
 | --- | ---: | ---: | ---: | ---: |
