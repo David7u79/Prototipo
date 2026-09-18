@@ -1,5 +1,7 @@
 # 12. Trabajo futuro
 
+> **Cierre de fase 6.** Las secciones que siguen conservan propuestas e hitos de fases anteriores; los dominios de movimientos, marcas, entrenamientos, WODs, historial y análisis con evidencia ya forman parte del alcance realizado. No se interpretan como funciones pendientes del release candidate.
+
 ## 12.1 Dominio de entrenamientos estructurados (Fase 3)
 
 Una vez consolidado el dominio de movimientos y marcas personales en la fase 2, la siguiente etapa de desarrollo (fase 3) tiene como objetivo prioritario modelar y persistir la planificación y ejecución de sesiones de entrenamiento deportivo:
@@ -65,8 +67,8 @@ La siguiente fase debe probar la integración con una clave real de Gemini en un
 
 La verificación en dispositivo Android es prioritaria. Permanecen como deuda el aviso de `pg` durante la semilla demo, cobertura unitaria baja de web, límite de IA por instancia que requerirá almacén compartido al escalar, falta de historial y ausencia de un control para regenerar un análisis cuando los datos no cambian. Ninguno de estos puntos debe resolverse debilitando la regla de que GarFit calcula y el modelo interpreta.
 
-## 12.10 Fase 6 condicionada
+## 12.10 Alcance explícitamente fuera del release candidate
 
-Antes de ampliar el alcance debe cerrarse la validación de Gemini con credencial real, una instalación en dispositivo Android y Google OAuth con credenciales. También se debe decidir la firma de publicación, la URL de API para dispositivos y la persistencia distribuida del límite de IA.
+Antes de ampliar el alcance debe cerrarse la validación de Gemini con credencial real, una instalación en dispositivo Android y Google OAuth con credenciales. Estos tres asuntos se clasifican como externos en [Pendientes externos](PENDIENTES-EXTERNOS.md); no autorizan a declarar nuevas funciones en esta entrega.
 
-Con esas condiciones, la fase 6 podrá explorar un chat acotado con las mismas garantías de evidencia, preguntas sobre análisis del historial, generación asistida de WOD, objetivos, notificaciones y un actualizador Android. Cada capacidad deberá conservar cálculos deterministas, consentimiento, límites, borrado controlado y pruebas verificables; no se adoptará como extensión automática del prototipo actual.
+Quedan explícitamente fuera del alcance actual el chat contextual, los planes de entrenamiento, wearables, actualizaciones automáticas, tienda de aplicaciones, iOS, notificaciones, visión artificial, entrenadores y nutrición. Cualquier trabajo posterior deberá definir requisitos, datos, consentimiento, límites, pruebas y evidencia antes de presentarse como capacidad de GarFit.

@@ -167,7 +167,7 @@ La entidad `PersonalRecord` almacena cada marca deportiva registrada por un atle
 | `repetitions` | Int? | 1 a 100, obligatorio en `WEIGHT` | Número de repeticiones para las que se levantó la carga (1 para 1RM, 5 para 5RM). |
 | `performedAt` | DateTime | `@db.Date` | Fecha de calendario en que el atleta realizó la marca (sin zona horaria ni hora). |
 | `notes` | String? | Máximo 500 caracteres | Anotaciones opcionales sobre sensaciones, implementos o contexto. |
-| `source` | Enum | `RecordSource`, default `MANUAL` | Procedencia de la marca: `MANUAL` (ingresada por el usuario) o `WORKOUT` (fase 3). |
+| `source` | Enum | `RecordSource`, default `MANUAL` | Procedencia de la marca: `MANUAL` (ingresada por el usuario) o `WORKOUT` (derivada al completar un entrenamiento). |
 | `deletedAt` | DateTime? | Nullable | Marca de tiempo de borrado lógico; si no es nula, el registro está retirado. |
 | `createdAt`, `updatedAt` | DateTime | Auditoría | Momento exacto de inserción y modificación en el sistema. |
 

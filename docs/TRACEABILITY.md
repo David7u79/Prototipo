@@ -49,20 +49,20 @@ La evidencia formal de ejecución se encuentra documentada en los informes inmut
 | RNF-07 | `packages/domain/src/records.ts`; `packages/domain/src/progress-snapshot.ts` | `packages/domain/src/records.test.ts › summarizeSeries › ordena por fecha y calcula mejor, actual, cambios y marcas personales` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
 | RNF-08 | `apps/api/src/records/records.service.ts`; `apps/api/src/profile/profile.service.ts` | `apps/api/test/records-isolation.spec.ts › aislamiento de marcas entre usuarios › otro usuario no ve las marcas en overview, summary ni historial` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
 | RNF-09 | `apps/api/prisma/schema.prisma` (`PersonalRecord.deletedAt`); `apps/api/src/records/records.service.ts` | `apps/api/test/records.spec.ts › marcas personales › DELETE /records/:id (borrado lógico) › retira la marca de historial, overview y summary pero conserva la fila` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
-| RNF-10 | `packages/domain/src/rules.ts`; `apps/api/src/records/dto/create-record.dto.ts`; `apps/api/src/movements/dto/movement-query.dto.ts` | `apps/api/test/records.spec.ts › marcas personales › POST /records › rechaza valores no positivos, con más de 3 decimales o fuera de límites` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
+| RNF-10 | `packages/domain/src/rules.ts`; `apps/api/src/records/dto/record.dto.ts`; `apps/api/src/movements/dto/movement.dto.ts` | `apps/api/test/records.spec.ts › marcas personales › POST /records › rechaza valores no positivos, con más de 3 decimales o fuera de límites` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
 | RNF-11 | `packages/domain/src/rules.ts`; `packages/movements/src/taxonomy.ts` | `apps/api/test/shared-enums.spec.ts › enums compartidos › coinciden con Prisma` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
 | RNF-12 | `packages/movements/src/source-transform.ts`; `apps/api/src/movements/seed/seed-movements.ts` | `packages/movements/src/movements.test.ts › catálogo generado (datos reales) › corresponde a la fuente fijada y tiene 1319 movimientos con slugs únicos` | Pasa | [pruebas fase 2](evidence/fase-2/pruebas-2026-09-16.md) |
 
-## 2. Requerimientos planeados (Fase 3: Entrenamientos e Inteligencia Artificial)
+## 2. Requerimientos históricos de fase 3 (estado actualizado al cierre)
 
-Los requerimientos siguientes no cuentan con entidades, endpoints ni pruebas asociadas en la fase 2; se encuentran en estado de especificación conceptual:
+La tabla conserva la formulación de fase 2; la columna de estado se actualiza al cierre del release candidate para evitar que se interprete como alcance pendiente.
 
 | Requerimiento | Descripción | Estado | Justificación |
 | --- | --- | --- | --- |
-| RF-13 | Catálogo y definición de rutinas y entrenamientos estructurados (`Workout`, `WorkoutExercise`, WODs). | Planeado (fase 3) | Pendiente de diseño de esquema de entrenamientos. |
-| RF-14 | Registro de sesiones ejecutadas y resultados de entrenamiento (`WorkoutResult`). | Planeado (fase 3) | Depende del modelado de rutinas (RF-13). |
-| RF-15 | Generación automática de marcas personales derivadas de resultados de entrenamiento (`source: WORKOUT`). | Planeado (fase 3) | El enum `RecordSource.WORKOUT` está preparado en Prisma y dominio; el flujo de extracción automática se implementará en la fase 3. |
-| RF-16 | Asistente conversacional deportivo inteligente con Google Gemini para interpretación de progreso. | Planeado (fase 3) | La estructura de contexto determinista `ProgressSnapshotService` está implementada; la integración con el cliente de Gemini se realizará en la fase 3. |
+| RF-13 | Catálogo y definición de rutinas y entrenamientos estructurados (`Workout`, `WorkoutExercise`, WODs). | Implementado | Véanse las filas RF-13 a RF-17 de la sección 0, con código y pruebas actuales. |
+| RF-14 | Registro de sesiones ejecutadas y resultados de entrenamiento (`WorkoutResult`). | Implementado | Véanse las filas RF-13 a RF-17 de la sección 0, con código y pruebas actuales. |
+| RF-15 | Generación automática de marcas personales derivadas de resultados de entrenamiento (`source: WORKOUT`). | Implementado | Véanse RF-18 y RNF-13 a RNF-16 de la sección 0. |
+| RF-16 | Asistente conversacional deportivo inteligente con Google Gemini para interpretación de progreso. | Fuera del alcance actual | GarFit implementa análisis acotados con evidencia, no un chat contextual; la prueba real con Gemini depende de una clave externa. |
 
 ## 3. Requerimientos implementados (Fase 4: IA)
 
