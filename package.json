@@ -34,7 +34,11 @@
     "docs:check": "node scripts/docs/generate.mjs --check",
     "docs:check-openapi": "node scripts/docs/check-openapi-responses.mjs",
     "version:sync": "node scripts/version/sync.mjs",
-    "version:check": "node scripts/version/sync.mjs --check"
+    "version:check": "node scripts/version/sync.mjs --check",
+    "release:manifest": "node scripts/release/manifest.mjs",
+    "release:check": "node scripts/release/check.mjs",
+    "security:scan": "node scripts/security/secret-scan.mjs",
+    "docs:facts": "node scripts/docs/facts.mjs"
   },
   "devDependencies": {
     "prettier": "^3.9.7",
