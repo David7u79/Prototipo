@@ -211,6 +211,63 @@ Los recorridos E2E verificaron consentimiento, panel de IA, análisis de progres
 
 ## 9.10 Inventario de verificación de fase 5
 
+### 9.10.1 Inventario API: historial, WOD y release
+
+El grupo `apps/api/test/ai-history.spec.ts`, **historial de análisis de IA**, contiene los siguientes títulos reales:
+
+- `lista análisis con etiquetas, orden, paginación y filtro`: garantiza orden descendente, filtro, metadatos de paginación y etiquetas de objetivos.
+- `aísla, muestra el detalle guardado sin regenerarlo y permite borrados propios`: garantiza aislamiento entre cuentas, respuesta almacenada sin invocar al proveedor y borrado individual autorizado.
+- `borra únicamente el historial autenticado y conserva lo previo al revocar consentimiento`: garantiza el alcance por usuario y la política de retención al revocar.
+
+El grupo `apps/api/test/wod-performance.spec.ts`, **rendimiento por WOD**, verifica:
+
+- `informa cero intentos y permite comparar un benchmark sin ejecuciones`;
+- `calcula mejor, última y cambio entre intentos FOR_TIME`;
+- `cuenta sólo ejecuciones propias, completadas, no borradas y vinculadas al WOD`;
+- `oculta WODs privados y marca AMRAP de esquema desconocido`.
+
+En conjunto, prueba que el endpoint no mezcla atletas, borradores, eliminados ni entrenamientos libres, y que comunica la indisponibilidad de una comparación.
+
+El grupo `apps/api/test/releases.spec.ts`, **releases Android**, incluye:
+
+- `informa cuando no hay releases o sólo hay borradores`;
+- `devuelve la publicada con mayor versionCode en la forma pública`;
+- `descarga el APK publicado con cabeceras y bytes correctos`;
+- `descarga la última publicada y no sirve borradores como última`;
+- `valida la versión y oculta inexistentes, borradores y archivos ausentes`;
+- `no sirve una ruta maliciosa almacenada en la base de datos`.
+
+Estas pruebas cubren selección de release, ocultación de borradores, validación de ruta y entrega binaria segura. En particular, `descarga el APK publicado con cabeceras y bytes correctos` recalcula SHA-256 de los bytes recibidos y lo compara con `X-Checksum-Sha256` y el metadato publicado.
+
+`apps/api/test/workout-stats.spec.ts › compara las métricas del periodo actual con las del anterior` garantiza que `GET /workouts/stats` separa las dos ventanas y devuelve diferencias de entrenamientos, días, volumen y porcentaje esperado.
+
+### 9.10.2 Inventario de dominio y clientes
+
+En `packages/domain/src/comparisons.test.ts`, **comparación de rendimiento de WOD**, se verifican literalmente: `conserva una comparación disponible sin ejecuciones FOR_TIME`, `usa la única ejecución FOR_TIME como mejor y última`, `calcula la mejora FOR_TIME al reducir 24 segundos`, `mantiene la mejor histórica cuando la última ejecución FOR_TIME empeora`, `conserva la primera mejor marca ante un empate exacto`, `descarta un FOR_TIME que sólo alcanzó repeticiones al límite`, `compara AMRAP por repeticiones totales y conserva su display`, `declara AMRAP sin esquema como no comparable`, `declara los tipos no comparables con su motivo`, `compara STRENGTH por volumen y descarta ejecuciones sin volumen` y `ordena el historial de forma determinista aunque cambie el orden de entrada`.
+
+El describe **comparación entre periodos** de ese mismo archivo inventaría `separa las ventanas actual y anterior de 30 días`, `cuenta los días de entrenamiento distintos`, `suma el volumen de las series de cada periodo`, `cuenta sólo las fechas de marcas que caen dentro de cada ventana`, `devuelve porcentaje nulo ante periodo anterior vacío y lo calcula si existe` y `desplaza las ventanas de la misma forma con 60 y 90 días`. Garantiza unidades, exclusiones, orden y ventanas contiguas antes de cualquier adaptación de interfaz.
+
+El describe nuevo **hechos de comparación para IA** de `packages/domain/src/ai.test.ts` contiene `incluye la comparación de entrenamientos del periodo sin repetir identificadores`, `expone el rendimiento de WOD con displays y mejora absoluta`, `no produce hechos de WOD sin comparación o sin intentos` e `incluye los hechos de WOD sólo cuando el entrenamiento tiene WOD`. Garantiza que la evidencia entregada a IA contiene hechos calculados, identificadores únicos y ninguna inferencia cuando faltan datos comparables.
+
+El describe **historial de análisis y rendimiento por WOD** de `packages/api-client/src/index.test.ts` cubre `lista el historial con filtros en la consulta`, `abre un análisis guardado por su identificador`, `borra una entrada y el historial completo con DELETE` y `consulta el rendimiento de un WOD codificando el slug`. Garantiza método HTTP, rutas y codificación del contrato del cliente.
+
+En `apps/web/src/lib/ai-history.test.ts`, **formatAnalysisHistoryRow** incluye `muestra tipo, objetivo y fecha legibles`; y en `apps/web/src/lib/comparisons.test.ts`, **formatters de comparaciones**, incluye `explica cada razón no comparable` y `describe un porcentaje no disponible`. Estos grupos garantizan que la web presenta etiquetas y ausencia de porcentaje sin inventar información deportiva.
+
+### 9.10.3 Recorridos E2E y defectos corregidos
+
+Los tres E2E añadidos son `ai-history.spec.ts › historial de análisis IA guardados`, que crea, consulta y abre evidencia guardada; `wod-performance.spec.ts › rendimiento del WOD Fran`, que registra dos intentos y comprueba la tarjeta y el panel; y `landing-download.spec.ts › descarga y metadatos de la release Android`, que comprueba versión, tamaño, fecha, enlace estable, QR, notas, SHA-256 e instrucciones. La entrega HTTP se comprobó adicionalmente con 200, 104 931 518 bytes y SHA-256 `e4eabfe20c7dd44d4ef0ca6d448b2ff98f03caf13e4ae7559166cb8f95846bd5`.
+
+| Defecto de fase | Cómo se detectó | Corrección |
+| --- | --- | --- |
+| Esquema JSON vacío del proveedor | Suite de IA | Se validó la salida contra el esquema antes de guardarla. |
+| Validación casera | Suites de contrato | Se sustituyó por la validación compartida del dominio. |
+| Dependencias ausentes del módulo | Typecheck | Se declararon e integraron las dependencias requeridas. |
+| Clasificación incorrecta de timeout | Pruebas del proveedor | Se clasificó como indisponibilidad reintentable. |
+| Contexto simulado en ubicación incorrecta | Pruebas de dominio | Se corrigió el montaje del contexto de prueba. |
+| Formato de fecha ISO en web | Prueba de interfaz | Se formatea la fecha en la capa web. |
+| Etiqueta accesible truncada | E2E de historial | Se expuso la etiqueta completa para abrir el análisis. |
+| Fechas fijas en la semilla | E2E y comparación de periodos | Se sustituyeron por fechas relativas. |
+
 Las pruebas API añadidas incluyen `ai-history.spec.ts › lista análisis con etiquetas, orden, paginación y filtro`, `ai-history.spec.ts › aísla, muestra el detalle guardado sin regenerarlo y permite borrados propios` y `ai-history.spec.ts › borra únicamente el historial autenticado y conserva lo previo al revocar consentimiento`. Para rendimiento se verifican `wod-performance.spec.ts › calcula mejor, última y cambio entre intentos FOR_TIME` y `wod-performance.spec.ts › cuenta sólo ejecuciones propias, completadas, no borradas y vinculadas al WOD`.
 
 En dominio, `comparisons.test.ts › compara AMRAP por repeticiones totales y conserva su display`, `comparisons.test.ts › compara STRENGTH por volumen y descarta ejecuciones sin volumen` y `comparisons.test.ts › separa las ventanas actual y anterior de 30 días` cubren reglas nuevas. En el cliente, `index.test.ts › lista el historial con filtros en la consulta`, `index.test.ts › abre un análisis guardado por su identificador`, `index.test.ts › borra una entrada y el historial completo con DELETE` e `index.test.ts › consulta el rendimiento de un WOD codificando el slug` comprueban contratos.
