@@ -34,3 +34,10 @@ docs/generated/coverage/html/
 # Capturas de `pnpm evidence:web`: se regeneran en cada ejecución. Las que respaldan un
 # resultado académico se copian a docs/evidence/fase-N/ (versionado) junto con su fecha y commit.
 docs/evidence/generated/
+
+# Firma de Android: el keystore y sus contraseñas viven fuera del repositorio (ADR 0010 y
+# docs/operations/android-signing.md). Nunca se versionan, ni siquiera cifrados.
+*.keystore
+*.jks
+*.keystore.env
+keystore.properties
