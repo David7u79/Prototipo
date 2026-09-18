@@ -1,0 +1,13 @@
+# El contexto de construcción sólo debe contener fuentes y metadatos reproducibles.
+node_modules
+.git
+.turbo
+**/dist
+**/.next
+**/.astro
+coverage
+.env
+.env.*
+!.env.example
+storage/releases/*
+!storage/releases/android/.gitkeep

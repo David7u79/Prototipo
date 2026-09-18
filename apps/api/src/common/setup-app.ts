@@ -10,7 +10,10 @@ import type { Env } from './config/env.js';
  */
 export function setupApp(app: INestApplication): void {
   const config = app.get<ConfigService<Env, true>>(ConfigService);
-  app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }) });
+  // La API usa tokens Bearer; no habilitamos credenciales CORS por defecto. Aun así,
+  // la validación de entorno exige orígenes explícitos en producción para no dejar
+  // abierta una futura integración basada en cookies.
+  app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }), credentials: false });
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

@@ -1,0 +1,91 @@
+# Composición autocontenida para demostración. No sustituye docker-compose.yml, que
+# conserva PostgreSQL expuesto para el desarrollo local.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-garfit}
+      POSTGRES_USER: ${POSTGRES_USER:-garfit}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+    volumes:
+      - garfit-demo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file:
+      - path: .env.demo
+        required: false
+    environment:
+      NODE_ENV: demo
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-garfit}:${POSTGRES_PASSWORD:-}@postgres:5432/${POSTGRES_DB:-garfit}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:4321}
+      RELEASES_STORAGE_DIR: /data/releases
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      AI_PROVIDER: ${AI_PROVIDER:-fake}
+      GEMINI_ENABLED: ${GEMINI_ENABLED:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    volumes:
+      - garfit-demo-releases:/data/releases
+    ports:
+      - '${API_PORT:-4000}:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', "node -e \"fetch('http://127.0.0.1:4000/health').then(async r => { const b = await r.json(); process.exit(r.ok && b.database === 'up' ? 0 : 1) }).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:4000
+    ports:
+      - '${WEB_PORT:-3000}:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', "node -e \"fetch('http://127.0.0.1:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  landing:
+    build:
+      context: .
+      dockerfile: apps/landing/Dockerfile
+      args:
+        PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:4000}
+        PUBLIC_WEB_APP_URL: ${PUBLIC_WEB_APP_URL:-http://localhost:3000}
+    ports:
+      - '${LANDING_PORT:-4321}:8080'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O /dev/null http://127.0.0.1:8080/']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  garfit-demo-pgdata:
+  garfit-demo-releases:
