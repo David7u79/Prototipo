@@ -35,7 +35,10 @@ jobs:
       - name: Verificar
         run: |
           pnpm lint
+          pnpm version:check
           pnpm typecheck
           pnpm test
           pnpm build
           pnpm docs:check
+          pnpm docs:check-openapi
+          pnpm security:scan
