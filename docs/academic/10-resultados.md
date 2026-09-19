@@ -144,7 +144,7 @@ Permanecen PENDIENTES la prueba real con Gemini, pues el smoke devolvió `SKIPPE
 
 ## 10.10 Hechos comprobados al cierre funcional (fase 6)
 
-El cierre verificó 287 pruebas: API 129, dominio 76, web 39, cliente API 19, validación 14 y movimientos 10. La cobertura de líneas fue API 95.03 %, dominio 94.35 %, movimientos 100 %, validación 93.39 %, cliente API 89.74 % y web 12.43 %. Los siete recorridos E2E de Playwright con proveedor simulado pasaron: `athlete-flow`, `workout-flow`, `ai-flow`, `wod-flow`, `ai-history`, `wod-performance` y `landing-download`. OpenAPI registra 35 rutas, con esquema en todas las respuestas 2xx.
+El cierre verificó 289 pruebas: API 131, dominio 76, web 39, cliente API 19, validación 14 y movimientos 10; la cifra procede de `pnpm test:counts`, que recoge lo que informó el ejecutor. La cobertura de líneas fue API 94.97 %, dominio 94.35 %, movimientos 100 %, validación 93.39 %, cliente API 89.74 % y web 12.43 %. Los ocho recorridos E2E de Playwright con proveedor simulado pasaron: `athlete-flow`, `workout-flow`, `ai-flow`, `wod-flow`, `ai-history`, `wod-performance`, `landing-download` y `presentation-captures`. OpenAPI registra 35 rutas, con esquema en todas las respuestas 2xx.
 
 La versión del release candidate es `0.9.0-rc.1`, con `versionCode` 6 e identificador `com.garfit.app`. La fuente única es el `package.json` raíz y `pnpm version:sync` la propaga; `pnpm version:check` comprueba la sincronización. El artefacto de distribución publicado se mantiene fuera del repositorio y su versión, tamaño y SHA-256 se consultan en la landing antes de descargarlo.
 
@@ -153,3 +153,18 @@ Se corrigieron el QR fijo que no codificaba una URL, la memoria insuficiente de 
 ## 10.11 Pendientes externos
 
 Los únicos pendientes externos de cierre son la validación real de Gemini sin clave disponible, Google OAuth real sin credenciales y la instalación en dispositivo Android físico sin teléfono ni emulador. No se presentan como hechos comprobados; sus condiciones, preparación y evidencia vigente se detallan en [Pendientes externos](PENDIENTES-EXTERNOS.md).
+
+## 10.12 Intento de promoción a 1.0.0 (2026-09-18)
+
+Se revisó de nuevo la disponibilidad de los tres recursos externos y ninguno estaba presente, así
+que las validaciones no se ejecutaron y no se marcó ninguna como completada. Ese mismo día sí se
+verificó lo que no depende de terceros: `pnpm release:check` completo en verde, los ocho recorridos
+de extremo a extremo, el simulacro del plan B —con el proveedor real configurado y sin clave, el
+análisis responde `503 AI_NOT_CONFIGURED` mientras el resto de GarFit, incluido el historial de
+análisis ya guardado, sigue respondiendo— y la comprobación de que todos los datos que promete el
+guion de demostración existen realmente tras `pnpm demo:reset`.
+
+De los doce criterios definidos para promover la versión se cumplen cinco, y los que faltan
+dependen de una clave, unas credenciales, un teléfono y un servidor. Por eso GarFit permanece en
+`0.9.0-rc.1`: promoverlo a `1.0.0` afirmaría una verificación que no se hizo. El detalle está en
+[la evidencia de esa validación](../evidence/final/validacion-externa-2026-09-18.md).

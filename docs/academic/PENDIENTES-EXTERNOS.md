@@ -2,6 +2,13 @@
 
 Este documento excluye deuda interna y capacidades fuera de alcance. Registra únicamente verificaciones que requieren una credencial, servicio o dispositivo no disponible en el worktree.
 
+**Última comprobación: 2026-09-18.** Se volvió a verificar la disponibilidad de los tres recursos
+—clave de Gemini, credenciales de Google y dispositivo Android— y ninguno estaba presente, por lo
+que las validaciones siguen pendientes y GarFit permanece en `0.9.0-rc.1`. El detalle de esa
+comprobación, junto con la regresión, el simulacro del plan B y el ensayo técnico de la
+demostración realizados ese día, está en
+[`docs/evidence/final/validacion-externa-2026-09-18.md`](../evidence/final/validacion-externa-2026-09-18.md).
+
 ## Validación real de Google Gemini
 
 **Qué falta.** Ejecutar una solicitud real al proveedor Gemini y conservar su resultado sin divulgar secretos.

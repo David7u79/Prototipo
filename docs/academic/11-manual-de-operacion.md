@@ -160,7 +160,7 @@ pnpm build
 pnpm evidence:web
 ```
 
-El script `evidence:web` compila las dependencias de la aplicación web y ejecuta los siete recorridos de Playwright sobre Chromium headless, incluidos `athlete-flow.spec.ts`, `workout-flow.spec.ts`, `ai-flow.spec.ts`, `wod-flow.spec.ts`, `ai-history.spec.ts`, `wod-performance.spec.ts` y `landing-download.spec.ts`. Las evidencias oficiales consolidadas se preservan de forma inmutable en `docs/evidence/fase-5/capturas/`.
+El script `evidence:web` compila las dependencias de la aplicación web y ejecuta los ocho recorridos de Playwright sobre Chromium headless: `athlete-flow.spec.ts`, `workout-flow.spec.ts`, `ai-flow.spec.ts`, `wod-flow.spec.ts`, `ai-history.spec.ts`, `wod-performance.spec.ts`, `landing-download.spec.ts` y `presentation-captures.spec.ts`. Conviene arrancar la API con `NODE_ENV=test` para esas ejecuciones: encadenar varios recorridos supera el límite de diez peticiones de autenticación por minuto. Las evidencias oficiales consolidadas se preservan de forma inmutable en `docs/evidence/fase-5/capturas/`.
 
 ## 11.6 Diagnóstico y resolución de problemas frecuentes
 
