@@ -12,6 +12,15 @@ const sections = [
       'ni representa servicios institucionales de la UATx.',
   ],
 ] as const;
+
+const stack = [
+  ['API', 'NestJS, Prisma y PostgreSQL'],
+  ['Aplicación web', 'Next.js, React y Tailwind CSS'],
+  ['Aplicación Android', 'Expo, React Native y NativeWind'],
+  ['Sitio público', 'Astro y Tailwind CSS'],
+  ['Análisis con IA', 'Google Gemini con salida validada por Zod'],
+  ['Calidad', 'TypeScript, Turborepo, pruebas automatizadas y E2E con Playwright'],
+] as const;
 ---
 
 <Layout
@@ -25,6 +34,26 @@ const sections = [
       <p class="copy mt-6">
         GarFit es un prototipo académico de titulación de Ingeniería en Computación, en el
         contexto de la Universidad Autónoma de Tlaxcala (UATx).
+      </p>
+      <h2 class="mt-10 text-2xl font-bold">Objetivo</h2>
+      <p class="copy">
+        Construir un sistema web y móvil para el seguimiento individual deportivo: perfil de
+        atleta, entrenamientos, WODs, marcas personales y análisis con evidencia, apoyado en una
+        API central verificable y una aplicación Android de distribución controlada.
+      </p>
+      <h2 class="mt-10 text-2xl font-bold">Tecnologías</h2>
+      <dl class="grid gap-4 sm:grid-cols-2">
+        {
+          stack.map(([area, tools]) => (
+            <div class="card">
+              <dt class="font-bold">{area}</dt>
+              <dd class="m-0 mt-1 leading-7 text-muted">{tools}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <p class="mt-8">
+        <a class="button button-secondary" href="/descargar">Descargar para Android</a>
       </p>
       <div class="mt-10 space-y-5">
         {
