@@ -18,22 +18,23 @@ RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS build
 COPY . .
-RUN pnpm --filter @garfit/api prisma:generate \
-  && pnpm --filter @garfit/api... build \
-  && pnpm deploy --filter @garfit/api --prod /app
+# prisma.config.ts exige DATABASE_URL, pero `prisma generate` no conecta: basta un valor
+# ficticio limitado a este RUN. La URL real sólo existe en runtime.
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build \
+  pnpm --filter @garfit/api prisma:generate \
+  && pnpm --filter @garfit/api... build
 
 FROM node:24-alpine AS runtime
-WORKDIR /app
+# ponytail: se copia el workspace entero porque los paquetes exportan `src/*.ts` y Node no
+# elimina tipos dentro de node_modules, así que `pnpm deploy` no sirve. Si el tamaño de la
+# imagen llega a importar, hay que compilar los paquetes a JS y entonces volver a `pnpm deploy`.
+WORKDIR /workspace/apps/api
 ENV NODE_ENV=production
-COPY --from=build /app ./
-COPY --from=build /workspace/apps/api/dist ./dist
-COPY --from=build /workspace/apps/api/prisma ./prisma
-COPY --from=build /workspace/apps/api/prisma.config.ts ./prisma.config.ts
-COPY --from=build /workspace/apps/api/docker-entrypoint.sh ./docker-entrypoint.sh
+COPY --from=build /workspace /workspace
 RUN addgroup -S garfit && adduser -S garfit -G garfit \
   && mkdir -p /data/releases \
-  && chown -R garfit:garfit /app /data \
-  && chmod 0555 /app/docker-entrypoint.sh
+  && chown -R garfit:garfit /data \
+  && chmod 0555 docker-entrypoint.sh
 USER garfit
 EXPOSE 4000
 ENTRYPOINT ["./docker-entrypoint.sh"]

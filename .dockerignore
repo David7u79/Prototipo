@@ -1,5 +1,5 @@
 # El contexto de construcción sólo debe contener fuentes y metadatos reproducibles.
-node_modules
+**/node_modules
 .git
 .turbo
 **/dist
