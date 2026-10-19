@@ -18,7 +18,7 @@ RUN pnpm install --frozen-lockfile
 
 FROM dependencies AS build
 COPY . .
-RUN pnpm --filter @garfit/web build
+RUN pnpm --filter @garfit/web... build
 
 FROM node:24-alpine AS runtime
 WORKDIR /app
