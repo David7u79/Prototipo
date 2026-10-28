@@ -12,3 +12,4 @@ export * from './workouts.js';
 export * from './progress-snapshot.js';
 export * from './ai.js';
 export * from './comparisons.js';
+export * from './biometrics.js';

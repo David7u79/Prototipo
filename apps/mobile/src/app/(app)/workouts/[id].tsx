@@ -1,11 +1,19 @@
 import { formatDuration, formatRecordValue, formatScore, parseDuration } from '@garfit/domain';
 import type { WorkoutDetail, WorkoutType } from '@garfit/types';
+import type { WorkoutBiometricsInput } from '@garfit/validation';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Field, Label, Screen, Title, uiStyles } from '@/components/ui';
+import { Button, Card, Field, Label, Screen, Stat, Title, uiStyles } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
+import {
+  ensureReadPermissions,
+  healthAvailability,
+  readWorkoutBiometrics,
+  type HealthAvailability,
+} from '@/lib/health';
 import { emptyScore, prefillSets, resultsPayload, type EditableSet } from '@/lib/workouts';
 
 export default function WorkoutScreen() {
@@ -88,7 +96,20 @@ export default function WorkoutScreen() {
       </Screen>
     );
   if (workout.status === 'COMPLETED')
-    return <Completed workout={workout} aiAvailable={aiAvailable} onAnalyze={() => router.push({ pathname: '/(app)/ai', params: { action: 'workout', id: workout.id } })} onRemove={remove} />;
+    return (
+      <Completed
+        workout={workout}
+        aiAvailable={aiAvailable}
+        onWorkoutUpdate={setWorkout}
+        onAnalyze={() =>
+          router.push({
+            pathname: '/(app)/ai',
+            params: { action: 'workout', id: workout.id },
+          })
+        }
+        onRemove={remove}
+      />
+    );
   return (
     <ScrollView style={styles.scroll}>
       <Screen>
@@ -293,13 +314,213 @@ function Score({
   return null;
 }
 
-function Completed({ workout, onRemove, aiAvailable, onAnalyze }: { workout: WorkoutDetail; onRemove: () => void; aiAvailable: boolean; onAnalyze: () => void }) {
+function Completed({
+  workout,
+  onWorkoutUpdate,
+  onRemove,
+  aiAvailable,
+  onAnalyze,
+}: {
+  workout: WorkoutDetail;
+  onWorkoutUpdate: (workout: WorkoutDetail) => void;
+  onRemove: () => void;
+  aiAvailable: boolean;
+  onAnalyze: () => void;
+}) {
+  const { request } = useSession();
+  const [availability, setAvailability] = useState<HealthAvailability>('unavailable');
+  const [preview, setPreview] = useState<WorkoutBiometricsInput | null>(null);
+  const [noDataFound, setNoDataFound] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [healthError, setHealthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void healthAvailability()
+      .then((status) => {
+        if (active) setAvailability(status);
+      })
+      .catch(() => {
+        if (active) setAvailability('unavailable');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function performRead() {
+    setLoading(true);
+    setHealthError(null);
+    setNoDataFound(false);
+    try {
+      // Distingue permiso denegado de "sin datos": readWorkoutBiometrics devuelve null en ambos.
+      if (!(await ensureReadPermissions())) {
+        setHealthError('Concede a GarFit permiso de lectura en Health Connect para vincular los datos.');
+        return;
+      }
+      const start = workout.startedAt ?? workout.createdAt;
+      const end = workout.completedAt ?? workout.updatedAt;
+      const data = await readWorkoutBiometrics(start, end);
+      if (data) {
+        setPreview(data);
+      } else {
+        setPreview(null);
+        setNoDataFound(true);
+      }
+    } catch (cause) {
+      setHealthError(messageFor(cause));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleLink() {
+    try {
+      const consentGiven = await SecureStore.getItemAsync('health-consent-v1');
+      if (!consentGiven) {
+        Alert.alert(
+          'Datos de salud',
+          'GarFit leerá de Health Connect tu frecuencia cardíaca, calorías activas y sesiones de ejercicio durante este entrenamiento. Sólo se guarda el resumen (media, máxima y calorías). Puedes quitarlo cuando quieras.',
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            {
+              text: 'Continuar',
+              onPress: () => {
+                void SecureStore.setItemAsync('health-consent-v1', 'true')
+                  .then(() => performRead())
+                  .catch((cause) => setHealthError(messageFor(cause)));
+              },
+            },
+          ],
+        );
+        return;
+      }
+      await performRead();
+    } catch (cause) {
+      setHealthError(messageFor(cause));
+    }
+  }
+
+  async function handleSavePreview() {
+    if (!preview) return;
+    setLoading(true);
+    setHealthError(null);
+    try {
+      const updated = await request(() =>
+        api.workouts.putWorkoutBiometrics(workout.id, preview),
+      );
+      onWorkoutUpdate(updated);
+      setPreview(null);
+    } catch (cause) {
+      setHealthError(messageFor(cause));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleDiscardPreview() {
+    setPreview(null);
+    setNoDataFound(false);
+  }
+
+  async function handleRemoveBiometrics() {
+    setLoading(true);
+    setHealthError(null);
+    try {
+      await request(() => api.workouts.deleteWorkoutBiometrics(workout.id));
+      onWorkoutUpdate({ ...workout, biometrics: null });
+      setPreview(null);
+    } catch (cause) {
+      setHealthError(messageFor(cause));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <ScrollView style={styles.scroll}>
       <Screen>
         <Title>Entrenamiento completado</Title>
         <Text style={styles.cardTitle}>{workout.headline ?? workout.name}</Text>
         <Text style={uiStyles.muted}>Volumen: {formatRecordValue('WEIGHT', workout.volumeKg)}</Text>
+
+        {availability === 'needs-update' ? (
+          <Card>
+            <Text style={styles.cardTitle}>Datos del reloj</Text>
+            <Text style={styles.cardText}>
+              Actualiza Health Connect para vincular datos del reloj.
+            </Text>
+          </Card>
+        ) : availability === 'available' ? (
+          <Card>
+            <Text style={styles.cardTitle}>Datos del reloj</Text>
+            {healthError ? <Text style={styles.error}>{healthError}</Text> : null}
+
+            {workout.biometrics ? (
+              <>
+                <View style={styles.statRow}>
+                  <Stat
+                    value={workout.biometrics.avgHeartRateBpm ?? '—'}
+                    label="FC media (lpm)"
+                  />
+                  <Stat
+                    value={workout.biometrics.maxHeartRateBpm ?? '—'}
+                    label="FC máx (lpm)"
+                  />
+                  <Stat
+                    value={workout.biometrics.activeCaloriesKcal ?? '—'}
+                    label="Calorías (kcal)"
+                  />
+                </View>
+                <Button
+                  label="Quitar datos del reloj"
+                  onPress={() => void handleRemoveBiometrics()}
+                  disabled={loading}
+                  danger
+                />
+              </>
+            ) : preview ? (
+              <>
+                <View style={styles.statRow}>
+                  <Stat value={preview.avgHeartRateBpm ?? '—'} label="FC media (lpm)" />
+                  <Stat value={preview.maxHeartRateBpm ?? '—'} label="FC máx (lpm)" />
+                  <Stat value={preview.activeCaloriesKcal ?? '—'} label="Calorías (kcal)" />
+                </View>
+                <View style={styles.buttonRow}>
+                  <View style={styles.flexHalf}>
+                    <Button
+                      label="Guardar"
+                      onPress={() => void handleSavePreview()}
+                      disabled={loading}
+                    />
+                  </View>
+                  <View style={styles.flexHalf}>
+                    <Button
+                      label="Descartar"
+                      onPress={handleDiscardPreview}
+                      disabled={loading}
+                      secondary
+                    />
+                  </View>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.cardText}>
+                  {noDataFound
+                    ? 'No se encontraron datos del reloj para este entrenamiento.'
+                    : 'Vincula la frecuencia cardíaca y las calorías registradas por tu reloj.'}
+                </Text>
+                <Button
+                  label="Vincular desde Health Connect"
+                  onPress={() => void handleLink()}
+                  disabled={loading}
+                />
+              </>
+            )}
+          </Card>
+        ) : null}
+
         {workout.exercises.map((exercise) => (
           <Card key={exercise.id}>
             <Text style={styles.cardTitle}>{exercise.movement.name}</Text>
@@ -381,4 +602,18 @@ const styles = StyleSheet.create({
   roundRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   roundsText: { color: colors.text, fontSize: 18, fontWeight: '700' },
   error: { color: colors.danger, fontSize: 15 },
+  statRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginVertical: 4,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+  },
+  flexHalf: {
+    flex: 1,
+  },
 });
