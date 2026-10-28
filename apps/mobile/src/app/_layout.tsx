@@ -1,5 +1,7 @@
 import '@/global.css';
-import { Stack } from 'expo-router';
+import { Stack, ThemeProvider } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import { navigationTheme } from '@/constants/theme';
 import { SessionProvider, useSession } from '@/lib/auth';
 
 function RootNavigator() {
@@ -22,8 +24,11 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <SessionProvider>
-      <RootNavigator />
-    </SessionProvider>
+    <ThemeProvider value={navigationTheme}>
+      <StatusBar style="light" />
+      <SessionProvider>
+        <RootNavigator />
+      </SessionProvider>
+    </ThemeProvider>
   );
 }
