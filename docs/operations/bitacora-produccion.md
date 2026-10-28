@@ -44,6 +44,15 @@ APK release contra la API pública, recorrido completo. Detalle y capturas en
   no había copias programadas.
 - **Estado.** Pendiente; ver la entrada de despliegue.
 
+### El push a `main` no redespliega (2026-10-28)
+
+- **Hallazgo.** Tras empujar `0429180` (rediseño, datos del reloj, migración
+  `WorkoutBiometrics`), a los 20 min la API seguía sirviendo la versión anterior:
+  `PUT /workouts/:id/biometrics` → 404 mientras `GET /workouts` → 401. No apareció ningún
+  contenedor nuevo de GarFit en el VPS; los de web y landing tienen 9 días.
+- **Estado.** Pendiente: lanzar el despliegue desde el panel de Coolify y revisar si el webhook
+  de GitHub o el despliegue automático de `garfit-demo` está activo.
+
 ## Pendientes conocidos
 
 - Traefik acepta tráfico directo a la IP del VPS sin pasar por Cloudflare. Restringirlo afecta a
