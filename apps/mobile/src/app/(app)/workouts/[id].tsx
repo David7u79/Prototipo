@@ -2,8 +2,9 @@ import { formatDuration, formatRecordValue, formatScore, parseDuration } from '@
 import type { WorkoutDetail, WorkoutType } from '@garfit/types';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import { Button, Card, Field, Screen, Title, uiStyles } from '@/components/ui';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Field, Label, Screen, Title, uiStyles } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { emptyScore, prefillSets, resultsPayload, type EditableSet } from '@/lib/workouts';
 
@@ -76,20 +77,20 @@ export default function WorkoutScreen() {
   if (error)
     return (
       <Screen>
-        <Text>{error}</Text>
+        <Text style={styles.error}>{error}</Text>
         <Button label="Reintentar" onPress={() => void load()} />
       </Screen>
     );
   if (!workout)
     return (
       <Screen>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.accent} />
       </Screen>
     );
   if (workout.status === 'COMPLETED')
     return <Completed workout={workout} aiAvailable={aiAvailable} onAnalyze={() => router.push({ pathname: '/(app)/ai', params: { action: 'workout', id: workout.id } })} onRemove={remove} />;
   return (
-    <ScrollView>
+    <ScrollView style={styles.scroll}>
       <Screen>
         <Title>{workout.name}</Title>
         <Text style={uiStyles.muted}>{workout.status === 'DRAFT' ? 'Borrador' : 'En curso'}</Text>
@@ -110,7 +111,7 @@ export default function WorkoutScreen() {
         <Score type={workout.workoutType} score={score} onChange={setScore} />
         <Button label="Guardar" onPress={() => void save()} secondary />
         <Button label="Completar" onPress={() => void save(true)} />
-        <Button label="Borrar" onPress={remove} secondary />
+        <Button label="Borrar" onPress={remove} danger />
       </Screen>
     </ScrollView>
   );
@@ -119,10 +120,11 @@ export default function WorkoutScreen() {
 function Summary({ workout }: { workout: WorkoutDetail }) {
   return (
     <Card>
-      <Text>{workout.exercises.map((item) => item.movement.name).join(' · ')}</Text>
+      <Text style={styles.cardText}>{workout.exercises.map((item) => item.movement.name).join(' · ')}</Text>
     </Card>
   );
 }
+
 function ResultExercise({
   name,
   values,
@@ -135,45 +137,64 @@ function ResultExercise({
   const edit = (index: number, patch: Partial<EditableSet>) =>
     onChange(values.map((value, i) => (i === index ? { ...value, ...patch } : value)));
   return (
-    <Card>
-      <Text>{name}</Text>
+    <View style={styles.exerciseSection}>
+      <Text style={styles.exerciseTitle}>{name}</Text>
       {values.map((value, index) => (
-        <View key={index} style={{ gap: 6 }}>
-          <Text>Serie {index + 1}</Text>
-          <Field
-            accessibilityLabel={`Reps ${name} ${index + 1}`}
-            value={value.reps}
-            onChangeText={(reps) => edit(index, { reps })}
-            placeholder="Reps"
-            keyboardType="numeric"
-          />
-          <Field
-            accessibilityLabel={`Carga ${name} ${index + 1}`}
-            value={value.loadValue}
-            onChangeText={(loadValue) => edit(index, { loadValue })}
-            placeholder="Carga"
-            keyboardType="decimal-pad"
-          />
-          <Field
-            accessibilityLabel={`Distancia ${name} ${index + 1}`}
-            value={value.distanceValue}
-            onChangeText={(distanceValue) => edit(index, { distanceValue })}
-            placeholder="Distancia"
-            keyboardType="decimal-pad"
-          />
-          <Field
-            accessibilityLabel={`Duración ${name} ${index + 1}`}
-            value={value.duration}
-            onChangeText={(duration) => edit(index, { duration })}
-            placeholder="Duración mm:ss"
-            keyboardType="numbers-and-punctuation"
-          />
-          <Button
-            label="Quitar serie"
-            onPress={() => onChange(values.filter((_, i) => i !== index))}
-            secondary
-          />
-        </View>
+        <Card key={index} style={styles.setCard}>
+          <View style={styles.setHeader}>
+            <Label>{`Serie ${index + 1}`}</Label>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Quitar serie ${index + 1}`}
+              hitSlop={12}
+              onPress={() => onChange(values.filter((_, i) => i !== index))}
+            >
+              <Text style={styles.removeSetText}>Quitar</Text>
+            </Pressable>
+          </View>
+          <View style={styles.grid}>
+            <View style={styles.gridItem}>
+              <Field
+                label="Reps"
+                accessibilityLabel={`Reps ${name} ${index + 1}`}
+                value={value.reps}
+                onChangeText={(reps) => edit(index, { reps })}
+                placeholder="Reps"
+                keyboardType="numeric"
+              />
+            </View>
+            <View style={styles.gridItem}>
+              <Field
+                label="Carga"
+                accessibilityLabel={`Carga ${name} ${index + 1}`}
+                value={value.loadValue}
+                onChangeText={(loadValue) => edit(index, { loadValue })}
+                placeholder="Carga"
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={styles.gridItem}>
+              <Field
+                label="Distancia"
+                accessibilityLabel={`Distancia ${name} ${index + 1}`}
+                value={value.distanceValue}
+                onChangeText={(distanceValue) => edit(index, { distanceValue })}
+                placeholder="Distancia"
+                keyboardType="decimal-pad"
+              />
+            </View>
+            <View style={styles.gridItem}>
+              <Field
+                label="Duración"
+                accessibilityLabel={`Duración ${name} ${index + 1}`}
+                value={value.duration}
+                onChangeText={(duration) => edit(index, { duration })}
+                placeholder="mm:ss"
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+          </View>
+        </Card>
       ))}
       <Button
         label="Agregar serie"
@@ -192,9 +213,10 @@ function ResultExercise({
         }
         secondary
       />
-    </Card>
+    </View>
   );
 }
+
 function Score({
   type,
   score,
@@ -207,15 +229,17 @@ function Score({
   if (type === 'FOR_TIME')
     return (
       <Card>
-        <Text>Score</Text>
+        <Text style={styles.cardTitle}>Score</Text>
         <Field
+          label="Tiempo"
           accessibilityLabel="Tiempo"
           value={score.timeSeconds === null ? '' : formatDuration(score.timeSeconds)}
           onChangeText={(text) => onChange({ ...emptyScore(), timeSeconds: parseDuration(text) })}
-          placeholder="Tiempo mm:ss"
+          placeholder="mm:ss"
           keyboardType="numbers-and-punctuation"
         />
         <Field
+          label="Reps al límite"
           accessibilityLabel="Reps al límite"
           value={score.repsAtTimeCap === null ? '' : String(score.repsAtTimeCap)}
           onChangeText={(text) =>
@@ -229,8 +253,8 @@ function Score({
   if (type === 'AMRAP')
     return (
       <Card>
-        <Text>Score</Text>
-        <View style={{ flexDirection: 'row', gap: 8 }}>
+        <Text style={styles.cardTitle}>Score</Text>
+        <View style={styles.roundRow}>
           <Button
             label="−"
             onPress={() =>
@@ -238,7 +262,7 @@ function Score({
             }
             secondary
           />
-          <Text>{`${score.rounds ?? 0} rondas`}</Text>
+          <Text style={styles.roundsText}>{`${score.rounds ?? 0} rondas`}</Text>
           <Button
             label="+"
             onPress={() => onChange({ ...emptyScore(), rounds: (score.rounds ?? 0) + 1 })}
@@ -246,6 +270,7 @@ function Score({
           />
         </View>
         <Field
+          label="Reps extra"
           accessibilityLabel="Reps extra"
           value={score.extraReps === null ? '' : String(score.extraReps)}
           onChangeText={(text) => onChange({ ...score, extraReps: Number(text) || null })}
@@ -257,33 +282,29 @@ function Score({
   if (type === 'EMOM')
     return (
       <Card>
-        <Text>Score</Text>
-        <Pressable
-          accessibilityRole="switch"
-          accessibilityState={{ checked: score.completed === true }}
+        <Text style={styles.cardTitle}>Score</Text>
+        <Button
+          label={score.completed ? 'Completado' : 'Marcar completado'}
           onPress={() => onChange({ ...emptyScore(), completed: !score.completed })}
-          style={uiStyles.button}
-        >
-          <Text style={uiStyles.buttonText}>
-            {score.completed ? 'Completado' : 'Marcar completado'}
-          </Text>
-        </Pressable>
+          secondary={!score.completed}
+        />
       </Card>
     );
   return null;
 }
+
 function Completed({ workout, onRemove, aiAvailable, onAnalyze }: { workout: WorkoutDetail; onRemove: () => void; aiAvailable: boolean; onAnalyze: () => void }) {
   return (
-    <ScrollView>
+    <ScrollView style={styles.scroll}>
       <Screen>
         <Title>Entrenamiento completado</Title>
-        <Text>{workout.headline ?? workout.name}</Text>
-        <Text>Volumen: {formatRecordValue('WEIGHT', workout.volumeKg)}</Text>
+        <Text style={styles.cardTitle}>{workout.headline ?? workout.name}</Text>
+        <Text style={uiStyles.muted}>Volumen: {formatRecordValue('WEIGHT', workout.volumeKg)}</Text>
         {workout.exercises.map((exercise) => (
           <Card key={exercise.id}>
-            <Text>{exercise.movement.name}</Text>
+            <Text style={styles.cardTitle}>{exercise.movement.name}</Text>
             {exercise.results.map((set) => (
-              <Text key={set.id}>
+              <Text key={set.id} style={styles.cardText}>
                 {[
                   set.reps && `${set.reps} reps`,
                   set.loadValue && `${set.loadValue} ${set.loadUnit === 'POUND' ? 'lb' : 'kg'}`,
@@ -297,13 +318,13 @@ function Completed({ workout, onRemove, aiAvailable, onAnalyze }: { workout: Wor
           </Card>
         ))}
         {formatScore(workout.workoutType, workout.score ?? emptyScore()) ? (
-          <Text>{formatScore(workout.workoutType, workout.score ?? emptyScore())}</Text>
+          <Text style={styles.cardTitle}>{formatScore(workout.workoutType, workout.score ?? emptyScore())}</Text>
         ) : null}
-        <Text>
+        <Text style={styles.cardTitle}>
           {workout.personalRecords.length ? 'Marcas personales' : 'Sin marcas nuevas esta vez'}
         </Text>
         {workout.personalRecords.map((item) => (
-          <Text key={item.record.id}>
+          <Text key={item.record.id} style={styles.cardText}>
             {item.previousBest === null
               ? 'Primera marca'
               : formatMark(
@@ -315,7 +336,7 @@ function Completed({ workout, onRemove, aiAvailable, onAnalyze }: { workout: Wor
           </Text>
         ))}
         {aiAvailable ? <Button label="Analizar entrenamiento" onPress={onAnalyze} secondary /> : null}
-        <Button label="Borrar" onPress={onRemove} secondary />
+        <Button label="Borrar" onPress={onRemove} danger />
       </Screen>
     </ScrollView>
   );
@@ -330,3 +351,34 @@ function formatMark(
   const suffix = change === null ? '' : ` · ${change > 0 ? '+' : ''}${change}`;
   return `${formatRecordValue(type, before)} → ${formatRecordValue(type, after)}${suffix}`;
 }
+
+const styles = StyleSheet.create({
+  scroll: { backgroundColor: colors.background, flex: 1 },
+  exerciseSection: { gap: 12 },
+  exerciseTitle: { color: colors.text, fontSize: 20, fontWeight: '700' },
+  setCard: { gap: 12 },
+  setHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  removeSetText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 10,
+  },
+  gridItem: {
+    width: '48%',
+  },
+  cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  cardText: { color: colors.text, fontSize: 15 },
+  roundRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  roundsText: { color: colors.text, fontSize: 18, fontWeight: '700' },
+  error: { color: colors.danger, fontSize: 15 },
+});

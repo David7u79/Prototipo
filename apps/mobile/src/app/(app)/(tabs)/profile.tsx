@@ -9,7 +9,8 @@ import type { ExperienceLevel, PrimaryGoal, UnitSystem } from '@garfit/types';
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Field, Title, uiStyles } from '@/components/ui';
+import { Button, Card, Field, Label, Title, uiStyles } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { profileCanonicalValue, profileDisplayValue } from '@/lib/presentation';
 
@@ -114,18 +115,18 @@ export default function ProfileScreen() {
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <Title>Tu perfil</Title>
       <Card>
-        <Text style={styles.label}>Correo electrónico</Text>
-        <Text style={uiStyles.muted}>{user?.email}</Text>
-        <Text style={styles.label}>Proveedores vinculados</Text>
-        <Text style={uiStyles.muted}>{providers || 'Sin proveedores'}</Text>
+        <Label>Correo electrónico</Label>
+        <Text style={styles.cardValue}>{user?.email}</Text>
+        <Label>Proveedores vinculados</Label>
+        <Text style={styles.cardValue}>{providers || 'Sin proveedores'}</Text>
       </Card>
-      <Text style={styles.label}>Nombre visible</Text>
       <Field
+        label="Nombre visible"
         value={displayName}
         onChangeText={setDisplayName}
         placeholder="Cómo quieres que te llamemos"
       />
-      <Text style={styles.label}>Experiencia</Text>
+      <Label>Experiencia</Label>
       <View style={styles.chips}>
         {EXPERIENCE_LEVELS.map((level) => (
           <Chip
@@ -136,7 +137,7 @@ export default function ProfileScreen() {
           />
         ))}
       </View>
-      <Text style={styles.label}>Objetivo principal</Text>
+      <Label>Objetivo principal</Label>
       <View style={styles.chips}>
         {PRIMARY_GOALS.map((goal) => (
           <Chip
@@ -147,7 +148,7 @@ export default function ProfileScreen() {
           />
         ))}
       </View>
-      <Text style={styles.label}>Unidades</Text>
+      <Label>Unidades</Label>
       <View style={styles.chips}>
         <Chip
           label="Métrico"
@@ -160,40 +161,53 @@ export default function ProfileScreen() {
           onPress={() => setPreferredUnits('IMPERIAL')}
         />
       </View>
-      <Text style={styles.label}>Fecha de nacimiento (opcional)</Text>
-      <Field value={birthDate} onChangeText={setBirthDate} placeholder="AAAA-MM-DD" />
-      <Text
-        style={styles.label}
-      >{`Altura opcional (${preferredUnits === 'IMPERIAL' ? 'pulgadas' : 'cm'})`}</Text>
-      <Field value={height} onChangeText={setHeight} keyboardType="decimal-pad" />
-      <Text
-        style={styles.label}
-      >{`Peso opcional (${preferredUnits === 'IMPERIAL' ? 'lb' : 'kg'})`}</Text>
-      <Field value={weight} onChangeText={setWeight} keyboardType="decimal-pad" />
-      <Text style={styles.label}>Entrenas desde (opcional)</Text>
-      <Field value={trainingSince} onChangeText={setTrainingSince} placeholder="AAAA-MM-DD" />
+      <Field
+        label="Fecha de nacimiento (opcional)"
+        value={birthDate}
+        onChangeText={setBirthDate}
+        placeholder="AAAA-MM-DD"
+      />
+      <Field
+        label={`Altura opcional (${preferredUnits === 'IMPERIAL' ? 'pulgadas' : 'cm'})`}
+        value={height}
+        onChangeText={setHeight}
+        keyboardType="decimal-pad"
+      />
+      <Field
+        label={`Peso opcional (${preferredUnits === 'IMPERIAL' ? 'lb' : 'kg'})`}
+        value={weight}
+        onChangeText={setWeight}
+        keyboardType="decimal-pad"
+      />
+      <Field
+        label="Entrenas desde (opcional)"
+        value={trainingSince}
+        onChangeText={setTrainingSince}
+        placeholder="AAAA-MM-DD"
+      />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <Button
         label={saving ? 'Guardando…' : 'Guardar perfil'}
         disabled={saving}
+        secondary
         onPress={() => void submit()}
       />
       {aiConsentGiven ? (
         <Card>
-          <Text style={styles.label}>Análisis con IA</Text>
+          <Label>Análisis con IA</Label>
           <Text style={uiStyles.muted}>Al revocar tu consentimiento, GarFit dejará de enviar datos deportivos a Google Gemini y no podrás solicitar nuevos análisis hasta aceptarlo otra vez.</Text>
-          <Button label={aiLoading ? 'Revocando…' : 'Revocar consentimiento'} disabled={aiLoading} secondary onPress={() => void revokeAiConsent()} />
+          <Button label={aiLoading ? 'Revocando…' : 'Revocar consentimiento'} disabled={aiLoading} danger onPress={() => void revokeAiConsent()} />
         </Card>
       ) : null}
-      <Button label="Cerrar sesión" secondary onPress={() => void logout()} />
+      <Button label="Cerrar sesión" danger onPress={() => void logout()} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: '#F7F8F6' },
+  scroll: { flex: 1, backgroundColor: colors.background },
   content: { gap: 14, padding: 20 },
-  label: { marginTop: 2, color: '#18221E', fontWeight: '700' },
+  cardValue: { color: colors.text, fontSize: 15, marginBottom: 8 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     overflow: 'hidden',
@@ -201,10 +215,11 @@ const styles = StyleSheet.create({
     paddingVertical: 9,
     borderWidth: 1,
     borderRadius: 20,
-    borderColor: '#DDE3DE',
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  selectedChip: { borderColor: '#176B4D', backgroundColor: '#DDEFE7' },
-  chipText: { color: '#18221E' },
-  selectedChipText: { color: '#176B4D' },
-  error: { color: '#B42318' },
+  selectedChip: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
+  chipText: { color: colors.text },
+  selectedChipText: { color: colors.accent },
+  error: { color: colors.danger },
 });

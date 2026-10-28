@@ -1,8 +1,9 @@
 import type { MovementRecordsResponse, RecordHistoryEntry } from '@garfit/types';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Card, Title } from '@/components/ui';
+import { Card, Title, uiStyles } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { evolutionWidth, formatChange, formatValue } from '@/lib/presentation';
 
@@ -69,13 +70,13 @@ export default function RecordHistoryScreen() {
       },
     ]);
   }
-  if (error) return <Text>{error}</Text>;
-  if (!data) return <Text>Cargando historial…</Text>;
+  if (error) return <ScrollView style={styles.scroll} contentContainerStyle={styles.content}><Text style={styles.error}>{error}</Text></ScrollView>;
+  if (!data) return <ScrollView style={styles.scroll} contentContainerStyle={styles.content}><Text style={uiStyles.muted}>Cargando historial…</Text></ScrollView>;
   return (
-    <ScrollView contentContainerStyle={{ gap: 14, padding: 20 }}>
+    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
       <Title>{data.movement.name}</Title>
       {data.series.length === 0 ? (
-        <Text>Aún no hay marcas para este movimiento.</Text>
+        <Text style={uiStyles.muted}>Aún no hay marcas para este movimiento.</Text>
       ) : (
         data.series.map((series) => {
           const values = series.history.map((entry) => entry.normalizedValue);
@@ -89,13 +90,13 @@ export default function RecordHistoryScreen() {
           const summary = evolutionSummary(firstValue, currentValue, series.count);
           return (
             <Card key={series.key}>
-              <Text>
+              <Text style={styles.seriesTitle}>
                 {seriesLabel(series.recordType, series.repetitions, series.distanceMeters)}
               </Text>
-              <Text>{`Mejor: ${bestValue}`}</Text>
-              <Text>{`Actual: ${currentValue}`}</Text>
+              <Text style={styles.recordValue}>{`Mejor: ${bestValue}`}</Text>
+              <Text style={styles.normalText}>{`Actual: ${currentValue}`}</Text>
               {series.changeFromPrevious ? (
-                <Text>
+                <Text style={uiStyles.muted}>
                   {changeLabel(
                     'Cambio',
                     series.recordType,
@@ -106,7 +107,7 @@ export default function RecordHistoryScreen() {
                 </Text>
               ) : null}
               {series.totalProgress ? (
-                <Text>
+                <Text style={uiStyles.muted}>
                   {changeLabel(
                     'Progreso total',
                     series.recordType,
@@ -121,7 +122,8 @@ export default function RecordHistoryScreen() {
                   <View
                     key={entry.id}
                     style={{
-                      backgroundColor: '#176B4D',
+                      backgroundColor: colors.accent,
+                      borderRadius: 3,
                       height: 12,
                       marginTop: 5,
                       width: evolutionWidth(entry.normalizedValue, values),
@@ -137,7 +139,7 @@ export default function RecordHistoryScreen() {
                     key={`record-${entry.id}`}
                     onPress={() => router.push(`/(app)/workouts/${entry.origin?.workoutId}`)}
                   >
-                    <Text>{originLabel(entry.origin)}</Text>
+                    <Text style={uiStyles.muted}>{originLabel(entry.origin)}</Text>
                   </Pressable>
                 ) : (
                   <Pressable
@@ -146,7 +148,7 @@ export default function RecordHistoryScreen() {
                     key={`record-${entry.id}`}
                     onPress={() => remove(entry)}
                   >
-                    <Text>{`${entry.performedAt} · ${formatValue(
+                    <Text style={styles.removeEntry}>{`${entry.performedAt} · ${formatValue(
                       series.recordType,
                       entry.normalizedValue,
                       system,
@@ -161,3 +163,13 @@ export default function RecordHistoryScreen() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: { backgroundColor: colors.background, flex: 1 },
+  content: { gap: 14, padding: 20 },
+  error: { color: colors.danger, fontSize: 15 },
+  seriesTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  recordValue: { color: colors.accent, fontSize: 16, fontWeight: '700' },
+  normalText: { color: colors.text, fontSize: 15 },
+  removeEntry: { color: colors.muted, fontSize: 14, marginTop: 4 },
+});

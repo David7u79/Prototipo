@@ -325,7 +325,7 @@ function AnalysisHistory({
               label={deletingId === item.id ? 'Borrando…' : 'Borrar'}
               disabled={deletingId === item.id}
               onPress={() => void onDelete(item.id)}
-              secondary
+              danger
             />
           </Card>
         ))

@@ -2,8 +2,9 @@ import type { WorkoutType } from '@garfit/types';
 import { WORKOUT_TYPE_LABELS, createWorkoutSchema } from '@garfit/validation';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
-import { Button, Card, Field, Screen, Title, uiStyles } from '@/components/ui';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Field, Label, Screen, Title } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { listenForMovementSelection } from '@/lib/movement-picker';
 import { createWorkoutPayload, type EditableExercise } from '@/lib/workouts';
@@ -87,17 +88,18 @@ export default function NewWorkoutScreen() {
 
   const global = workoutType === 'FOR_TIME' || workoutType === 'AMRAP' || workoutType === 'EMOM';
   return (
-    <ScrollView>
+    <ScrollView style={styles.scroll}>
       <Screen>
         <Title>Nuevo entrenamiento</Title>
         <Field
+          label="Nombre"
           accessibilityLabel="Nombre"
           value={name}
           onChangeText={setName}
-          placeholder="Nombre"
+          placeholder="Nombre del entrenamiento"
         />
-        <Text>Tipo</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        <Label>Tipo</Label>
+        <View style={styles.chips}>
           {TYPES.map((type) => (
             <Choice
               key={type}
@@ -111,26 +113,29 @@ export default function NewWorkoutScreen() {
           <Card>
             {workoutType === 'AMRAP' || workoutType === 'EMOM' || workoutType === 'FOR_TIME' ? (
               <Field
+                label="Duración"
                 accessibilityLabel="Duración o límite"
                 value={duration}
                 onChangeText={setDuration}
                 placeholder={
-                  workoutType === 'FOR_TIME' ? 'Límite mm:ss (opcional)' : 'Duración mm:ss'
+                  workoutType === 'FOR_TIME' ? 'Límite mm:ss (opcional)' : 'mm:ss'
                 }
                 keyboardType="numbers-and-punctuation"
               />
             ) : null}
             {workoutType === 'EMOM' ? (
               <Field
+                label="Intervalo"
                 accessibilityLabel="Intervalo"
                 value={interval}
                 onChangeText={setInterval}
-                placeholder="Intervalo mm:ss"
+                placeholder="mm:ss"
                 keyboardType="numbers-and-punctuation"
               />
             ) : null}
             {workoutType === 'FOR_TIME' || workoutType === 'AMRAP' ? (
               <Field
+                label="Rondas"
                 accessibilityLabel="Rondas"
                 value={rounds}
                 onChangeText={setRounds}
@@ -140,10 +145,11 @@ export default function NewWorkoutScreen() {
             ) : null}
             {workoutType === 'FOR_TIME' ? (
               <Field
+                label="Esquema"
                 accessibilityLabel="Esquema de repeticiones"
                 value={repScheme}
                 onChangeText={setRepScheme}
-                placeholder="Esquema, p. ej. 21-15-9"
+                placeholder="p. ej. 21-15-9"
                 keyboardType="numeric"
               />
             ) : null}
@@ -187,9 +193,9 @@ function Choice({
       accessibilityRole="button"
       accessibilityState={{ selected: active }}
       onPress={onPress}
-      style={[uiStyles.button, active ? undefined : uiStyles.secondaryButton]}
+      style={[styles.chip, active && styles.selectedChip]}
     >
-      <Text style={active ? uiStyles.buttonText : uiStyles.secondaryButtonText}>{label}</Text>
+      <Text style={[styles.chipText, active && styles.selectedChipText]}>{label}</Text>
     </Pressable>
   );
 }
@@ -207,55 +213,85 @@ function ExerciseBuilder({
 }) {
   const records = new Set(exercise.recordTypes);
   return (
-    <Card>
-      <Text>{exercise.name}</Text>
-      <Field
-        accessibilityLabel={`Series de ${exercise.name}`}
-        value={exercise.sets}
-        onChangeText={(sets) => onChange({ sets })}
-        placeholder="Series"
-        keyboardType="numeric"
-      />
-      {records.has('REPS') || records.has('WEIGHT') ? (
-        <Field
-          accessibilityLabel={`Repeticiones de ${exercise.name}`}
-          value={exercise.reps}
-          onChangeText={(reps) => onChange({ reps })}
-          placeholder="Repeticiones"
-          keyboardType="numeric"
-        />
-      ) : null}
-      {records.has('WEIGHT') ? (
-        <Field
-          accessibilityLabel={`Carga de ${exercise.name}`}
-          value={exercise.loadValue}
-          onChangeText={(loadValue) => onChange({ loadValue })}
-          placeholder="Carga (kg)"
-          keyboardType="decimal-pad"
-        />
-      ) : null}
-      {records.has('DISTANCE') || records.has('TIME') ? (
-        <Field
-          accessibilityLabel={`Distancia de ${exercise.name}`}
-          value={exercise.distanceValue}
-          onChangeText={(distanceValue) => onChange({ distanceValue })}
-          placeholder="Distancia (m)"
-          keyboardType="decimal-pad"
-        />
-      ) : null}
-      {records.has('DURATION') || records.has('TIME') ? (
-        <Field
-          accessibilityLabel={`Duración de ${exercise.name}`}
-          value={exercise.duration}
-          onChangeText={(duration) => onChange({ duration })}
-          placeholder="Duración mm:ss"
-          keyboardType="numbers-and-punctuation"
-        />
-      ) : null}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <Button label="↑" onPress={() => onMove(-1)} secondary />
-        <Button label="↓" onPress={() => onMove(1)} secondary />
-        <Button label="Quitar" onPress={onRemove} secondary />
+    <Card style={styles.exerciseCard}>
+      <View style={styles.exerciseHeader}>
+        <Text style={styles.exerciseName}>{exercise.name}</Text>
+        <View style={styles.exerciseActions}>
+          <Pressable accessibilityLabel="Mover arriba" hitSlop={8} onPress={() => onMove(-1)}>
+            <Text style={styles.moveText}>↑</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Mover abajo" hitSlop={8} onPress={() => onMove(1)}>
+            <Text style={styles.moveText}>↓</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`Quitar ${exercise.name}`}
+            hitSlop={12}
+            onPress={onRemove}
+          >
+            <Text style={styles.removeText}>Quitar</Text>
+          </Pressable>
+        </View>
+      </View>
+      <View style={styles.grid}>
+        <View style={styles.gridItem}>
+          <Field
+            label="Series"
+            accessibilityLabel={`Series de ${exercise.name}`}
+            value={exercise.sets}
+            onChangeText={(sets) => onChange({ sets })}
+            placeholder="Series"
+            keyboardType="numeric"
+          />
+        </View>
+        {records.has('REPS') || records.has('WEIGHT') ? (
+          <View style={styles.gridItem}>
+            <Field
+              label="Reps"
+              accessibilityLabel={`Repeticiones de ${exercise.name}`}
+              value={exercise.reps}
+              onChangeText={(reps) => onChange({ reps })}
+              placeholder="Reps"
+              keyboardType="numeric"
+            />
+          </View>
+        ) : null}
+        {records.has('WEIGHT') ? (
+          <View style={styles.gridItem}>
+            <Field
+              label="Carga"
+              accessibilityLabel={`Carga de ${exercise.name}`}
+              value={exercise.loadValue}
+              onChangeText={(loadValue) => onChange({ loadValue })}
+              placeholder="kg"
+              keyboardType="decimal-pad"
+            />
+          </View>
+        ) : null}
+        {records.has('DISTANCE') || records.has('TIME') ? (
+          <View style={styles.gridItem}>
+            <Field
+              label="Distancia"
+              accessibilityLabel={`Distancia de ${exercise.name}`}
+              value={exercise.distanceValue}
+              onChangeText={(distanceValue) => onChange({ distanceValue })}
+              placeholder="m"
+              keyboardType="decimal-pad"
+            />
+          </View>
+        ) : null}
+        {records.has('DURATION') || records.has('TIME') ? (
+          <View style={styles.gridItem}>
+            <Field
+              label="Duración"
+              accessibilityLabel={`Duración de ${exercise.name}`}
+              value={exercise.duration}
+              onChangeText={(duration) => onChange({ duration })}
+              placeholder="mm:ss"
+              keyboardType="numbers-and-punctuation"
+            />
+          </View>
+        ) : null}
       </View>
     </Card>
   );
@@ -268,3 +304,66 @@ function move<T>(items: T[], index: number, offset: number): T[] {
   [next[index], next[target]] = [next[target], next[index]];
   return next;
 }
+
+const styles = StyleSheet.create({
+  scroll: { backgroundColor: colors.background, flex: 1 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  selectedChip: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentSoft,
+  },
+  chipText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectedChipText: {
+    color: colors.accent,
+  },
+  exerciseCard: {
+    gap: 12,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  exerciseName: {
+    color: colors.text,
+    fontSize: 17,
+    fontWeight: '700',
+    flex: 1,
+  },
+  exerciseActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  moveText: {
+    color: colors.muted,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  removeText: {
+    color: colors.danger,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 10,
+  },
+  gridItem: {
+    width: '48%',
+  },
+});

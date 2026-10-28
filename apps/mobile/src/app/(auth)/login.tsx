@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
 import { loginSchema } from '@garfit/validation';
 import { Button, Field, Screen, Title, uiStyles } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { messageFor, useSession } from '@/lib/auth';
 
 export default function LoginScreen() {
@@ -51,6 +52,7 @@ export default function LoginScreen() {
         <Title>Entrena con intención.</Title>
         <Text style={uiStyles.muted}>Registra tu evolución y tus mejores marcas.</Text>
         <Field
+          label="Correo electrónico"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -59,6 +61,7 @@ export default function LoginScreen() {
           placeholder="Correo electrónico"
         />
         <Field
+          label="Contraseña"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -89,10 +92,10 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  error: { color: '#B42318' },
+  error: { color: colors.danger },
   link: {
     marginTop: 8,
-    color: '#176B4D',
+    color: colors.accent,
     fontWeight: '600',
     textAlign: 'center',
   },
