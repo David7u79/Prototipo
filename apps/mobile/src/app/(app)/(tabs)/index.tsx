@@ -10,7 +10,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Card, Title, uiStyles } from '@/components/ui';
+import { Button, Card, Stat, Title, uiStyles } from '@/components/ui';
 import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { formatChange, formatValue } from '@/lib/presentation';
@@ -77,42 +77,13 @@ export default function HomeScreen() {
     >
       <Title>Hola{user?.name ? `, ${user.name}` : ''}.</Title>
 
-      {!profile ? (
-        <Pressable
-          accessibilityLabel="Completa tu perfil deportivo. Personaliza tu experiencia como atleta."
-          accessibilityRole="button"
-          onPress={() => router.navigate('/(app)/(tabs)/profile')}
-        >
-          <Card>
-            <Text style={styles.cardTitle}>Completa tu perfil deportivo.</Text>
-            <Text style={uiStyles.muted}>Personaliza tu experiencia como atleta.</Text>
-          </Card>
-        </Pressable>
-      ) : null}
-
-      <Pressable
-        accessibilityLabel="Abrir análisis inteligente"
-        accessibilityRole="button"
-        onPress={() => router.push('/(app)/ai')}
-      >
-        <Card>
-          <Text style={styles.cardTitle}>Análisis inteligente</Text>
-          <Text style={uiStyles.muted}>Recibe una explicación de tu progreso deportivo.</Text>
-        </Card>
-      </Pressable>
+      <Button label="Registrar entrenamiento" onPress={() => router.push('/(app)/workouts/new')} />
 
       {error ? (
         <View accessible={true} accessibilityLabel={`Error: ${error}`}>
           <Card style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
-            <Pressable
-              accessibilityLabel="Reintentar carga de datos"
-              accessibilityRole="button"
-              onPress={() => void load()}
-              style={({ pressed }) => [uiStyles.button, pressed && uiStyles.dimmed]}
-            >
-              <Text style={uiStyles.buttonText}>Reintentar</Text>
-            </Pressable>
+            <Button label="Reintentar" onPress={() => void load()} />
           </Card>
         </View>
       ) : null}
@@ -131,18 +102,11 @@ export default function HomeScreen() {
         <>
           <View
             accessible={true}
-            accessibilityLabel={`Movimientos con marca: ${data.movementsWithRecords}`}
+            accessibilityLabel={`Movimientos con marca: ${data.movementsWithRecords}. Marcas registradas: ${data.totalRecords}`}
           >
-            <Card>
-              <Text style={styles.cardTitle}>Movimientos con marca</Text>
-              <Text style={styles.cardValue}>{data.movementsWithRecords}</Text>
-            </Card>
-          </View>
-
-          <View accessible={true} accessibilityLabel={`Marcas registradas: ${data.totalRecords}`}>
-            <Card>
-              <Text style={styles.cardTitle}>Marcas registradas</Text>
-              <Text style={styles.cardValue}>{data.totalRecords}</Text>
+            <Card style={styles.statsRow}>
+              <Stat label="Movimientos con marca" value={data.movementsWithRecords} />
+              <Stat label="Marcas registradas" value={data.totalRecords} />
             </Card>
           </View>
 
@@ -200,7 +164,6 @@ export default function HomeScreen() {
             <WorkoutSummary
               stats={workoutStats}
               onOpen={(id) => router.push(`/(app)/workouts/${id}`)}
-              onRegister={() => router.push('/(app)/workouts/new')}
             />
           ) : null}
 
@@ -212,14 +175,11 @@ export default function HomeScreen() {
               <Card>
                 <Text style={styles.cardTitle}>Marcas personales</Text>
                 <Text style={uiStyles.muted}>No hay marcas personales registradas.</Text>
-                <Pressable
-                  accessibilityLabel="Explorar movimientos"
-                  accessibilityRole="button"
+                <Button
+                  label="Explorar movimientos"
                   onPress={() => router.push('/(app)/movements')}
-                  style={({ pressed }) => [uiStyles.button, pressed && uiStyles.dimmed]}
-                >
-                  <Text style={uiStyles.buttonText}>Explorar movimientos</Text>
-                </Pressable>
+                  secondary
+                />
               </Card>
             </View>
           ) : (
@@ -242,22 +202,39 @@ export default function HomeScreen() {
                   </Pressable>
                 );
               })}
-              <Pressable
-                accessibilityLabel="Explorar movimientos"
-                accessibilityRole="button"
+              <Button
+                label="Explorar movimientos"
                 onPress={() => router.push('/(app)/movements')}
-                style={({ pressed }) => [
-                  uiStyles.button,
-                  styles.secondaryButton,
-                  pressed && uiStyles.dimmed,
-                ]}
-              >
-                <Text style={styles.secondaryButtonText}>Explorar movimientos</Text>
-              </Pressable>
+                secondary
+              />
             </>
           )}
         </>
       ) : null}
+
+      {!profile ? (
+        <Pressable
+          accessibilityLabel="Completa tu perfil deportivo. Personaliza tu experiencia como atleta."
+          accessibilityRole="button"
+          onPress={() => router.navigate('/(app)/(tabs)/profile')}
+        >
+          <Card style={styles.compactCard}>
+            <Text style={styles.cardTitle}>Completa tu perfil deportivo.</Text>
+            <Text style={uiStyles.muted}>Personaliza tu experiencia como atleta.</Text>
+          </Card>
+        </Pressable>
+      ) : null}
+
+      <Pressable
+        accessibilityLabel="Abrir análisis inteligente"
+        accessibilityRole="button"
+        onPress={() => router.push('/(app)/ai')}
+      >
+        <Card style={styles.compactCard}>
+          <Text style={styles.cardTitle}>Análisis inteligente</Text>
+          <Text style={uiStyles.muted}>Recibe una explicación de tu progreso deportivo.</Text>
+        </Card>
+      </Pressable>
     </ScrollView>
   );
 }
@@ -265,42 +242,30 @@ export default function HomeScreen() {
 function WorkoutSummary({
   stats,
   onOpen,
-  onRegister,
 }: {
   stats: WorkoutStatsResponse;
   onOpen: (id: string) => void;
-  onRegister: () => void;
 }) {
   if (stats.totalCompleted === 0) {
     return (
       <Card>
         <Text style={styles.cardTitle}>Entrenamientos</Text>
         <Text style={uiStyles.muted}>Aún no has registrado entrenamientos.</Text>
-        <Pressable
-          accessibilityLabel="Registrar entrenamiento"
-          accessibilityRole="button"
-          onPress={onRegister}
-          style={uiStyles.button}
-        >
-          <Text style={uiStyles.buttonText}>Registrar entrenamiento</Text>
-        </Pressable>
       </Card>
     );
   }
   return (
     <>
-      <Card>
-        <Text style={styles.cardTitle}>Esta semana</Text>
-        <Text style={styles.cardValue}>{stats.last7Days}</Text>
-      </Card>
-      <Card>
-        <Text style={styles.cardTitle}>Este mes</Text>
-        <Text style={styles.cardValue}>{stats.last30Days}</Text>
-      </Card>
-      <Card>
-        <Text style={styles.cardTitle}>Marcas desde entrenamientos (30 días)</Text>
-        <Text style={styles.cardValue}>{stats.personalRecordsFromWorkoutsLast30Days}</Text>
-      </Card>
+      <View
+        accessible={true}
+        accessibilityLabel={`Entrenamientos: ${stats.last7Days} esta semana, ${stats.last30Days} este mes, ${stats.personalRecordsFromWorkoutsLast30Days} marcas desde entrenamientos en 30 días`}
+      >
+        <Card style={styles.statsRow}>
+          <Stat label="Semana" value={stats.last7Days} />
+          <Stat label="Mes" value={stats.last30Days} />
+          <Stat label="Marcas 30 d" value={stats.personalRecordsFromWorkoutsLast30Days} />
+        </Card>
+      </View>
       {stats.lastWorkout ? (
         <Pressable
           accessibilityLabel={`Abrir último entrenamiento ${stats.lastWorkout.name}`}
@@ -323,17 +288,12 @@ function WorkoutSummary({
 
 const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  cardValue: { color: colors.accent, fontSize: 24, fontWeight: '700' },
+  compactCard: { padding: 12 },
   container: { backgroundColor: colors.background, flex: 1 },
   content: { gap: 16, padding: 20 },
   errorCard: { borderColor: colors.danger, gap: 12 },
   errorText: { color: colors.danger, fontSize: 15 },
   loadingContainer: { alignItems: 'center', paddingVertical: 32 },
-  secondaryButton: {
-    backgroundColor: colors.surface,
-    borderColor: colors.accent,
-    borderWidth: 1,
-  },
-  secondaryButtonText: { color: colors.accent, fontSize: 16, fontWeight: '700' },
   sectionTitle: { color: colors.text, fontSize: 20, fontWeight: '700', marginTop: 8 },
+  statsRow: { flexDirection: 'row', gap: 16 },
 });
