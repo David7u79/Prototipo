@@ -14,6 +14,7 @@ import {
   readWorkoutBiometrics,
   type HealthAvailability,
 } from '@/lib/health';
+import { forgetWearSummary, readWearBiometrics, wearBridgeAvailable } from '@/lib/wear';
 import { emptyScore, prefillSets, resultsPayload, type EditableSet } from '@/lib/workouts';
 
 export default function WorkoutScreen() {
@@ -353,20 +354,31 @@ function Completed({
     setHealthError(null);
     setNoDataFound(false);
     try {
-      // Distingue permiso denegado de "sin datos": readWorkoutBiometrics devuelve null en ambos.
-      if (!(await ensureReadPermissions())) {
-        setHealthError('Concede a GarFit permiso de lectura en Health Connect para vincular los datos.');
-        return;
-      }
       const start = workout.startedAt ?? workout.createdAt;
       const end = workout.completedAt ?? workout.updatedAt;
-      const data = await readWorkoutBiometrics(start, end);
-      if (data) {
-        setPreview(data);
-      } else {
-        setPreview(null);
-        setNoDataFound(true);
+
+      if (wearBridgeAvailable()) {
+        const wearData = await readWearBiometrics(start, end);
+        if (wearData) {
+          setPreview(wearData);
+          return;
+        }
       }
+
+      if (availability === 'available') {
+        if (!(await ensureReadPermissions())) {
+          setHealthError('Concede a GarFit permiso de lectura en Health Connect para vincular los datos.');
+          return;
+        }
+        const data = await readWorkoutBiometrics(start, end);
+        if (data) {
+          setPreview(data);
+          return;
+        }
+      }
+
+      setPreview(null);
+      setNoDataFound(true);
     } catch (cause) {
       setHealthError(messageFor(cause));
     } finally {
@@ -376,17 +388,17 @@ function Completed({
 
   async function handleLink() {
     try {
-      const consentGiven = await SecureStore.getItemAsync('health-consent-v1');
+      const consentGiven = await SecureStore.getItemAsync('health-consent-v2');
       if (!consentGiven) {
         Alert.alert(
           'Datos de salud',
-          'GarFit leerá de Health Connect tu frecuencia cardíaca, calorías activas y sesiones de ejercicio durante este entrenamiento. Sólo se guarda el resumen (media, máxima y calorías). Puedes quitarlo cuando quieras.',
+          'GarFit leerá del reloj (app GarFit Wear o Health Connect) tu frecuencia cardíaca, calorías activas y sesiones de ejercicio durante este entrenamiento. Sólo se guarda el resumen (media, máxima y calorías). Puedes quitarlo cuando quieras.',
           [
             { text: 'Cancelar', style: 'cancel' },
             {
               text: 'Continuar',
               onPress: () => {
-                void SecureStore.setItemAsync('health-consent-v1', 'true')
+                void SecureStore.setItemAsync('health-consent-v2', 'true')
                   .then(() => performRead())
                   .catch((cause) => setHealthError(messageFor(cause)));
               },
@@ -403,14 +415,22 @@ function Completed({
 
   async function handleSavePreview() {
     if (!preview) return;
+    const savingPreview = preview;
     setLoading(true);
     setHealthError(null);
     try {
       const updated = await request(() =>
-        api.workouts.putWorkoutBiometrics(workout.id, preview),
+        api.workouts.putWorkoutBiometrics(workout.id, savingPreview),
       );
       onWorkoutUpdate(updated);
       setPreview(null);
+      if (savingPreview.source === 'WEAR_OS' && savingPreview.externalId) {
+        try {
+          await forgetWearSummary(savingPreview.externalId);
+        } catch {
+          // Si falla, no mostrar error: el dato ya está guardado
+        }
+      }
     } catch (cause) {
       setHealthError(messageFor(cause));
     } finally {
@@ -437,6 +457,10 @@ function Completed({
     }
   }
 
+  const hasWearBridge = wearBridgeAvailable();
+  const showBiometricsCard = availability === 'available' || hasWearBridge;
+  const showNeedsUpdate = availability === 'needs-update' && !hasWearBridge;
+
   return (
     <ScrollView style={styles.scroll}>
       <Screen>
@@ -444,14 +468,14 @@ function Completed({
         <Text style={styles.cardTitle}>{workout.headline ?? workout.name}</Text>
         <Text style={uiStyles.muted}>Volumen: {formatRecordValue('WEIGHT', workout.volumeKg)}</Text>
 
-        {availability === 'needs-update' ? (
+        {showNeedsUpdate ? (
           <Card>
             <Text style={styles.cardTitle}>Datos del reloj</Text>
             <Text style={styles.cardText}>
               Actualiza Health Connect para vincular datos del reloj.
             </Text>
           </Card>
-        ) : availability === 'available' ? (
+        ) : showBiometricsCard ? (
           <Card>
             <Text style={styles.cardTitle}>Datos del reloj</Text>
             {healthError ? <Text style={styles.error}>{healthError}</Text> : null}
@@ -472,6 +496,11 @@ function Completed({
                     label="Calorías (kcal)"
                   />
                 </View>
+                <Text style={uiStyles.muted}>
+                  {workout.biometrics.source === 'WEAR_OS'
+                    ? 'Origen: GarFit Wear'
+                    : 'Origen: Health Connect'}
+                </Text>
                 <Button
                   label="Quitar datos del reloj"
                   onPress={() => void handleRemoveBiometrics()}
@@ -512,7 +541,7 @@ function Completed({
                     : 'Vincula la frecuencia cardíaca y las calorías registradas por tu reloj.'}
                 </Text>
                 <Button
-                  label="Vincular desde Health Connect"
+                  label="Vincular datos del reloj"
                   onPress={() => void handleLink()}
                   disabled={loading}
                 />
