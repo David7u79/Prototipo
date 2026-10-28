@@ -37,4 +37,4 @@ demostración realizados ese día, está en
 
 **Preparación existente.** La aplicación usa el identificador `com.garfit.app`; la versión del release candidate se sincroniza desde el `package.json` raíz mediante `pnpm version:sync`. La landing y la API ofrecen metadatos, descarga y checksum de la release publicada.
 
-**Evidencia actual.** Se comprobaron compilación, metadatos, descarga e integridad en [distribución Android](../evidence/fase-5/distribucion-android.md), pero ese informe deja la instalación física como pendiente por ausencia de teléfono y emulador.
+**Evidencia actual.** Se comprobaron compilación, metadatos, descarga e integridad en [distribución Android](../evidence/fase-5/distribucion-android.md). El 2026-10-27 se instaló la APK en un **emulador** y se recorrió completa contra la API pública `https://garfit-api.da-bit.cloud` ([recorrido en emulador](../evidence/final/emulador-2026-10-27.md)). Sigue pendiente la instalación en un teléfono físico descargando desde la landing.

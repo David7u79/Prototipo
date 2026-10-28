@@ -47,4 +47,5 @@ con un comando del repositorio. Deben completarse con evidencia institucional.
 - [ ] Aviso de privacidad, consentimiento institucional y revisión legal: requieren responsables y criterio institucional; el estudio los declara pendientes.
 - [ ] Credencial autorizada para Gemini: requiere una `GEMINI_API_KEY`; sin ella `pnpm test:gemini` no acredita llamada real.
 - [ ] Credenciales y configuración de Google OAuth: requieren clientes, orígenes y audiencias de Google; pruebas simuladas no equivalen a aprobación.
-- [ ] Dispositivo o emulador Android final: requiere hardware o infraestructura y una URL alcanzable; el proyecto acredita APK y checksum, no instalación no realizada.
+- [x] Emulador Android contra la API pública: recorrido completo el 2026-10-27 en `docs/evidence/final/emulador-2026-10-27.md`.
+- [ ] Teléfono Android físico: requiere hardware; la descarga desde la landing e instalación en un teléfono siguen sin realizarse.
