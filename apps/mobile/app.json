@@ -37,7 +37,9 @@
         }
       ],
       "expo-secure-store",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "react-native-health-connect",
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
