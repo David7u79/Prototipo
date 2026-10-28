@@ -14,6 +14,7 @@ Los ADR registran decisiones arquitectónicas aceptadas.
 | [0008](0008-workout-result-model.md) | Entrenamientos, resultados, score y marcas derivadas |
 | [0009](0009-ai-analysis-architecture.md) | Análisis con IA: interpretación trazable sobre datos calculados |
 | [0010](0010-android-distribution.md) | Distribución directa del APK de Android |
+| [0011](0011-smartwatch-biometrics.md) | Datos del reloj inteligente (Health Connect y Wear OS) |
 
 ## Plantilla
 
