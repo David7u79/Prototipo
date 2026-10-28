@@ -9,6 +9,7 @@ import {
   updateRecordSchemaFor,
   updateWorkoutSchema,
   wodFiltersSchema,
+  workoutBiometricsInputSchema,
   workoutResultsSchema,
   workoutScoreInputSchema,
   AI_OUTPUT_LIMITS,
@@ -166,6 +167,116 @@ describe('esquemas de entrenamiento', () => {
     });
     expect(workoutScoreInputSchema.safeParse({ extra: true }).success).toBe(false);
     expect(completeWorkoutSchema.safeParse({ performedOn: '2100-01-01' }).success).toBe(false);
+  });
+
+  it('valida datos biométricos de smartwatch según sus reglas y límites', () => {
+    const valid = {
+      startedAt: '2026-10-28T10:00:00Z',
+      endedAt: '2026-10-28T11:00:00Z',
+      source: 'HEALTH_CONNECT',
+      avgHeartRateBpm: 140,
+      maxHeartRateBpm: 175,
+      activeCaloriesKcal: 450,
+      externalId: 'session-1',
+    };
+    expect(workoutBiometricsInputSchema.safeParse(valid).success).toBe(true);
+
+    // Opcionales por defecto a null
+    expect(
+      workoutBiometricsInputSchema.parse({
+        startedAt: '2026-10-28T10:00:00Z',
+        endedAt: '2026-10-28T11:00:00Z',
+        source: 'WEAR_OS',
+        avgHeartRateBpm: 130,
+      }),
+    ).toMatchObject({
+      avgHeartRateBpm: 130,
+      maxHeartRateBpm: null,
+      activeCaloriesKcal: null,
+      externalId: null,
+      source: 'WEAR_OS',
+    });
+
+    // Al menos una métrica no null
+    expect(
+      workoutBiometricsInputSchema.safeParse({
+        startedAt: '2026-10-28T10:00:00Z',
+        endedAt: '2026-10-28T11:00:00Z',
+        source: 'HEALTH_CONNECT',
+      }).success,
+    ).toBe(false);
+    expect(
+      workoutBiometricsInputSchema.safeParse({
+        startedAt: '2026-10-28T10:00:00Z',
+        endedAt: '2026-10-28T11:00:00Z',
+        source: 'HEALTH_CONNECT',
+        avgHeartRateBpm: null,
+        maxHeartRateBpm: null,
+        activeCaloriesKcal: null,
+      }).success,
+    ).toBe(false);
+
+    // FC fuera de rango (30-250) o no entera
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, avgHeartRateBpm: 29 }).success).toBe(
+      false,
+    );
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, avgHeartRateBpm: 251 }).success).toBe(
+      false,
+    );
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, avgHeartRateBpm: 120.5 }).success).toBe(
+      false,
+    );
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, maxHeartRateBpm: 251 }).success).toBe(
+      false,
+    );
+
+    // max >= avg
+    expect(
+      workoutBiometricsInputSchema.safeParse({
+        ...valid,
+        avgHeartRateBpm: 160,
+        maxHeartRateBpm: 150,
+      }).success,
+    ).toBe(false);
+    expect(
+      workoutBiometricsInputSchema.safeParse({
+        ...valid,
+        avgHeartRateBpm: 160,
+        maxHeartRateBpm: 160,
+      }).success,
+    ).toBe(true);
+
+    // Calorías enteras 0-5000
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, activeCaloriesKcal: -1 }).success).toBe(
+      false,
+    );
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, activeCaloriesKcal: 5001 }).success).toBe(
+      false,
+    );
+    expect(workoutBiometricsInputSchema.safeParse({ ...valid, activeCaloriesKcal: 250.5 }).success).toBe(
+      false,
+    );
+
+    // endedAt > startedAt
+    expect(
+      workoutBiometricsInputSchema.safeParse({
+        ...valid,
+        startedAt: '2026-10-28T11:00:00Z',
+        endedAt: '2026-10-28T11:00:00Z',
+      }).success,
+    ).toBe(false);
+    expect(
+      workoutBiometricsInputSchema.safeParse({
+        ...valid,
+        startedAt: '2026-10-28T12:00:00Z',
+        endedAt: '2026-10-28T11:00:00Z',
+      }).success,
+    ).toBe(false);
+
+    // externalId máx 200
+    expect(
+      workoutBiometricsInputSchema.safeParse({ ...valid, externalId: 'a'.repeat(201) }).success,
+    ).toBe(false);
   });
 });
 

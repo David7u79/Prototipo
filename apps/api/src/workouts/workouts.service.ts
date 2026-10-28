@@ -17,6 +17,7 @@ import {
   type LoadUnit,
   type RecordType,
 } from '@garfit/domain';
+import { workoutBiometricsInputSchema } from '@garfit/validation';
 import { Injectable } from '@nestjs/common';
 import { ApiException } from '../common/api-exception.filter.js';
 import { fromIsoDate, toIsoDate } from '../common/iso-date.js';
@@ -28,9 +29,14 @@ import type {
   CreateWorkoutDto,
   ResultsDto,
   UpdateWorkoutDto,
+  WorkoutBiometricsDto,
   WorkoutFiltersDto,
 } from './dto/workout.dto.js';
-import { toDerivedPersonalRecords, toWorkoutMovementRef } from './workouts.mapper.js';
+import {
+  toDerivedPersonalRecords,
+  toWorkoutBiometrics,
+  toWorkoutMovementRef,
+} from './workouts.mapper.js';
 
 const workoutNotFound = () =>
   new ApiException(404, 'WORKOUT_NOT_FOUND', 'No encontramos ese entrenamiento');
@@ -225,6 +231,56 @@ export class WorkoutsService {
       }
     });
     return this.get(userId, id);
+  }
+  async saveBiometrics(userId: string, id: string, dto: WorkoutBiometricsDto) {
+    const workout = await this.owned(userId, id);
+    if (workout.status !== 'COMPLETED') {
+      throw invalidState();
+    }
+    const parsed = workoutBiometricsInputSchema.safeParse(dto);
+    if (!parsed.success) {
+      const issues = parsed.error.issues;
+      const details = issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`);
+      throw new ApiException(
+        400,
+        'VALIDATION_FAILED',
+        issues[0]?.message ?? 'Error de validación',
+        details,
+      );
+    }
+    const payload = parsed.data;
+    await this.prisma.workoutBiometrics.upsert({
+      where: { workoutId: id },
+      create: {
+        workoutId: id,
+        avgHeartRateBpm: payload.avgHeartRateBpm,
+        maxHeartRateBpm: payload.maxHeartRateBpm,
+        activeCaloriesKcal: payload.activeCaloriesKcal,
+        startedAt: new Date(payload.startedAt),
+        endedAt: new Date(payload.endedAt),
+        source: payload.source,
+        externalId: payload.externalId,
+      },
+      update: {
+        avgHeartRateBpm: payload.avgHeartRateBpm,
+        maxHeartRateBpm: payload.maxHeartRateBpm,
+        activeCaloriesKcal: payload.activeCaloriesKcal,
+        startedAt: new Date(payload.startedAt),
+        endedAt: new Date(payload.endedAt),
+        source: payload.source,
+        externalId: payload.externalId,
+      },
+    });
+    return this.get(userId, id);
+  }
+  async removeBiometrics(userId: string, id: string) {
+    const workout = await this.owned(userId, id);
+    if (workout.status !== 'COMPLETED') {
+      throw invalidState();
+    }
+    await this.prisma.workoutBiometrics.deleteMany({
+      where: { workoutId: id },
+    });
   }
   async stats(userId: string) {
     const rows = await this.prisma.workout.findMany({
@@ -448,6 +504,7 @@ export class WorkoutsService {
       include: {
         wod: true,
         score: true,
+        biometrics: true,
         exercises: {
           include: {
             movement: true,
@@ -470,7 +527,11 @@ export class WorkoutsService {
     if (movements.length !== new Set(slugs).size) throw movementNotFound();
     return movements;
   }
-  private listItem(row: Awaited<ReturnType<WorkoutsService['owned']>>) {
+  private listItem(
+    row: Omit<Awaited<ReturnType<WorkoutsService['owned']>>, 'biometrics'> & {
+      biometrics?: unknown;
+    },
+  ) {
     const sets = row.exercises.flatMap((item) =>
       item.results.map((result) => ({
         reps: result.reps,
@@ -527,6 +588,7 @@ export class WorkoutsService {
       intervalSeconds: row.intervalSeconds,
       repScheme: row.repScheme,
       score: row.score,
+      biometrics: toWorkoutBiometrics(row.biometrics),
       volumeKg: totalVolumeKg(sets),
       exercises: row.exercises.map((item) => ({
         id: item.id,
@@ -662,7 +724,12 @@ function workoutIncompleteDetails(
   }
   return [];
 }
-function volumeByMovement(workouts: Awaited<ReturnType<WorkoutsService['owned']>>[], from: string) {
+function volumeByMovement(
+  workouts: (Omit<Awaited<ReturnType<WorkoutsService['owned']>>, 'biometrics'> & {
+    biometrics?: unknown;
+  })[],
+  from: string,
+) {
   const volume = new Map<
     string,
     { movement: (typeof workouts)[number]['exercises'][number]['movement']; volumeKg: number }

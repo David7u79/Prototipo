@@ -11,6 +11,7 @@ import {
   type WorkoutStatus,
   type WorkoutType,
 } from '@garfit/domain';
+import { BIOMETRIC_SOURCES, type BiometricSource } from '@garfit/types';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ChangeResponse,
@@ -124,6 +125,32 @@ export class WorkoutScoreResponse {
   completed!: boolean | null;
 }
 
+export class WorkoutBiometricsResponse {
+  @ApiProperty({ type: Number, nullable: true })
+  avgHeartRateBpm!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  maxHeartRateBpm!: number | null;
+
+  @ApiProperty({ type: Number, nullable: true })
+  activeCaloriesKcal!: number | null;
+
+  @ApiProperty({ format: 'date-time' })
+  startedAt!: string;
+
+  @ApiProperty({ format: 'date-time' })
+  endedAt!: string;
+
+  @ApiProperty({ enum: BIOMETRIC_SOURCES, enumName: 'BiometricSource' })
+  source!: BiometricSource;
+
+  @ApiProperty({ type: String, nullable: true })
+  externalId!: string | null;
+
+  @ApiProperty({ format: 'date-time' })
+  updatedAt!: string;
+}
+
 export class DerivedPersonalRecordResponse {
   @ApiProperty({ type: PersonalRecordResponse })
   record!: PersonalRecordResponse;
@@ -197,6 +224,9 @@ export class WorkoutDetailResponse extends WorkoutListItemResponse {
 
   @ApiProperty({ type: WorkoutScoreResponse, nullable: true })
   score!: WorkoutScoreResponse | null;
+
+  @ApiProperty({ type: WorkoutBiometricsResponse, nullable: true })
+  biometrics!: WorkoutBiometricsResponse | null;
 
   @ApiProperty()
   volumeKg!: number;

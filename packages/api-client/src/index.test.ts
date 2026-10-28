@@ -86,6 +86,7 @@ describe('rutas de recursos', () => {
     await client.workouts.start('a/b');
     await client.workouts.saveResults('a/b', {} as never);
     await client.workouts.complete('a/b');
+    await client.workouts.putWorkoutBiometrics('a/b', {} as never);
     const calls = fetch.mock.calls.map(([url, init]) => [
       url,
       (init as RequestInit).method,
@@ -110,6 +111,7 @@ describe('rutas de recursos', () => {
     ]);
     expect(calls).toContainEqual(['http://api/workouts/a%2Fb/results', 'PUT', '{}', 'Bearer t']);
     expect(calls).toContainEqual(['http://api/workouts/a%2Fb/complete', 'POST', '{}', 'Bearer t']);
+    expect(calls).toContainEqual(['http://api/workouts/a%2Fb/biometrics', 'PUT', '{}', 'Bearer t']);
   });
 
   it('usa DELETE y devuelve undefined para borrar una marca o entrenamiento', async () => {
@@ -117,9 +119,11 @@ describe('rutas de recursos', () => {
     const client = createApiClient({ baseUrl: 'http://api', getAccessToken: () => 't', fetch });
     await expect(client.records.remove('a/b')).resolves.toBeUndefined();
     await expect(client.workouts.remove('a/b')).resolves.toBeUndefined();
+    await expect(client.workouts.deleteWorkoutBiometrics('a/b')).resolves.toBeUndefined();
     expect(fetch.mock.calls.map(([url, init]) => [url, (init as RequestInit).method])).toEqual([
       ['http://api/records/a%2Fb', 'DELETE'],
       ['http://api/workouts/a%2Fb', 'DELETE'],
+      ['http://api/workouts/a%2Fb/biometrics', 'DELETE'],
     ]);
   });
 

@@ -41,6 +41,12 @@ enum ReleasePlatform {
   ANDROID
 }
 
+/// Origen de los datos biométricos de smartwatch.
+enum BiometricSource {
+  HEALTH_CONNECT
+  WEAR_OS
+}
+
 // Los enums siguientes deben coincidir con @garfit/domain y @garfit/movements (fuente de
 // verdad); apps/api/test/shared-enums.spec.ts falla si divergen.
 
@@ -407,9 +413,10 @@ model Workout {
   updatedAt       DateTime      @updatedAt
 
   user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wod       Wod?              @relation(fields: [wodId], references: [id], onDelete: Restrict)
-  exercises WorkoutExercise[]
-  score     WorkoutScore?
+  wod        Wod?               @relation(fields: [wodId], references: [id], onDelete: Restrict)
+  exercises  WorkoutExercise[]
+  score      WorkoutScore?
+  biometrics WorkoutBiometrics?
 
   @@index([userId, deletedAt, status, performedOn])
   @@index([wodId])
@@ -470,6 +477,22 @@ model WorkoutScore {
   completed     Boolean?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+}
+
+/// Datos biométricos agregados de smartwatch vinculados al entrenamiento (1:1).
+model WorkoutBiometrics {
+  workoutId          String          @id
+  avgHeartRateBpm    Int?
+  maxHeartRateBpm    Int?
+  activeCaloriesKcal Int?
+  startedAt          DateTime
+  endedAt            DateTime
+  source             BiometricSource
+  externalId         String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
 
   workout Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
 }

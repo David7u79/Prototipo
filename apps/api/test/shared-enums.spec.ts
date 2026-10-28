@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BIOMETRIC_SOURCES } from '@garfit/types';
 import {
   EXPERIENCE_LEVELS,
   PRIMARY_GOALS,
@@ -16,6 +17,7 @@ import {
   MUSCLE_GROUPS,
 } from '@garfit/movements';
 import {
+  BiometricSource,
   Equipment,
   ExperienceLevel,
   MovementCategory,
@@ -38,6 +40,7 @@ describe('enums compartidos', () => {
     expect(Object.values(RecordType)).toEqual(RECORD_TYPES);
     expect(Object.values(RecordUnit)).toEqual(RECORD_UNITS);
     expect(Object.values(RecordSource)).toEqual(RECORD_SOURCES);
+    expect(Object.values(BiometricSource)).toEqual(BIOMETRIC_SOURCES);
     expect(Object.values(WorkoutType)).toEqual(WORKOUT_TYPES);
     expect(Object.values(WorkoutStatus)).toEqual(WORKOUT_STATUSES);
     expect(Object.values(MovementCategory)).toEqual(MOVEMENT_CATEGORIES);

@@ -41,4 +41,30 @@ export function toDerivedPersonalRecords(rows: RecordRow[], workoutResultIds: Se
   });
 }
 import { computeChange, summarizeSeries } from '@garfit/domain';
+import type { BiometricSource, WorkoutBiometrics } from '@garfit/types';
 import { toPersonalRecord, toRecordEntry, type RecordRow } from '../records/records.mapper.js';
+
+export function toWorkoutBiometrics(
+  row: {
+    avgHeartRateBpm: number | null;
+    maxHeartRateBpm: number | null;
+    activeCaloriesKcal: number | null;
+    startedAt: Date;
+    endedAt: Date;
+    source: BiometricSource;
+    externalId: string | null;
+    updatedAt: Date;
+  } | null,
+): WorkoutBiometrics | null {
+  if (!row) return null;
+  return {
+    avgHeartRateBpm: row.avgHeartRateBpm ?? null,
+    maxHeartRateBpm: row.maxHeartRateBpm ?? null,
+    activeCaloriesKcal: row.activeCaloriesKcal ?? null,
+    startedAt: row.startedAt.toISOString(),
+    endedAt: row.endedAt.toISOString(),
+    source: row.source,
+    externalId: row.externalId ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}

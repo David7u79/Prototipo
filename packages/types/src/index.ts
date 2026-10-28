@@ -446,6 +446,22 @@ export interface DerivedPersonalRecord {
   change: Change | null;
 }
 
+/** Origen de los datos biométricos de smartwatch. */
+export const BIOMETRIC_SOURCES = ['HEALTH_CONNECT', 'WEAR_OS'] as const;
+export type BiometricSource = (typeof BIOMETRIC_SOURCES)[number];
+
+/** Datos biométricos agregados de smartwatch vinculados al entrenamiento (1:1). */
+export interface WorkoutBiometrics {
+  avgHeartRateBpm: number | null;
+  maxHeartRateBpm: number | null;
+  activeCaloriesKcal: number | null;
+  startedAt: string;
+  endedAt: string;
+  source: BiometricSource;
+  externalId: string | null;
+  updatedAt: string;
+}
+
 /** Entrenamiento en listados e historial (`GET /workouts`). */
 export interface WorkoutListItem {
   id: string;
@@ -480,6 +496,8 @@ export interface WorkoutDetail extends WorkoutPrescriptionFields {
   exercises: WorkoutExercise[];
   /** Score global; `null` si no se registró o el tipo se mide por series. */
   score: WorkoutScore | null;
+  /** Datos biométricos agregados de smartwatch; `null` si no se vincularon. */
+  biometrics: WorkoutBiometrics | null;
   headline: string | null;
   volumeKg: number;
   personalRecords: DerivedPersonalRecord[];

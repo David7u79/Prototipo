@@ -19,6 +19,7 @@ import {
   CreateWorkoutDto,
   ResultsDto,
   UpdateWorkoutDto,
+  WorkoutBiometricsDto,
   WorkoutFiltersDto,
 } from './dto/workout.dto.js';
 import {
@@ -89,5 +90,18 @@ export class WorkoutsController {
     @Body() dto: CompleteWorkoutDto,
   ) {
     return this.workouts.complete(user.id, id, dto);
+  }
+  @Put(':id/biometrics') @ApiOkResponse({ type: WorkoutDetailResponse }) putBiometrics(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: WorkoutBiometricsDto,
+  ) {
+    return this.workouts.saveBiometrics(user.id, id, dto);
+  }
+  @Delete(':id/biometrics') @HttpCode(204) removeBiometrics(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+  ) {
+    return this.workouts.removeBiometrics(user.id, id);
   }
 }

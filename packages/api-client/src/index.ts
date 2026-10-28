@@ -47,6 +47,7 @@ import type {
   RegisterInput,
   UpdateRecordInput,
   UpdateWorkoutInput,
+  WorkoutBiometricsInput,
   WorkoutResultsInput,
 } from '@garfit/validation';
 
@@ -230,6 +231,12 @@ export function createApiClient(options: ApiClientOptions) {
        */
       complete: (id: string, input: CompleteWorkoutInput = {}) =>
         request<WorkoutDetail>('POST', `${workoutPath(id)}/complete`, input, true),
+      /** Guarda o reemplaza los datos biométricos de smartwatch (crea o reemplaza, idempotente). */
+      putWorkoutBiometrics: (id: string, input: WorkoutBiometricsInput) =>
+        request<WorkoutDetail>('PUT', `${workoutPath(id)}/biometrics`, input, true),
+      /** Borra los datos biométricos de smartwatch vinculados al entrenamiento. */
+      deleteWorkoutBiometrics: (id: string) =>
+        request<void>('DELETE', `${workoutPath(id)}/biometrics`, undefined, true),
     },
 
     /**

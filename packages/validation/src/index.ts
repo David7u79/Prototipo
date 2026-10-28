@@ -451,6 +451,82 @@ export const workoutScoreInputSchema = z
   .strict();
 export type WorkoutScoreInput = z.input<typeof workoutScoreInputSchema>;
 
+export const BIOMETRIC_SOURCES = ['HEALTH_CONNECT', 'WEAR_OS'] as const;
+export type BiometricSource = (typeof BIOMETRIC_SOURCES)[number];
+
+/**
+ * `PUT /workouts/:id/biometrics`: crea o reemplaza los datos biométricos agregados.
+ * FC entera 30–250 lpm; si ambas están presentes max >= avg; calorías enteras 0–5000;
+ * endedAt > startedAt; al menos una de las tres métricas debe ser no null.
+ */
+export const workoutBiometricsInputSchema = z
+  .object({
+    avgHeartRateBpm: z
+      .number()
+      .int('Debe ser un número entero')
+      .min(30, 'La frecuencia cardíaca mínima es 30 lpm')
+      .max(250, 'La frecuencia cardíaca máxima es 250 lpm')
+      .nullable()
+      .default(null),
+    maxHeartRateBpm: z
+      .number()
+      .int('Debe ser un número entero')
+      .min(30, 'La frecuencia cardíaca mínima es 30 lpm')
+      .max(250, 'La frecuencia cardíaca máxima es 250 lpm')
+      .nullable()
+      .default(null),
+    activeCaloriesKcal: z
+      .number()
+      .int('Debe ser un número entero')
+      .min(0, 'Las calorías no pueden ser negativas')
+      .max(5000, 'Las calorías no pueden superar 5000 kcal')
+      .nullable()
+      .default(null),
+    startedAt: z.string().datetime({ offset: true }),
+    endedAt: z.string().datetime({ offset: true }),
+    source: z.enum(BIOMETRIC_SOURCES),
+    externalId: z
+      .string()
+      .trim()
+      .max(200, 'El identificador externo no puede superar 200 caracteres')
+      .nullable()
+      .default(null),
+  })
+  .strict()
+  .superRefine((input, ctx) => {
+    if (new Date(input.endedAt).getTime() <= new Date(input.startedAt).getTime()) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['endedAt'],
+        message: '`endedAt` debe ser posterior a `startedAt`',
+      });
+    }
+    if (
+      input.avgHeartRateBpm != null &&
+      input.maxHeartRateBpm != null &&
+      input.maxHeartRateBpm < input.avgHeartRateBpm
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['maxHeartRateBpm'],
+        message: 'La frecuencia cardíaca máxima debe ser mayor o igual a la media',
+      });
+    }
+    if (
+      input.avgHeartRateBpm == null &&
+      input.maxHeartRateBpm == null &&
+      input.activeCaloriesKcal == null
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['avgHeartRateBpm'],
+        message: 'Indica al menos una métrica de frecuencia cardíaca o calorías',
+      });
+    }
+  });
+export type WorkoutBiometricsInput = z.input<typeof workoutBiometricsInputSchema>;
+export type WorkoutBiometricsPayload = z.output<typeof workoutBiometricsInputSchema>;
+
 /**
  * `PUT /workouts/:id/results`: reemplaza todos los resultados y el score. Cada ejercicio se
  * identifica por su id y sus series por `setNumber` (únicos). Límite total de series.

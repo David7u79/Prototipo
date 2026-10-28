@@ -9,6 +9,7 @@ import {
   type WorkoutStatus,
   type WorkoutType,
 } from '@garfit/domain';
+import { BIOMETRIC_SOURCES, type BiometricSource } from '@garfit/types';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -97,6 +98,30 @@ export class ResultsDto {
 export class CompleteWorkoutDto {
   @IsOptional() @IsString() performedOn?: string;
   @IsOptional() @ValidateNested() @Type(() => ResultsDto) results?: ResultsDto;
+}
+
+export class WorkoutBiometricsDto {
+  @IsOptional()
+  avgHeartRateBpm?: number | null = null;
+
+  @IsOptional()
+  maxHeartRateBpm?: number | null = null;
+
+  @IsOptional()
+  activeCaloriesKcal?: number | null = null;
+
+  @IsString()
+  startedAt!: string;
+
+  @IsString()
+  endedAt!: string;
+
+  @IsIn(BIOMETRIC_SOURCES)
+  source!: BiometricSource;
+
+  @IsOptional()
+  @IsString()
+  externalId?: string | null = null;
 }
 export class WorkoutFiltersDto {
   @IsOptional() @IsString() from?: string;
