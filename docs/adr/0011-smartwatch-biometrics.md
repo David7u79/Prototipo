@@ -38,6 +38,11 @@ sensible, que exige consentimiento expreso y minimización. GarFit se distribuye
    Services (`ExerciseClient`) y envía al móvil por Wearable Data Layer; el móvil recibe con un
    módulo nativo Expo y llama al mismo endpoint con `source = WEAR_OS`. El reloj no se autentica
    contra la API. Requisito: mismo `applicationId` (`com.garfit.app`) y misma firma que el APK móvil.
+   Primer corte (B1): el reloj graba una sesión de fuerza con FC en vivo y publica sólo el resumen
+   (media, máxima, calorías, ventana) como `DataItem` en `/garfit/workout-summary/<sessionId>`; el
+   móvil lo lee al vincular, lo empareja con la misma regla de ±15 min y lo borra tras guardarlo.
+   Registrar series desde la muñeca queda para un corte posterior: exige catálogo de movimientos y
+   sesión en el reloj.
 
 ## Alternativas consideradas
 
