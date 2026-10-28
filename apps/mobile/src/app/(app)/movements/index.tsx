@@ -6,9 +6,10 @@ import {
 } from '@garfit/movements';
 import type { Equipment, MovementCategory, MovementSummary } from '@garfit/types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, Text, View } from 'react-native';
 import { Card, Field, Screen, uiStyles } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { selectMovement } from '@/lib/movement-picker';
 
@@ -23,13 +24,17 @@ export default function MovementsScreen() {
   const [category, setCategory] = useState<MovementCategory | undefined>();
   const [equipment, setEquipment] = useState<Equipment | undefined>();
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guards live in refs: if `load` depended on `loading`/`totalPages`, each request would
+  // recreate it and re-fire the search effect in a loop (429 in production).
+  const busy = useRef(false);
+  const totalPagesRef = useRef(1);
 
   const load = useCallback(
     async (nextPage: number, replace = false) => {
-      if (loading || (!replace && nextPage > totalPages)) return;
+      if (busy.current || (!replace && nextPage > totalPagesRef.current)) return;
+      busy.current = true;
       setLoading(true);
       setError(null);
       try {
@@ -38,14 +43,15 @@ export default function MovementsScreen() {
         );
         setItems((current) => (replace ? result.items : [...current, ...result.items]));
         setPage(nextPage);
-        setTotalPages(result.totalPages);
+        totalPagesRef.current = result.totalPages;
       } catch (cause) {
         setError(messageFor(cause));
       } finally {
+        busy.current = false;
         setLoading(false);
       }
     },
-    [category, equipment, loading, request, search, totalPages],
+    [category, equipment, request, search],
   );
 
   useEffect(() => {
@@ -108,8 +114,9 @@ export default function MovementsScreen() {
           >
             <Card>
               <Text>{item.name}</Text>
-              <Text style={uiStyles.muted}>{`${MOVEMENT_CATEGORY_LABELS[item.category]} ·
-                ${EQUIPMENT_LABELS[item.equipment]}`}</Text>
+              <Text style={uiStyles.muted}>
+                {`${MOVEMENT_CATEGORY_LABELS[item.category]} · ${EQUIPMENT_LABELS[item.equipment]}`}
+              </Text>
             </Card>
           </Pressable>
         )}
@@ -134,10 +141,12 @@ function Filter<Value extends string>({
   onSelect,
 }: FilterProps<Value>) {
   return (
-    <View>
+    <View style={{ gap: 8 }}>
       <Text>{label}</Text>
       <FlatList
         horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: 8 }}
         data={values}
         keyExtractor={(value) => value}
         renderItem={({ item }) => (
@@ -145,8 +154,16 @@ function Filter<Value extends string>({
             accessibilityRole="button"
             accessibilityState={{ selected: item === selected }}
             onPress={() => onSelect(item === selected ? undefined : item)}
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderWidth: 1,
+              borderRadius: 999,
+              borderColor: item === selected ? colors.accent : colors.border,
+              backgroundColor: item === selected ? colors.accentSoft : colors.surface,
+            }}
           >
-            <Text>{labels[item]}</Text>
+            <Text style={{ color: item === selected ? colors.accent : colors.text }}>{labels[item]}</Text>
           </Pressable>
         )}
       />

@@ -1,5 +1,5 @@
 import type { WorkoutListItem } from '@garfit/types';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Card, Screen, Title, uiStyles } from '@/components/ui';
@@ -11,12 +11,16 @@ export default function HistoryScreen() {
   const router = useRouter();
   const [items, setItems] = useState<WorkoutListItem[]>([]);
   const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guards live in refs: if `load` depended on `loading`/`pages`, each request would
+  // recreate it and re-fire useFocusEffect in a loop (429 in production).
+  const busy = useRef(false);
+  const pagesRef = useRef(1);
   const load = useCallback(
     async (next = 1, refresh = false) => {
-      if (loading || (!refresh && next > pages)) return;
+      if (busy.current || (!refresh && next > pagesRef.current)) return;
+      busy.current = true;
       setLoading(true);
       try {
         const result = await request(() =>
@@ -24,15 +28,16 @@ export default function HistoryScreen() {
         );
         setItems((old) => (refresh ? result.items : [...old, ...result.items]));
         setPage(next);
-        setPages(result.totalPages);
+        pagesRef.current = result.totalPages;
         setError(null);
       } catch (cause) {
         setError(messageFor(cause));
       } finally {
+        busy.current = false;
         setLoading(false);
       }
     },
-    [loading, pages, request],
+    [request],
   );
   useFocusEffect(
     useCallback(() => {
