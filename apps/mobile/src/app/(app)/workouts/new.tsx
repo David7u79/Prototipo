@@ -1,10 +1,21 @@
-import type { WorkoutType } from '@garfit/types';
+import type { MovementSummary, WorkoutType } from '@garfit/types';
 import { WORKOUT_TYPE_LABELS, createWorkoutSchema } from '@garfit/validation';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Field, Label, Screen, Title } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import {
+  Button,
+  Card,
+  Chip,
+  Field,
+  Icon,
+  Label,
+  ListRow,
+  SectionHeader,
+  Title,
+  uiStyles,
+} from '@/components/ui';
+import { colors, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { listenForMovementSelection } from '@/lib/movement-picker';
 import { createWorkoutPayload, type EditableExercise } from '@/lib/workouts';
@@ -39,6 +50,11 @@ export default function NewWorkoutScreen() {
   const [exercises, setExercises] = useState<EditableExercise[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Buscador inline de movimientos
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState<MovementSummary[]>([]);
+  const [searching, setSearching] = useState(false);
+
   const addMovement = useCallback(
     async (slug: string) => {
       try {
@@ -47,6 +63,8 @@ export default function NewWorkoutScreen() {
           ...items,
           blankExercise(slug, movement.name, movement.recordTypes),
         ]);
+        setSearch('');
+        setSearchResults([]);
       } catch (error) {
         Alert.alert('No se pudo agregar', messageFor(error));
       }
@@ -55,6 +73,27 @@ export default function NewWorkoutScreen() {
   );
 
   useEffect(() => listenForMovementSelection((slug) => void addMovement(slug)), [addMovement]);
+
+  // Búsqueda en vivo de movimientos
+  useEffect(() => {
+    const term = search.trim();
+    const timer = setTimeout(async () => {
+      if (!term) {
+        setSearchResults([]);
+        return;
+      }
+      setSearching(true);
+      try {
+        const res = await request(() => api.movements.list({ search: term, limit: 5 }));
+        setSearchResults(res.items);
+      } catch {
+        setSearchResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [request, search]);
 
   function updateExercise(index: number, patch: Partial<EditableExercise>) {
     setExercises((items) => items.map((item, i) => (i === index ? { ...item, ...patch } : item)));
@@ -87,204 +126,236 @@ export default function NewWorkoutScreen() {
   }
 
   const global = workoutType === 'FOR_TIME' || workoutType === 'AMRAP' || workoutType === 'EMOM';
+
   return (
-    <ScrollView style={styles.scroll}>
-      <Screen>
-        <Title>Nuevo entrenamiento</Title>
-        <Field
-          label="Nombre"
-          accessibilityLabel="Nombre"
-          value={name}
-          onChangeText={setName}
-          placeholder="Nombre del entrenamiento"
-        />
-        <Label>Tipo</Label>
-        <View style={styles.chips}>
+    <ScrollView style={styles.scroll} contentContainerStyle={uiStyles.scroll}>
+      <Title>Nuevo entrenamiento</Title>
+
+      <Field
+        label="Nombre del entrenamiento"
+        accessibilityLabel="Nombre"
+        value={name}
+        onChangeText={setName}
+        placeholder="p. ej. Pierna y empuje"
+      />
+
+      <View style={styles.fieldBlock}>
+        <Label>Tipo de entrenamiento</Label>
+        <View style={styles.chipsRow}>
           {TYPES.map((type) => (
-            <Choice
+            <Chip
               key={type}
               label={WORKOUT_TYPE_LABELS[type]}
-              active={type === workoutType}
+              selected={type === workoutType}
               onPress={() => setWorkoutType(type)}
             />
           ))}
         </View>
-        {global ? (
-          <Card>
-            {workoutType === 'AMRAP' || workoutType === 'EMOM' || workoutType === 'FOR_TIME' ? (
-              <Field
-                label="Duración"
-                accessibilityLabel="Duración o límite"
-                value={duration}
-                onChangeText={setDuration}
-                placeholder={
-                  workoutType === 'FOR_TIME' ? 'Límite mm:ss (opcional)' : 'mm:ss'
-                }
-                keyboardType="numbers-and-punctuation"
-              />
-            ) : null}
-            {workoutType === 'EMOM' ? (
-              <Field
-                label="Intervalo"
-                accessibilityLabel="Intervalo"
-                value={interval}
-                onChangeText={setInterval}
-                placeholder="mm:ss"
-                keyboardType="numbers-and-punctuation"
-              />
-            ) : null}
-            {workoutType === 'FOR_TIME' || workoutType === 'AMRAP' ? (
-              <Field
-                label="Rondas"
-                accessibilityLabel="Rondas"
-                value={rounds}
-                onChangeText={setRounds}
-                placeholder="Rondas (opcional)"
-                keyboardType="numeric"
-              />
-            ) : null}
-            {workoutType === 'FOR_TIME' ? (
-              <Field
-                label="Esquema"
-                accessibilityLabel="Esquema de repeticiones"
-                value={repScheme}
-                onChangeText={setRepScheme}
-                placeholder="p. ej. 21-15-9"
-                keyboardType="numeric"
-              />
-            ) : null}
-          </Card>
-        ) : null}
-        {exercises.map((exercise, index) => (
-          <ExerciseBuilder
-            key={`${exercise.movementSlug}-${index}`}
-            exercise={exercise}
-            onChange={(patch) => updateExercise(index, patch)}
-            onMove={(offset) => setExercises((items) => move(items, index, offset))}
-            onRemove={() => setExercises((items) => items.filter((_, i) => i !== index))}
-          />
-        ))}
-        <Button
-          label="Agregar movimiento"
-          onPress={() => router.push('/(app)/movements?select=1')}
-          secondary
-        />
-        <Button
-          label={saving ? 'Creando…' : 'Crear entrenamiento'}
-          onPress={() => void create()}
-          disabled={saving}
-        />
-      </Screen>
-    </ScrollView>
-  );
-}
+      </View>
 
-function Choice({
-  label,
-  active,
-  onPress,
-}: {
-  label: string;
-  active: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      onPress={onPress}
-      style={[styles.chip, active && styles.selectedChip]}
-    >
-      <Text style={[styles.chipText, active && styles.selectedChipText]}>{label}</Text>
-    </Pressable>
+      {global ? (
+        <Card style={styles.globalCard}>
+          <Label>Configuración global</Label>
+          {workoutType === 'AMRAP' || workoutType === 'EMOM' || workoutType === 'FOR_TIME' ? (
+            <Field
+              label="Duración o límite"
+              accessibilityLabel="Duración o límite"
+              value={duration}
+              onChangeText={setDuration}
+              placeholder={workoutType === 'FOR_TIME' ? 'Límite mm:ss (opcional)' : 'mm:ss'}
+              keyboardType="numbers-and-punctuation"
+            />
+          ) : null}
+          {workoutType === 'EMOM' ? (
+            <Field
+              label="Intervalo de trabajo"
+              accessibilityLabel="Intervalo"
+              value={interval}
+              onChangeText={setInterval}
+              placeholder="mm:ss"
+              keyboardType="numbers-and-punctuation"
+            />
+          ) : null}
+          {workoutType === 'FOR_TIME' || workoutType === 'AMRAP' ? (
+            <Field
+              label="Rondas objetivo"
+              accessibilityLabel="Rondas"
+              value={rounds}
+              onChangeText={setRounds}
+              placeholder="p. ej. 5 (opcional)"
+              keyboardType="numeric"
+            />
+          ) : null}
+          {workoutType === 'FOR_TIME' ? (
+            <Field
+              label="Esquema de repeticiones"
+              accessibilityLabel="Esquema de repeticiones"
+              value={repScheme}
+              onChangeText={setRepScheme}
+              placeholder="p. ej. 21-15-9"
+            />
+          ) : null}
+        </Card>
+      ) : null}
+
+      {/* Buscador de ejercicios */}
+      <View style={styles.fieldBlock}>
+        <SectionHeader title="Ejercicios" />
+        <Field
+          label="Buscar y añadir ejercicio"
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Busca por nombre (ej. Sentadilla)…"
+        />
+
+        {searching ? <Text style={uiStyles.muted}>Buscando…</Text> : null}
+
+        {searchResults.length > 0 ? (
+          <View style={styles.searchResults}>
+            {searchResults.map((m) => (
+              <ListRow
+                key={m.id}
+                icon={{ ios: 'plus.circle.fill', android: 'add' }}
+                tone="accent"
+                title={m.name}
+                subtitle={`${m.category} · ${m.equipment}`}
+                onPress={() => void addMovement(m.slug)}
+              />
+            ))}
+          </View>
+        ) : null}
+
+        <Button
+          label="Explorar todos los movimientos"
+          variant="secondary"
+          icon={{ ios: 'magnifyingglass', android: 'search' }}
+          onPress={() => router.push('/(app)/movements?select=1')}
+        />
+      </View>
+
+      {/* Lista de ejercicios añadidos */}
+      {exercises.map((exercise, index) => (
+        <ExerciseBuilder
+          key={`${exercise.movementSlug}-${index}`}
+          exercise={exercise}
+          index={index}
+          onChange={(patch) => updateExercise(index, patch)}
+          onMove={(offset) => setExercises((items) => move(items, index, offset))}
+          onRemove={() => setExercises((items) => items.filter((_, i) => i !== index))}
+        />
+      ))}
+
+      <Button
+        label={saving ? 'Creando sesión…' : 'Crear entrenamiento'}
+        onPress={() => void create()}
+        disabled={saving}
+      />
+    </ScrollView>
   );
 }
 
 function ExerciseBuilder({
   exercise,
+  index,
   onChange,
   onMove,
   onRemove,
 }: {
   exercise: EditableExercise;
+  index: number;
   onChange: (patch: Partial<EditableExercise>) => void;
   onMove: (offset: number) => void;
   onRemove: () => void;
 }) {
   const records = new Set(exercise.recordTypes);
+
   return (
     <Card style={styles.exerciseCard}>
       <View style={styles.exerciseHeader}>
-        <Text style={styles.exerciseName}>{exercise.name}</Text>
+        <View style={styles.exerciseHeaderLeft}>
+          <Chip label={`#${index + 1}`} tone="accent" />
+          <Text style={styles.exerciseName} numberOfLines={1}>
+            {exercise.name}
+          </Text>
+        </View>
         <View style={styles.exerciseActions}>
-          <Pressable accessibilityLabel="Mover arriba" hitSlop={8} onPress={() => onMove(-1)}>
-            <Text style={styles.moveText}>↑</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mover arriba"
+            hitSlop={8}
+            onPress={() => onMove(-1)}
+            style={({ pressed }) => [styles.iconBtn, pressed && uiStyles.pressed]}
+          >
+            <Icon name={{ ios: 'arrow.up', android: 'arrow_upward' }} size={18} color={colors.muted} />
           </Pressable>
-          <Pressable accessibilityLabel="Mover abajo" hitSlop={8} onPress={() => onMove(1)}>
-            <Text style={styles.moveText}>↓</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mover abajo"
+            hitSlop={8}
+            onPress={() => onMove(1)}
+            style={({ pressed }) => [styles.iconBtn, pressed && uiStyles.pressed]}
+          >
+            <Icon name={{ ios: 'arrow.down', android: 'arrow_downward' }} size={18} color={colors.muted} />
           </Pressable>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`Quitar ${exercise.name}`}
-            hitSlop={12}
+            hitSlop={8}
             onPress={onRemove}
+            style={({ pressed }) => [styles.iconBtn, pressed && uiStyles.pressed]}
           >
-            <Text style={styles.removeText}>Quitar</Text>
+            <Icon name={{ ios: 'trash', android: 'delete' }} size={18} color={colors.danger} />
           </Pressable>
         </View>
       </View>
-      <View style={styles.grid}>
-        <View style={styles.gridItem}>
+
+      <View style={styles.inputsGrid}>
+        <View style={styles.inputCol}>
           <Field
             label="Series"
-            accessibilityLabel={`Series de ${exercise.name}`}
             value={exercise.sets}
             onChangeText={(sets) => onChange({ sets })}
-            placeholder="Series"
+            placeholder="3"
             keyboardType="numeric"
           />
         </View>
         {records.has('REPS') || records.has('WEIGHT') ? (
-          <View style={styles.gridItem}>
+          <View style={styles.inputCol}>
             <Field
               label="Reps"
-              accessibilityLabel={`Repeticiones de ${exercise.name}`}
               value={exercise.reps}
               onChangeText={(reps) => onChange({ reps })}
-              placeholder="Reps"
+              placeholder="10"
               keyboardType="numeric"
             />
           </View>
         ) : null}
         {records.has('WEIGHT') ? (
-          <View style={styles.gridItem}>
+          <View style={styles.inputCol}>
             <Field
-              label="Carga"
-              accessibilityLabel={`Carga de ${exercise.name}`}
+              label="Carga (kg)"
               value={exercise.loadValue}
               onChangeText={(loadValue) => onChange({ loadValue })}
-              placeholder="kg"
+              placeholder="60"
               keyboardType="decimal-pad"
             />
           </View>
         ) : null}
         {records.has('DISTANCE') || records.has('TIME') ? (
-          <View style={styles.gridItem}>
+          <View style={styles.inputCol}>
             <Field
-              label="Distancia"
-              accessibilityLabel={`Distancia de ${exercise.name}`}
+              label="Distancia (m)"
               value={exercise.distanceValue}
               onChangeText={(distanceValue) => onChange({ distanceValue })}
-              placeholder="m"
+              placeholder="500"
               keyboardType="decimal-pad"
             />
           </View>
         ) : null}
         {records.has('DURATION') || records.has('TIME') ? (
-          <View style={styles.gridItem}>
+          <View style={styles.inputCol}>
             <Field
               label="Duración"
-              accessibilityLabel={`Duración de ${exercise.name}`}
               value={exercise.duration}
               onChangeText={(duration) => onChange({ duration })}
               placeholder="mm:ss"
@@ -306,64 +377,60 @@ function move<T>(items: T[], index: number, offset: number): T[] {
 }
 
 const styles = StyleSheet.create({
-  scroll: { backgroundColor: colors.background, flex: 1 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+  scroll: {
+    backgroundColor: colors.background,
+    flex: 1,
   },
-  selectedChip: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accentSoft,
+  fieldBlock: {
+    gap: space.sm,
   },
-  chipText: {
-    color: colors.text,
-    fontSize: 14,
-    fontWeight: '600',
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
   },
-  selectedChipText: {
-    color: colors.accent,
+  globalCard: {
+    gap: space.md,
+  },
+  searchResults: {
+    gap: space.xs,
   },
   exerciseCard: {
-    gap: 12,
+    gap: space.md,
   },
   exerciseHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: space.sm,
+  },
+  exerciseHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    flex: 1,
   },
   exerciseName: {
     color: colors.text,
-    fontSize: 17,
-    fontWeight: '700',
+    ...type.headline,
     flex: 1,
   },
   exerciseActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 4,
   },
-  moveText: {
-    color: colors.muted,
-    fontSize: 18,
-    fontWeight: '700',
+  iconBtn: {
+    padding: 8,
+    borderRadius: 8,
   },
-  removeText: {
-    color: colors.danger,
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  grid: {
+  inputsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 10,
+    gap: space.sm,
   },
-  gridItem: {
-    width: '48%',
+  inputCol: {
+    flex: 1,
+    minWidth: '45%',
   },
 });

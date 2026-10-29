@@ -10,10 +10,11 @@ import {
   Text,
   View,
 } from 'react-native';
-import { Button, Card, Stat, Title, uiStyles } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Button, Card, Icon, Label, ListRow, SectionHeader, Stat, uiStyles } from '@/components/ui';
+import { colors, gradients, radius, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
-import { formatChange, formatValue } from '@/lib/presentation';
+import { formatValue } from '@/lib/presentation';
 
 export default function HomeScreen() {
   const { loadProfile, profile, request, user } = useSession();
@@ -57,243 +58,284 @@ export default function HomeScreen() {
   );
 
   const system = profile?.preferredUnits ?? 'METRIC';
-  const latestRecord = data?.latestRecord;
-  const recentImprovement = data?.recentImprovement;
   const recentRecords = (data?.recentRecords ?? []).slice(0, 5);
-  const hasNoData = Boolean(data && data.totalRecords === 0);
+  const todayFormatted = new Intl.DateTimeFormat('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date());
+
+  const userInitial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
+  const activeWorkout = workoutStats?.lastWorkout && workoutStats.lastWorkout.status !== 'COMPLETED'
+    ? workoutStats.lastWorkout
+    : null;
 
   return (
-    <ScrollView
-      contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          colors={[colors.accent]}
-          onRefresh={() => void load(true)}
-          refreshing={refreshing}
-          tintColor={colors.accent}
-        />
-      }
-      style={styles.container}
-    >
-      <Title>Hola{user?.name ? `, ${user.name}` : ''}.</Title>
+    <SafeAreaView edges={['top']} style={styles.safe}>
+      <ScrollView
+        contentContainerStyle={uiStyles.scroll}
+        refreshControl={
+          <RefreshControl
+            colors={[colors.accent]}
+            onRefresh={() => void load(true)}
+            refreshing={refreshing}
+            tintColor={colors.accent}
+          />
+        }
+        style={styles.container}
+      >
+        {/* Cabecera propia */}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.greeting}>Hola, {user?.name ?? 'atleta'}</Text>
+            <Label>{todayFormatted}</Label>
+          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Ir al perfil"
+            onPress={() => router.push('/(app)/(tabs)/profile')}
+            style={({ pressed }) => [styles.avatar, pressed && uiStyles.pressed]}
+          >
+            <Text style={styles.avatarText}>{userInitial}</Text>
+          </Pressable>
+        </View>
 
-      <Button label="Registrar entrenamiento" onPress={() => router.push('/(app)/workouts/new')} />
-
-      {error ? (
-        <View accessible={true} accessibilityLabel={`Error: ${error}`}>
+        {error ? (
           <Card style={styles.errorCard}>
             <Text style={styles.errorText}>{error}</Text>
-            <Button label="Reintentar" onPress={() => void load()} />
+            <Button label="Reintentar" onPress={() => void load()} variant="secondary" />
           </Card>
-        </View>
-      ) : null}
+        ) : null}
 
-      {loading && !data && !error ? (
-        <View
-          accessible={true}
-          accessibilityLabel="Cargando resumen de marcas"
-          style={styles.loadingContainer}
-        >
-          <ActivityIndicator color={colors.accent} size="large" />
-        </View>
-      ) : null}
+        {loading && !data && !error ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={colors.accent} size="large" />
+          </View>
+        ) : null}
 
-      {data ? (
-        <>
-          <View
-            accessible={true}
-            accessibilityLabel={`Movimientos con marca: ${data.movementsWithRecords}. Marcas registradas: ${data.totalRecords}`}
-          >
-            <Card style={styles.statsRow}>
-              <Stat label="Movimientos con marca" value={data.movementsWithRecords} />
-              <Stat label="Marcas registradas" value={data.totalRecords} />
+        {/* Card Hero */}
+        {activeWorkout ? (
+          <Card hero style={styles.heroCard}>
+            <Label>Entrenamiento activo</Label>
+            <Text style={styles.heroTitle}>Continúa: {activeWorkout.name}</Text>
+            <Text style={uiStyles.muted}>
+              {activeWorkout.performedOn ?? 'Hoy'} · {activeWorkout.status === 'IN_PROGRESS' ? 'En curso' : 'Borrador'}
+            </Text>
+            <Button
+              label="Continuar"
+              onPress={() => router.push(`/(app)/workouts/${activeWorkout.id}`)}
+            />
+          </Card>
+        ) : (
+          <Card hero style={styles.heroCard}>
+            <Label>Esta semana</Label>
+            <View style={styles.statGrid}>
+              <Stat
+                label="Sesiones"
+                value={workoutStats?.last7Days ?? 0}
+                tone="metric"
+              />
+              <Stat
+                label="Marcas 30 d"
+                value={workoutStats?.personalRecordsFromWorkoutsLast30Days ?? data?.totalRecords ?? 0}
+                tone="accent"
+              />
+            </View>
+            <Button
+              label="Empezar entrenamiento"
+              onPress={() => router.push('/(app)/workouts/new')}
+            />
+          </Card>
+        )}
+
+        {/* Grid de 2 columnas con Stats */}
+        {workoutStats ? (
+          <View style={styles.grid2}>
+            <Card style={styles.gridCard}>
+              <Stat label="Semana" value={workoutStats.last7Days} tone="metric" />
+            </Card>
+            <Card style={styles.gridCard}>
+              <Stat label="Mes" value={workoutStats.last30Days} tone="metric" />
             </Card>
           </View>
+        ) : null}
 
-          {latestRecord ? (
-            <Pressable
-              accessibilityLabel={`Última marca: ${latestRecord.movement.name}, ${formatValue(
-                latestRecord.recordType,
-                latestRecord.normalizedValue,
-                system,
-              )}, ${latestRecord.performedAt}`}
-              accessibilityRole="button"
-              onPress={() => router.push(`/(app)/records/${latestRecord.movement.slug}`)}
-            >
-              <Card>
-                <Text style={styles.cardTitle}>Última marca</Text>
-                <Text style={uiStyles.muted}>
-                  {`${latestRecord.movement.name} · ${formatValue(
-                    latestRecord.recordType,
-                    latestRecord.normalizedValue,
-                    system,
-                  )} · ${latestRecord.performedAt}`}
-                </Text>
-              </Card>
-            </Pressable>
-          ) : null}
-
-          {recentImprovement ? (
-            <Pressable
-              accessibilityLabel={`Mejora reciente: ${
-                recentImprovement.record.movement.name
-              }, ${formatChange(
-                recentImprovement.record.recordType,
-                Math.abs(recentImprovement.improvement.absolute),
-                system,
-              )}`}
-              accessibilityRole="button"
-              onPress={() =>
-                router.push(`/(app)/records/${recentImprovement.record.movement.slug}`)
-              }
-            >
-              <Card>
-                <Text style={styles.cardTitle}>Mejora reciente</Text>
-                <Text style={uiStyles.muted}>
-                  {`${recentImprovement.record.movement.name} · ${formatChange(
-                    recentImprovement.record.recordType,
-                    Math.abs(recentImprovement.improvement.absolute),
-                    system,
-                  )}`}
-                </Text>
-              </Card>
-            </Pressable>
-          ) : null}
-
-          {workoutStats ? (
-            <WorkoutSummary
-              stats={workoutStats}
-              onOpen={(id) => router.push(`/(app)/workouts/${id}`)}
+        {/* Marcas recientes */}
+        {recentRecords.length > 0 ? (
+          <View style={styles.section}>
+            <SectionHeader
+              title="Marcas recientes"
+              actionLabel="Ver todo"
+              onAction={() => router.push('/(app)/(tabs)/progress')}
             />
-          ) : null}
-
-          {hasNoData ? (
-            <View
-              accessible={true}
-              accessibilityLabel="Marcas personales: No hay marcas personales registradas."
-            >
-              <Card>
-                <Text style={styles.cardTitle}>Marcas personales</Text>
-                <Text style={uiStyles.muted}>No hay marcas personales registradas.</Text>
-                <Button
-                  label="Explorar movimientos"
-                  onPress={() => router.push('/(app)/movements')}
-                  secondary
+            {recentRecords.map((record) => {
+              const formatted = formatValue(record.recordType, record.normalizedValue, system);
+              return (
+                <ListRow
+                  key={record.id}
+                  icon={{ ios: 'trophy.fill', android: 'emoji_events' }}
+                  tone="metric"
+                  title={record.movement.name}
+                  subtitle={record.performedAt}
+                  trailing={formatted}
+                  onPress={() => router.push(`/(app)/records/${record.movement.slug}`)}
                 />
-              </Card>
-            </View>
-          ) : (
-            <>
-              <Text style={styles.sectionTitle}>Últimos registros</Text>
-              {recentRecords.map((record) => {
-                const formatted = formatValue(record.recordType, record.normalizedValue, system);
-                const subtitle = `${formatted} · ${record.performedAt}`;
-                return (
-                  <Pressable
-                    accessibilityLabel={`${record.movement.name}, ${subtitle}`}
-                    accessibilityRole="button"
-                    key={record.id}
-                    onPress={() => router.push(`/(app)/records/${record.movement.slug}`)}
-                  >
-                    <Card>
-                      <Text style={styles.cardTitle}>{record.movement.name}</Text>
-                      <Text style={uiStyles.muted}>{subtitle}</Text>
-                    </Card>
-                  </Pressable>
-                );
-              })}
-              <Button
-                label="Explorar movimientos"
-                onPress={() => router.push('/(app)/movements')}
-                secondary
-              />
-            </>
-          )}
-        </>
-      ) : null}
+              );
+            })}
+          </View>
+        ) : null}
 
-      {!profile ? (
-        <Pressable
-          accessibilityLabel="Completa tu perfil deportivo. Personaliza tu experiencia como atleta."
-          accessibilityRole="button"
-          onPress={() => router.navigate('/(app)/(tabs)/profile')}
-        >
-          <Card style={styles.compactCard}>
-            <Text style={styles.cardTitle}>Completa tu perfil deportivo.</Text>
-            <Text style={uiStyles.muted}>Personaliza tu experiencia como atleta.</Text>
-          </Card>
-        </Pressable>
-      ) : null}
+        {/* Explorar */}
+        <View style={styles.section}>
+          <SectionHeader title="Explorar" />
+          <View style={styles.exploreGrid}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Movimientos"
+              onPress={() => router.push('/(app)/movements')}
+              style={({ pressed }) => [styles.exploreTile, pressed && uiStyles.pressed]}
+            >
+              <View style={[styles.tileIcon, { backgroundColor: colors.accentSoft }]}>
+                <Icon name={{ ios: 'figure.cross.training', android: 'fitness_center' }} color={colors.accent} size={24} />
+              </View>
+              <Text style={styles.tileTitle}>Movimientos</Text>
+            </Pressable>
 
-      <Pressable
-        accessibilityLabel="Abrir análisis inteligente"
-        accessibilityRole="button"
-        onPress={() => router.push('/(app)/ai')}
-      >
-        <Card style={styles.compactCard}>
-          <Text style={styles.cardTitle}>Análisis inteligente</Text>
-          <Text style={uiStyles.muted}>Recibe una explicación de tu progreso deportivo.</Text>
-        </Card>
-      </Pressable>
-    </ScrollView>
-  );
-}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="WODs"
+              onPress={() => router.push('/(app)/wods')}
+              style={({ pressed }) => [styles.exploreTile, pressed && uiStyles.pressed]}
+            >
+              <View style={[styles.tileIcon, { backgroundColor: colors.metricSoft }]}>
+                <Icon name={{ ios: 'timer', android: 'timer' }} color={colors.metric} size={24} />
+              </View>
+              <Text style={styles.tileTitle}>WODs</Text>
+            </Pressable>
 
-function WorkoutSummary({
-  stats,
-  onOpen,
-}: {
-  stats: WorkoutStatsResponse;
-  onOpen: (id: string) => void;
-}) {
-  if (stats.totalCompleted === 0) {
-    return (
-      <Card>
-        <Text style={styles.cardTitle}>Entrenamientos</Text>
-        <Text style={uiStyles.muted}>Aún no has registrado entrenamientos.</Text>
-      </Card>
-    );
-  }
-  return (
-    <>
-      <View
-        accessible={true}
-        accessibilityLabel={`Entrenamientos: ${stats.last7Days} esta semana, ${stats.last30Days} este mes, ${stats.personalRecordsFromWorkoutsLast30Days} marcas desde entrenamientos en 30 días`}
-      >
-        <Card style={styles.statsRow}>
-          <Stat label="Semana" value={stats.last7Days} />
-          <Stat label="Mes" value={stats.last30Days} />
-          <Stat label="Marcas 30 d" value={stats.personalRecordsFromWorkoutsLast30Days} />
-        </Card>
-      </View>
-      {stats.lastWorkout ? (
-        <Pressable
-          accessibilityLabel={`Abrir último entrenamiento ${stats.lastWorkout.name}`}
-          accessibilityRole="button"
-          onPress={() => onOpen(stats.lastWorkout?.id ?? '')}
-        >
-          <Card>
-            <Text style={styles.cardTitle}>Último entrenamiento</Text>
-            <Text style={uiStyles.muted}>
-              {`${stats.lastWorkout.name} · ${stats.lastWorkout.headline ?? 'Sin resultado'} · ${
-                stats.lastWorkout.performedOn ?? 'Sin fecha'
-              }`}
-            </Text>
-          </Card>
-        </Pressable>
-      ) : null}
-    </>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Análisis IA"
+              onPress={() => router.push('/(app)/ai')}
+              style={({ pressed }) => [styles.exploreTile, pressed && uiStyles.pressed]}
+            >
+              <View style={[styles.tileIcon, { backgroundColor: colors.accentSoft }]}>
+                <Icon name={{ ios: 'sparkles', android: 'auto_awesome' }} color={colors.accent} size={24} />
+              </View>
+              <Text style={styles.tileTitle}>Análisis IA</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* Perfil deportivo aviso si incompleto */}
+        {!profile ? (
+          <ListRow
+            icon={{ ios: 'person.crop.circle', android: 'person' }}
+            tone="accent"
+            title="Completa tu perfil deportivo"
+            subtitle="Personaliza tu experiencia como atleta"
+            onPress={() => router.push('/(app)/(tabs)/profile')}
+          />
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  compactCard: { padding: 12 },
-  container: { backgroundColor: colors.background, flex: 1 },
-  content: { gap: 16, padding: 20 },
-  errorCard: { borderColor: colors.danger, gap: 12 },
-  errorText: { color: colors.danger, fontSize: 15 },
-  loadingContainer: { alignItems: 'center', paddingVertical: 32 },
-  sectionTitle: { color: colors.text, fontSize: 20, fontWeight: '700', marginTop: 8 },
-  statsRow: { flexDirection: 'row', gap: 16 },
+  safe: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: space.xs,
+  },
+  headerText: {
+    gap: 2,
+    flex: 1,
+  },
+  greeting: {
+    color: colors.text,
+    ...type.title,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    experimental_backgroundImage: gradients.primary,
+  },
+  avatarText: {
+    color: colors.onAccent,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  heroCard: {
+    gap: space.md,
+  },
+  heroTitle: {
+    color: colors.text,
+    ...type.headline,
+  },
+  statGrid: {
+    flexDirection: 'row',
+    gap: space.md,
+  },
+  grid2: {
+    flexDirection: 'row',
+    gap: space.md,
+  },
+  gridCard: {
+    flex: 1,
+  },
+  section: {
+    gap: space.sm,
+  },
+  exploreGrid: {
+    flexDirection: 'row',
+    gap: space.md,
+  },
+  exploreTile: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: space.md,
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  tileIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileTitle: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  errorCard: {
+    borderColor: colors.danger,
+    gap: space.md,
+  },
+  errorText: {
+    color: colors.danger,
+    ...type.body,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: space.xl,
+  },
 });

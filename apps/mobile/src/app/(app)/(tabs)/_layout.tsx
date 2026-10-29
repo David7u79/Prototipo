@@ -27,7 +27,7 @@ function TrainButton({ onPress, accessibilityState }: TabButtonProps) {
         onPress={onPress}
         style={({ pressed }) => [styles.trainButton, pressed && { transform: [{ scale: 0.94 }] }]}
       >
-        <SymbolView name={{ ios: 'plus', android: 'add' }} tintColor="#FFFFFF" size={30} />
+        <SymbolView name={{ ios: 'plus', android: 'add' }} tintColor={colors.onAccent} size={30} />
       </Pressable>
     </View>
   );

@@ -1,15 +1,16 @@
 import { Stack } from 'expo-router';
+import { headerOptions } from '@/constants/theme';
 
 export default function AppLayout() {
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, ...headerOptions }}>
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="movements/index" options={{ title: 'Movimientos', headerShown: true }} />
       <Stack.Screen name="movements/[slug]" options={{ title: 'Movimiento', headerShown: true }} />
       <Stack.Screen name="records/new" options={{ title: 'Registrar marca', headerShown: true }} />
       <Stack.Screen
         name="records/[movementSlug]"
-        options={{ title: 'Historial', headerShown: true }}
+        options={{ title: 'Marca', headerShown: true }}
       />
       <Stack.Screen
         name="workouts/new"

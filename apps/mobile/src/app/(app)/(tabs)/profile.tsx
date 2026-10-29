@@ -7,33 +7,24 @@ import {
 } from '@garfit/validation';
 import type { ExperienceLevel, PrimaryGoal, UnitSystem } from '@garfit/types';
 import { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Field, Label, Title, uiStyles } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Button,
+  Card,
+  Chip,
+  Field,
+  Label,
+  ListRow,
+  SectionHeader,
+  uiStyles,
+} from '@/components/ui';
+import { colors, gradients, radius, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { profileCanonicalValue, profileDisplayValue } from '@/lib/presentation';
 
-type ChipProps = {
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-};
-
-function Chip({ label, selected, onPress }: ChipProps) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[styles.chip, selected && styles.selectedChip]}
-    >
-      <Text style={[styles.chipText, selected && styles.selectedChipText]}>{label}</Text>
-    </Pressable>
-  );
-}
-
 export default function ProfileScreen() {
+  const router = useRouter();
   const { logout, profile, request, saveProfile, user } = useSession();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>(
@@ -61,7 +52,9 @@ export default function ProfileScreen() {
   useFocusEffect(
     useCallback(() => {
       void request(() => api.ai.status())
-        .then((status) => setAiConsentGiven(status.enabled && status.configured && Boolean(status.consentGivenAt)))
+        .then((status) =>
+          setAiConsentGiven(status.enabled && status.configured && Boolean(status.consentGivenAt)),
+        )
         .catch(() => setAiConsentGiven(false));
     }, [request]),
   );
@@ -77,6 +70,24 @@ export default function ProfileScreen() {
     } finally {
       setAiLoading(false);
     }
+  }
+
+  function confirmRevokeAiConsent() {
+    Alert.alert(
+      '¿Revocar consentimiento?',
+      'Al revocarlo, GarFit dejará de enviar datos deportivos a Google Gemini y no podrás solicitar nuevos análisis hasta aceptarlo otra vez.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Revocar', style: 'destructive', onPress: () => void revokeAiConsent() },
+      ],
+    );
+  }
+
+  function confirmLogout() {
+    Alert.alert('Cerrar sesión', '¿Estás seguro de que quieres cerrar sesión?', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Cerrar sesión', style: 'destructive', onPress: () => void logout() },
+    ]);
   }
 
   async function submit() {
@@ -100,6 +111,7 @@ export default function ProfileScreen() {
     setError(null);
     try {
       await saveProfile(parsed.data);
+      Alert.alert('Perfil actualizado', 'Tus datos se guardaron correctamente.');
     } catch (cause) {
       setError(messageFor(cause));
     } finally {
@@ -107,119 +119,203 @@ export default function ProfileScreen() {
     }
   }
 
-  const providers = user?.providers
-    .map((provider) => (provider === 'LOCAL' ? 'Correo electrónico' : 'Google'))
-    .join(', ');
+  const initial = (displayName || user?.name || user?.email || 'A').charAt(0).toUpperCase();
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-      <Title>Tu perfil</Title>
-      <Card>
-        <Label>Correo electrónico</Label>
-        <Text style={styles.cardValue}>{user?.email}</Text>
-        <Label>Proveedores vinculados</Label>
-        <Text style={styles.cardValue}>{providers || 'Sin proveedores'}</Text>
-      </Card>
-      <Field
-        label="Nombre visible"
-        value={displayName}
-        onChangeText={setDisplayName}
-        placeholder="Cómo quieres que te llamemos"
-      />
-      <Label>Experiencia</Label>
-      <View style={styles.chips}>
-        {EXPERIENCE_LEVELS.map((level) => (
-          <Chip
-            key={level}
-            label={EXPERIENCE_LEVEL_LABELS[level]}
-            selected={experienceLevel === level}
-            onPress={() => setExperienceLevel(level)}
-          />
-        ))}
+    <ScrollView style={styles.scroll} contentContainerStyle={uiStyles.scroll}>
+      {/* Cabecera con avatar grande */}
+      <View style={styles.avatarHeader}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initial}</Text>
+        </View>
+        <Text style={styles.userName}>{displayName || user?.name || 'Atleta'}</Text>
+        <Text style={uiStyles.muted}>{user?.email}</Text>
       </View>
-      <Label>Objetivo principal</Label>
-      <View style={styles.chips}>
-        {PRIMARY_GOALS.map((goal) => (
-          <Chip
-            key={goal}
-            label={PRIMARY_GOAL_LABELS[goal]}
-            selected={primaryGoal === goal}
-            onPress={() => setPrimaryGoal(goal)}
-          />
-        ))}
-      </View>
-      <Label>Unidades</Label>
-      <View style={styles.chips}>
-        <Chip
-          label="Métrico"
-          selected={preferredUnits === 'METRIC'}
-          onPress={() => setPreferredUnits('METRIC')}
-        />
-        <Chip
-          label="Imperial"
-          selected={preferredUnits === 'IMPERIAL'}
-          onPress={() => setPreferredUnits('IMPERIAL')}
+
+      {/* Accesos rápidos */}
+      <View style={styles.group}>
+        <SectionHeader title="Servicios" />
+        <ListRow
+          icon={{ ios: 'sparkles', android: 'auto_awesome' }}
+          tone="accent"
+          title="Análisis inteligente"
+          subtitle="Historial y reportes con IA"
+          onPress={() => router.push('/(app)/ai')}
         />
       </View>
-      <Field
-        label="Fecha de nacimiento (opcional)"
-        value={birthDate}
-        onChangeText={setBirthDate}
-        placeholder="AAAA-MM-DD"
-      />
-      <Field
-        label={`Altura opcional (${preferredUnits === 'IMPERIAL' ? 'pulgadas' : 'cm'})`}
-        value={height}
-        onChangeText={setHeight}
-        keyboardType="decimal-pad"
-      />
-      <Field
-        label={`Peso opcional (${preferredUnits === 'IMPERIAL' ? 'lb' : 'kg'})`}
-        value={weight}
-        onChangeText={setWeight}
-        keyboardType="decimal-pad"
-      />
-      <Field
-        label="Entrenas desde (opcional)"
-        value={trainingSince}
-        onChangeText={setTrainingSince}
-        placeholder="AAAA-MM-DD"
-      />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Button
-        label={saving ? 'Guardando…' : 'Guardar perfil'}
-        disabled={saving}
-        secondary
-        onPress={() => void submit()}
-      />
+
+      {/* Datos atléticos */}
+      <View style={styles.group}>
+        <SectionHeader title="Datos atléticos" />
+
+        <Field
+          label="Nombre visible"
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Cómo quieres que te llamemos"
+        />
+
+        <View style={styles.fieldBlock}>
+          <Label>Nivel de experiencia</Label>
+          <View style={styles.chipsRow}>
+            {EXPERIENCE_LEVELS.map((level) => (
+              <Chip
+                key={level}
+                label={EXPERIENCE_LEVEL_LABELS[level]}
+                selected={experienceLevel === level}
+                onPress={() => setExperienceLevel(level)}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <Label>Objetivo principal</Label>
+          <View style={styles.chipsRow}>
+            {PRIMARY_GOALS.map((goal) => (
+              <Chip
+                key={goal}
+                label={PRIMARY_GOAL_LABELS[goal]}
+                selected={primaryGoal === goal}
+                onPress={() => setPrimaryGoal(goal)}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.fieldBlock}>
+          <Label>Sistema de unidades</Label>
+          <View style={styles.chipsRow}>
+            <Chip
+              label="Métrico (kg, cm)"
+              selected={preferredUnits === 'METRIC'}
+              onPress={() => setPreferredUnits('METRIC')}
+            />
+            <Chip
+              label="Imperial (lb, in)"
+              selected={preferredUnits === 'IMPERIAL'}
+              onPress={() => setPreferredUnits('IMPERIAL')}
+            />
+          </View>
+        </View>
+
+        <Field
+          label="Fecha de nacimiento (opcional)"
+          value={birthDate}
+          onChangeText={setBirthDate}
+          placeholder="AAAA-MM-DD"
+        />
+
+        <Field
+          label={`Altura (${preferredUnits === 'IMPERIAL' ? 'pulgadas' : 'cm'})`}
+          value={height}
+          onChangeText={setHeight}
+          keyboardType="decimal-pad"
+          placeholder={preferredUnits === 'IMPERIAL' ? '68' : '175'}
+        />
+
+        <Field
+          label={`Peso (${preferredUnits === 'IMPERIAL' ? 'lb' : 'kg'})`}
+          value={weight}
+          onChangeText={setWeight}
+          keyboardType="decimal-pad"
+          placeholder={preferredUnits === 'IMPERIAL' ? '165' : '75'}
+        />
+
+        <Field
+          label="Entrenas desde (opcional)"
+          value={trainingSince}
+          onChangeText={setTrainingSince}
+          placeholder="AAAA-MM-DD"
+        />
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+        <Button
+          label={saving ? 'Guardando…' : 'Guardar perfil'}
+          disabled={saving}
+          variant="primary"
+          onPress={() => void submit()}
+        />
+      </View>
+
+      {/* Privacidad y consentimiento de IA */}
       {aiConsentGiven ? (
-        <Card>
-          <Label>Análisis con IA</Label>
-          <Text style={uiStyles.muted}>Al revocar tu consentimiento, GarFit dejará de enviar datos deportivos a Google Gemini y no podrás solicitar nuevos análisis hasta aceptarlo otra vez.</Text>
-          <Button label={aiLoading ? 'Revocando…' : 'Revocar consentimiento'} disabled={aiLoading} danger onPress={() => void revokeAiConsent()} />
-        </Card>
+        <View style={styles.group}>
+          <SectionHeader title="Privacidad e IA" />
+          <Card style={styles.aiCard}>
+            <Text style={uiStyles.muted}>
+              GarFit envía datos deportivos a Google Gemini para los análisis. Puedes revocar el
+              consentimiento en cualquier momento.
+            </Text>
+            <Button
+              label={aiLoading ? 'Revocando…' : 'Revocar consentimiento de IA'}
+              disabled={aiLoading}
+              variant="danger"
+              onPress={confirmRevokeAiConsent}
+            />
+          </Card>
+        </View>
       ) : null}
-      <Button label="Cerrar sesión" danger onPress={() => void logout()} />
+
+      {/* Acciones de cuenta */}
+      <View style={styles.group}>
+        <SectionHeader title="Cuenta" />
+        <Button
+          label="Cerrar sesión"
+          variant="danger"
+          icon={{ ios: 'rectangle.portrait.and.arrow.right', android: 'logout' }}
+          onPress={confirmLogout}
+        />
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: colors.background },
-  content: { gap: 14, padding: 20 },
-  cardValue: { color: colors.text, fontSize: 15, marginBottom: 8 },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    overflow: 'hidden',
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderWidth: 1,
-    borderRadius: 20,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+  scroll: {
+    flex: 1,
+    backgroundColor: colors.background,
   },
-  selectedChip: { borderColor: colors.accent, backgroundColor: colors.accentSoft },
-  chipText: { color: colors.text },
-  selectedChipText: { color: colors.accent },
-  error: { color: colors.danger },
+  avatarHeader: {
+    alignItems: 'center',
+    gap: space.xs,
+    paddingVertical: space.md,
+  },
+  avatar: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    experimental_backgroundImage: gradients.primary,
+    marginBottom: space.xs,
+  },
+  avatarText: {
+    color: colors.onAccent,
+    fontSize: 34,
+    fontWeight: '800',
+  },
+  userName: {
+    color: colors.text,
+    ...type.title,
+  },
+  group: {
+    gap: space.md,
+  },
+  fieldBlock: {
+    gap: 6,
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: space.sm,
+  },
+  aiCard: {
+    gap: space.md,
+  },
+  errorText: {
+    color: colors.danger,
+    ...type.body,
+  },
 });

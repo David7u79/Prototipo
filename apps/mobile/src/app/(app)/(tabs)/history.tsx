@@ -1,10 +1,24 @@
 import type { WorkoutListItem } from '@garfit/types';
-import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { Card, Screen, Title, uiStyles } from '@/components/ui';
+import { Button, EmptyState, ListRow, SectionHeader, Title, uiStyles } from '@/components/ui';
+import { colors, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
-import { groupWorkouts } from '@/lib/workouts';
+
+function formatMonthYear(dateString: string | null): string {
+  if (!dateString) return 'Sin fecha';
+  const d = new Date(`${dateString}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return 'Sin fecha';
+  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+}
+
+function formatDayAndDate(dateString: string | null): string {
+  if (!dateString) return 'Sin fecha';
+  const d = new Date(`${dateString}T12:00:00`);
+  if (Number.isNaN(d.getTime())) return dateString;
+  return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
 export default function HistoryScreen() {
   const { request } = useSession();
@@ -13,10 +27,10 @@ export default function HistoryScreen() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Guards live in refs: if `load` depended on `loading`/`pages`, each request would
-  // recreate it and re-fire useFocusEffect in a loop (429 in production).
+
   const busy = useRef(false);
   const pagesRef = useRef(1);
+
   const load = useCallback(
     async (next = 1, refresh = false) => {
       if (busy.current || (!refresh && next > pagesRef.current)) return;
@@ -39,53 +53,113 @@ export default function HistoryScreen() {
     },
     [request],
   );
+
   useFocusEffect(
     useCallback(() => {
       void load(1, true);
     }, [load]),
   );
-  const groups = groupWorkouts(items);
+
+  // Agrupar por mes
+  const groups = useMemo(() => {
+    return items.reduce<{ month: string; items: WorkoutListItem[] }[]>((acc, workout) => {
+      const month = formatMonthYear(workout.performedOn);
+      const current = acc.at(-1);
+      if (current?.month === month) {
+        current.items.push(workout);
+      } else {
+        acc.push({ month, items: [workout] });
+      }
+      return acc;
+    }, []);
+  }, [items]);
+
   return (
-    <Screen>
-      <Title>Historial</Title>
-      {error ? <Text>{error}</Text> : null}
+    <View style={styles.container}>
       <FlatList
         data={groups}
-        keyExtractor={(item) => item.date}
-        refreshControl={
-          <RefreshControl refreshing={loading && page === 1} onRefresh={() => void load(1, true)} />
-        }
+        keyExtractor={(item) => item.month}
+        contentContainerStyle={uiStyles.scroll}
+        refreshing={loading && page === 1}
+        onRefresh={() => void load(1, true)}
         onEndReached={() => void load(page + 1)}
         onEndReachedThreshold={0.4}
+        ListHeaderComponent={
+          <View style={styles.header}>
+            <Title>Historial</Title>
+            {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          </View>
+        }
         ListEmptyComponent={
           loading ? (
-            <ActivityIndicator />
+            <ActivityIndicator color={colors.accent} style={styles.loading} />
           ) : (
-            <Text style={uiStyles.muted}>Aún no hay entrenamientos completados.</Text>
+            <EmptyState
+              icon={{ ios: 'clock.arrow.circlepath', android: 'history' }}
+              title="Aún no hay entrenamientos"
+              message="Completa tu primera sesión para comenzar a crear tu historial."
+              action={
+                <Button
+                  label="Empezar entrenamiento"
+                  onPress={() => router.push('/(app)/workouts/new')}
+                />
+              }
+            />
           )
         }
         renderItem={({ item: group }) => (
-          <View style={{ gap: 8 }}>
-            <Text style={uiStyles.muted}>{group.date}</Text>
-            {group.items.map((workout) => (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Abrir ${workout.name}`}
-                key={workout.id}
-                onPress={() => router.push(`/(app)/workouts/${workout.id}`)}
-              >
-                <Card>
-                  <Text>{workout.name}</Text>
-                  <Text style={uiStyles.muted}>
-                    {workout.headline ?? 'Sin resultado'}
-                    {` · ${workout.personalRecordCount} marcas`}
-                  </Text>
-                </Card>
-              </Pressable>
-            ))}
+          <View style={styles.monthGroup}>
+            <SectionHeader title={group.month} />
+            <View style={styles.groupList}>
+              {group.items.map((workout) => {
+                const dateStr = formatDayAndDate(workout.performedOn);
+                const subtitle = workout.headline
+                  ? `${dateStr} · ${workout.headline}`
+                  : `${dateStr} · Completado`;
+                const trailing =
+                  workout.personalRecordCount > 0
+                    ? `${workout.personalRecordCount} PR`
+                    : undefined;
+
+                return (
+                  <ListRow
+                    key={workout.id}
+                    icon={{ ios: 'figure.cross.training', android: 'fitness_center' }}
+                    tone="accent"
+                    title={workout.name}
+                    subtitle={subtitle}
+                    trailing={trailing}
+                    onPress={() => router.push(`/(app)/workouts/${workout.id}`)}
+                  />
+                );
+              })}
+            </View>
           </View>
         )}
       />
-    </Screen>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  header: {
+    gap: space.sm,
+  },
+  monthGroup: {
+    gap: space.sm,
+  },
+  groupList: {
+    gap: space.sm,
+  },
+  loading: {
+    marginVertical: space.xl,
+  },
+  errorText: {
+    color: colors.danger,
+    ...type.body,
+  },
+});

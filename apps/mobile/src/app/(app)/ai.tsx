@@ -9,8 +9,8 @@ import type {
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Title, uiStyles } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { Button, Card, Chip, Icon, SectionHeader, Title, uiStyles } from '@/components/ui';
+import { colors, radius, space, type } from '@/constants/theme';
 import { api, useSession } from '@/lib/auth';
 
 type RequestedAction = 'progress' | 'workout' | 'wod' | 'movement';
@@ -39,7 +39,7 @@ function aiMessageFor(error: unknown): string {
 
 function dateLabel(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('es-MX');
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('es-ES');
 }
 
 function analysisTypeLabel(type: AiAnalysisSummary['type']) {
@@ -169,11 +169,11 @@ export default function AiScreen() {
     }
   }
 
-  async function openAnalysis(id: string) {
-    setOpeningAnalysisId(id);
+  async function openAnalysis(analysisId: string) {
+    setOpeningAnalysisId(analysisId);
     setError(null);
     try {
-      setAnalysis(await request(() => api.ai.analyses.get(id)));
+      setAnalysis(await request(() => api.ai.analyses.get(analysisId)));
     } catch (cause) {
       setError(aiMessageFor(cause));
     } finally {
@@ -181,12 +181,12 @@ export default function AiScreen() {
     }
   }
 
-  async function removeAnalysis(id: string) {
-    setDeletingAnalysisId(id);
+  async function removeAnalysis(analysisId: string) {
+    setDeletingAnalysisId(analysisId);
     setError(null);
     try {
-      await request(() => api.ai.analyses.remove(id));
-      if (analysis?.id === id) setAnalysis(null);
+      await request(() => api.ai.analyses.remove(analysisId));
+      if (analysis?.id === analysisId) setAnalysis(null);
       await loadHistory(1, true);
     } catch (cause) {
       setError(aiMessageFor(cause));
@@ -196,15 +196,19 @@ export default function AiScreen() {
   }
 
   if (loading && !status) {
-    return <Loading />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator color={colors.accent} size="large" />
+      </View>
+    );
   }
 
   if (!status?.enabled || !status?.configured) {
     return (
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={uiStyles.scroll} style={styles.scroll}>
         <Title>Análisis inteligente</Title>
         <Card>
-          <Text style={uiStyles.muted}>Servicio de análisis no configurado.</Text>
+          <Text style={uiStyles.muted}>Servicio de análisis no configurado en este entorno.</Text>
         </Card>
       </ScrollView>
     );
@@ -212,48 +216,73 @@ export default function AiScreen() {
 
   if (!status.consentGivenAt) {
     return (
-      <ScrollView contentContainerStyle={styles.content}>
-        <Title>Análisis inteligente</Title>
-        <Card>
-          <Text style={uiStyles.muted}>
-            GarFit utiliza Google Gemini para generar análisis. Al solicitar un análisis, los datos
-            deportivos necesarios para esa operación se enviarán al proveedor de IA. No se envían
-            tus credenciales de acceso.
+      <ScrollView contentContainerStyle={uiStyles.scroll} style={styles.scroll}>
+        <Card hero style={styles.heroCard}>
+          <View style={styles.headerIconBadge}>
+            <Icon name={{ ios: 'sparkles', android: 'auto_awesome' }} size={32} color={colors.onAccent} />
+          </View>
+          <Title>Análisis inteligente</Title>
+          <Text style={styles.heroDescription}>
+            GarFit utiliza Google Gemini para analizar tu rendimiento. Tus datos deportivos se
+            procesarán de manera confidencial para darte explicaciones y sugerencias precisas.
           </Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+        </Card>
+
+        <Card style={styles.formCard}>
+          <Text style={uiStyles.muted}>
+            Al continuar, aceptas el envío de tus sesiones y marcas al servicio de IA. Puedes revocar
+            este permiso en cualquier momento desde tu perfil.
+          </Text>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
           <Button
             label={running ? 'Aceptando…' : 'Aceptar y continuar'}
             disabled={running}
             onPress={() => void giveConsent()}
           />
-          <Button label="Cancelar" secondary onPress={() => router.back()} />
+          <Button label="Cancelar" variant="ghost" onPress={() => router.back()} />
         </Card>
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.content}>
-      <Title>Análisis inteligente</Title>
-      {error ? <ErrorCard message={error} onRetry={() => void load()} /> : null}
-      <Card>
-        <Text style={styles.cardTitle}>Analizar mi progreso</Text>
-        <Text style={uiStyles.muted}>Elige el periodo que quieres revisar.</Text>
-        <View style={styles.periods}>
+    <ScrollView contentContainerStyle={uiStyles.scroll} style={styles.scroll}>
+      {/* Cabecera con icono auto_awesome tintado accent */}
+      <Card hero style={styles.heroCard}>
+        <View style={styles.headerIconBadge}>
+          <Icon name={{ ios: 'sparkles', android: 'auto_awesome' }} size={28} color={colors.onAccent} />
+        </View>
+        <Title>Análisis inteligente</Title>
+        <Text style={styles.heroDescription}>
+          Descubre patrones, optimiza tu volumen y entiende tu evolución deportiva con Gemini.
+        </Text>
+      </Card>
+
+      {error ? (
+        <Card style={styles.errorCard}>
+          <Text style={styles.errorText}>{error}</Text>
+          <Button label="Reintentar" variant="secondary" onPress={() => void load()} />
+        </Card>
+      ) : null}
+
+      {/* Acciones principales */}
+      <Card style={styles.actionCard}>
+        <SectionHeader title="Analizar mi progreso" />
+        <Text style={uiStyles.muted}>Selecciona el periodo que deseas evaluar:</Text>
+        <View style={styles.periodChips}>
           {[30, 60, 90].map((days) => (
-            <Pressable
+            <Chip
               key={days}
-              disabled={running}
+              label={`${days} días`}
+              selected={false}
               onPress={() => void run('progress', undefined, days)}
-              style={uiStyles.button}
-            >
-              <Text style={uiStyles.buttonText}>{days} días</Text>
-            </Pressable>
+            />
           ))}
         </View>
       </Card>
-      <Card>
-        <Text style={styles.cardTitle}>Analizar mi último entrenamiento</Text>
+
+      <Card style={styles.actionCard}>
+        <SectionHeader title="Último entrenamiento" />
         <Text style={uiStyles.muted}>
           {latestWorkout
             ? latestWorkout.name
@@ -261,14 +290,25 @@ export default function AiScreen() {
         </Text>
         {latestWorkout ? (
           <Button
-            label={running ? 'Analizando…' : 'Analizar mi último entrenamiento'}
+            label={running ? 'Analizando sesión…' : 'Analizar último entrenamiento'}
             disabled={running}
+            variant="secondary"
             onPress={() => void run('workout', latestWorkout.id)}
           />
         ) : null}
       </Card>
-      {running ? <ActivityIndicator color={colors.accent} size="large" /> : null}
+
+      {running ? (
+        <View style={styles.runningContainer}>
+          <ActivityIndicator color={colors.accent} size="large" />
+          <Text style={uiStyles.muted}>Generando análisis con IA…</Text>
+        </View>
+      ) : null}
+
+      {/* Resultado del análisis */}
       {analysis ? <AnalysisResult analysis={analysis} /> : null}
+
+      {/* Historial de análisis */}
       <AnalysisHistory
         analyses={history}
         canLoadMore={historyPage < historyPages}
@@ -303,29 +343,32 @@ function AnalysisHistory({
   onOpen: (id: string) => void;
 }) {
   return (
-    <View style={styles.history}>
-      <Text style={styles.historyTitle}>Análisis anteriores</Text>
+    <View style={styles.historySection}>
+      <SectionHeader title="Análisis anteriores" />
       {analyses.length ? (
         analyses.map((item) => (
-          <Card key={item.id}>
+          <Card key={item.id} style={styles.historyCard}>
             <Pressable
               accessibilityLabel={`Abrir análisis de ${analysisTypeLabel(item.type)}`}
               accessibilityRole="button"
               disabled={openingId === item.id}
               onPress={() => void onOpen(item.id)}
+              style={({ pressed }) => [styles.historyPressable, pressed && uiStyles.pressed]}
             >
-              <Text style={styles.cardTitle}>{analysisTypeLabel(item.type)}</Text>
-              <Text style={uiStyles.muted}>{dateLabel(item.createdAt)}</Text>
-              <Text style={uiStyles.muted}>{item.targetLabel ?? 'Mi progreso'}</Text>
+              <View style={styles.historyCardHeader}>
+                <Chip label={analysisTypeLabel(item.type)} tone="accent" />
+                <Text style={styles.historyDate}>{dateLabel(item.createdAt)}</Text>
+              </View>
+              <Text style={styles.historyTarget}>{item.targetLabel ?? 'Mi progreso'}</Text>
               <Text numberOfLines={3} style={uiStyles.muted}>
                 {item.summary}
               </Text>
             </Pressable>
             <Button
-              label={deletingId === item.id ? 'Borrando…' : 'Borrar'}
+              label={deletingId === item.id ? 'Borrando…' : 'Borrar análisis'}
               disabled={deletingId === item.id}
               onPress={() => void onDelete(item.id)}
-              danger
+              variant="danger"
             />
           </Card>
         ))
@@ -335,144 +378,226 @@ function AnalysisHistory({
         </Card>
       )}
       {loading ? <ActivityIndicator color={colors.accent} /> : null}
-      {canLoadMore ? <Button label="Cargar más" onPress={onLoadMore} secondary /> : null}
+      {canLoadMore ? <Button label="Cargar más análisis" onPress={onLoadMore} variant="secondary" /> : null}
     </View>
-  );
-}
-
-function Loading() {
-  return (
-    <View style={styles.loading}>
-      <ActivityIndicator color={colors.accent} size="large" />
-    </View>
-  );
-}
-
-function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card style={styles.errorCard}>
-      <Text style={styles.error}>{message}</Text>
-      <Button label="Reintentar" onPress={onRetry} />
-    </Card>
   );
 }
 
 function AnalysisResult({ analysis }: { analysis: AiAnalysisResponse }) {
   return (
-    <View style={styles.result}>
+    <View style={styles.resultGroup}>
       {analysis.cached ? (
-        <Text style={styles.cached}>Análisis anterior · {dateLabel(analysis.generatedAt)}</Text>
+        <Text style={styles.cachedText}>Análisis guardado · {dateLabel(analysis.generatedAt)}</Text>
       ) : null}
-      <Section title="Resumen" open>
-        <Text style={uiStyles.muted}>{analysis.summary}</Text>
-      </Section>
+
+      <Card style={styles.resultBlock}>
+        <SectionHeader title="Resumen" />
+        <Text style={styles.summaryText}>{analysis.summary}</Text>
+      </Card>
+
       {analysis.status === 'INSUFFICIENT_DATA' ? (
-        <Section title="Datos pendientes" open>
+        <Card style={styles.resultBlock}>
+          <SectionHeader title="Datos pendientes" />
           {analysis.missingData.map((item) => (
             <Text key={item} style={uiStyles.muted}>
               • {item}
             </Text>
           ))}
-        </Section>
+        </Card>
       ) : null}
+
       {analysis.status === 'COMPLETED' ? (
         <>
-          <Section title="Observaciones">
+          <Card style={styles.resultBlock}>
+            <SectionHeader title="Observaciones" />
             <Items items={analysis.observations} />
-          </Section>
-          <Section title="Sugerencias">
+          </Card>
+
+          <Card style={styles.resultBlock}>
+            <SectionHeader title="Sugerencias" />
             <Items items={analysis.suggestions} />
-          </Section>
+          </Card>
         </>
       ) : null}
-      <Section title="Datos utilizados">
+
+      <Card style={styles.resultBlock}>
+        <SectionHeader title="Datos utilizados" />
         {analysis.dataUsed.map((item) => (
-          <View key={item.label} style={styles.fact}>
+          <View key={item.label} style={styles.factRow}>
             <Text style={styles.factLabel}>{item.label}</Text>
-            <Text style={uiStyles.muted}>{item.value}</Text>
+            <Text style={styles.factValue}>{item.value}</Text>
           </View>
         ))}
-      </Section>
-      <Section title="Limitaciones">
-        {analysis.limitations.length ? (
-          analysis.limitations.map((item) => (
+      </Card>
+
+      {analysis.limitations.length ? (
+        <Card style={styles.resultBlock}>
+          <SectionHeader title="Limitaciones" />
+          {analysis.limitations.map((item) => (
             <Text key={item} style={uiStyles.muted}>
               • {item}
             </Text>
-          ))
-        ) : (
-          <Text style={uiStyles.muted}>No se informaron limitaciones.</Text>
-        )}
-      </Section>
+          ))}
+        </Card>
+      ) : null}
     </View>
   );
 }
 
 function Items({ items }: { items: AiAnalysisItem[] }) {
+  if (!items.length) {
+    return <Text style={uiStyles.muted}>No hay elementos para mostrar.</Text>;
+  }
+
   return (
-    <View style={styles.items}>
-      {items.length ? (
-        items.map((item) => (
-          <Card key={`${item.title}-${item.description}`}>
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            <Text style={uiStyles.muted}>{item.description}</Text>
-            {item.evidence.map((fact) => (
-              <View key={fact.id} style={styles.fact}>
-                <Text style={styles.factLabel}>{fact.label}</Text>
-                <Text
-                  style={uiStyles.muted}
-                >{`${fact.value}${fact.unit ? ` ${fact.unit}` : ''}${fact.occurredAt ? ` · ${dateLabel(fact.occurredAt)}` : ''}`}</Text>
-              </View>
-            ))}
-          </Card>
-        ))
-      ) : (
-        <Text style={uiStyles.muted}>No hay elementos para mostrar.</Text>
-      )}
+    <View style={styles.itemsList}>
+      {items.map((item) => (
+        <View key={`${item.title}-${item.description}`} style={styles.itemBox}>
+          <Text style={styles.itemTitle}>{item.title}</Text>
+          <Text style={styles.itemDescription}>{item.description}</Text>
+          {item.evidence.map((fact) => (
+            <View key={fact.id} style={styles.evidenceBox}>
+              <Text style={styles.factLabel}>{fact.label}</Text>
+              <Text style={uiStyles.muted}>
+                {`${fact.value}${fact.unit ? ` ${fact.unit}` : ''}${
+                  fact.occurredAt ? ` · ${dateLabel(fact.occurredAt)}` : ''
+                }`}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
 
-function Section({
-  title,
-  children,
-  open = false,
-}: {
-  title: string;
-  children: React.ReactNode;
-  open?: boolean;
-}) {
-  const [expanded, setExpanded] = useState(open);
-  return (
-    <Card>
-      <Pressable onPress={() => setExpanded((value) => !value)} style={styles.sectionHeader}>
-        <Text style={styles.cardTitle}>{title}</Text>
-        <Text style={styles.chevron}>{expanded ? '−' : '+'}</Text>
-      </Pressable>
-      {expanded ? children : null}
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
-  cached: { color: colors.muted, fontSize: 14 },
-  cardTitle: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  chevron: { color: colors.accent, fontSize: 22, fontWeight: '700' },
-  content: { gap: 16, padding: 20 },
-  error: { color: colors.danger, fontSize: 15 },
-  errorCard: { borderColor: colors.danger },
-  fact: { backgroundColor: colors.background, borderRadius: 10, gap: 2, padding: 10 },
-  factLabel: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  history: { gap: 12 },
-  historyTitle: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  items: { gap: 10 },
-  loading: {
-    alignItems: 'center',
+  scroll: {
     backgroundColor: colors.background,
     flex: 1,
+  },
+  loadingContainer: {
+    backgroundColor: colors.background,
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  periods: { flexDirection: 'row', gap: 8 },
-  result: { gap: 12 },
-  sectionHeader: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  heroCard: {
+    gap: space.sm,
+  },
+  headerIconBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: space.xs,
+  },
+  heroDescription: {
+    color: colors.text,
+    ...type.body,
+  },
+  formCard: {
+    gap: space.md,
+  },
+  actionCard: {
+    gap: space.md,
+  },
+  periodChips: {
+    flexDirection: 'row',
+    gap: space.sm,
+  },
+  runningContainer: {
+    alignItems: 'center',
+    paddingVertical: space.xl,
+    gap: space.sm,
+  },
+  resultGroup: {
+    gap: space.md,
+  },
+  resultBlock: {
+    gap: space.sm,
+  },
+  cachedText: {
+    color: colors.muted,
+    fontSize: 13,
+  },
+  summaryText: {
+    color: colors.text,
+    ...type.body,
+    lineHeight: 22,
+  },
+  itemsList: {
+    gap: space.md,
+  },
+  itemBox: {
+    gap: 4,
+    backgroundColor: colors.surfaceRaised,
+    padding: space.md,
+    borderRadius: radius.md,
+  },
+  itemTitle: {
+    color: colors.text,
+    ...type.headline,
+  },
+  itemDescription: {
+    color: colors.text,
+    ...type.body,
+  },
+  evidenceBox: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.sm,
+    padding: space.sm,
+    marginTop: space.xs,
+    gap: 2,
+  },
+  factRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  factLabel: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  factValue: {
+    color: colors.metric,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  historySection: {
+    gap: space.sm,
+    marginTop: space.sm,
+  },
+  historyCard: {
+    gap: space.md,
+  },
+  historyPressable: {
+    gap: space.xs,
+  },
+  historyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  historyDate: {
+    color: colors.muted,
+    fontSize: 13,
+  },
+  historyTarget: {
+    color: colors.text,
+    ...type.headline,
+  },
+  errorCard: {
+    borderColor: colors.danger,
+    gap: space.md,
+  },
+  errorText: {
+    color: colors.danger,
+    ...type.body,
+  },
 });

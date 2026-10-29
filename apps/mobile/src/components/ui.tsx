@@ -313,7 +313,7 @@ export const uiStyles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.surface,
   },
-  heroCard: { experimental_backgroundImage: gradients.hero, borderColor: '#3A2F86' },
+  heroCard: { experimental_backgroundImage: gradients.hero, borderColor: colors.accentSoft },
   stat: { flex: 1, gap: 2 },
   statValue: { color: colors.metric, ...type.metric },
   statUnit: { fontSize: 15, fontWeight: '600', color: colors.muted, letterSpacing: 0 },

@@ -1,12 +1,13 @@
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, Text } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { loginSchema } from '@garfit/validation';
-import { Button, Field, Screen, Title, uiStyles } from '@/components/ui';
-import { colors } from '@/constants/theme';
+import { Button, Field, Icon, uiStyles } from '@/components/ui';
+import { colors, gradients, radius, space, type } from '@/constants/theme';
 import { messageFor, useSession } from '@/lib/auth';
 
 export default function LoginScreen() {
+  const router = useRouter();
   const { googleEnabled, login, signInWithGoogle } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -48,55 +49,99 @@ export default function LoginScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Screen>
-        <Title>Entrena con intención.</Title>
-        <Text style={uiStyles.muted}>Registra tu evolución y tus mejores marcas.</Text>
-        <Field
-          label="Correo electrónico"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          placeholder="Correo electrónico"
-        />
-        <Field
-          label="Contraseña"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          autoComplete="password"
-          placeholder="Contraseña"
-        />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button
-          label={loading ? 'Ingresando…' : 'Iniciar sesión'}
-          disabled={loading}
-          onPress={() => void submit()}
-        />
-        {googleEnabled ? (
-          <Button
-            label="Continuar con Google"
-            secondary
-            disabled={loading}
-            onPress={() => void submitGoogle()}
+      <ScrollView
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.brand}>
+          <View style={styles.logoBadge}>
+            <Icon name={{ ios: 'bolt.fill', android: 'bolt' }} size={36} color={colors.onAccent} />
+          </View>
+          <Text style={styles.brandTitle}>GarFit</Text>
+          <Text style={styles.brandSubtitle}>Entrena, mide y progresa</Text>
+        </View>
+
+        <View style={styles.form}>
+          <Field
+            label="Correo electrónico"
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            placeholder="Correo electrónico"
           />
-        ) : null}
-        <Link href="/(auth)/register" style={styles.link}>
-          ¿No tienes cuenta? Regístrate
-        </Link>
-      </Screen>
+          <Field
+            label="Contraseña"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoComplete="password"
+            placeholder="Contraseña"
+          />
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Button
+            label={loading ? 'Ingresando…' : 'Iniciar sesión'}
+            disabled={loading}
+            onPress={() => void submit()}
+          />
+          {googleEnabled ? (
+            <Button
+              label="Continuar con Google"
+              variant="secondary"
+              disabled={loading}
+              onPress={() => void submitGoogle()}
+            />
+          ) : null}
+          <Button
+            label="¿No tienes cuenta? Regístrate"
+            variant="ghost"
+            onPress={() => router.push('/(auth)/register')}
+          />
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  error: { color: colors.danger },
-  link: {
-    marginTop: 8,
-    color: colors.accent,
-    fontWeight: '600',
-    textAlign: 'center',
+  flex: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  container: {
+    ...uiStyles.scroll,
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: space.xxl,
+  },
+  brand: {
+    alignItems: 'center',
+    gap: space.xs,
+    marginBottom: space.lg,
+  },
+  logoBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    experimental_backgroundImage: gradients.primary,
+    marginBottom: space.sm,
+  },
+  brandTitle: {
+    color: colors.text,
+    ...type.display,
+  },
+  brandSubtitle: {
+    color: colors.muted,
+    ...type.body,
+  },
+  form: {
+    gap: space.md,
+  },
+  error: {
+    color: colors.danger,
+    ...type.body,
   },
 });
