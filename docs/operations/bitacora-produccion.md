@@ -42,7 +42,8 @@ APK release contra la API pública, recorrido completo. Detalle y capturas en
 
 - **Hallazgo.** PostgreSQL va dentro del compose, no como base de datos gestionada por Coolify:
   no había copias programadas.
-- **Estado.** Pendiente; ver la entrada de despliegue.
+- **Estado.** Descartado (2026-10-29): la demo no guarda datos importantes, perder la base de
+  datos no tiene coste.
 
 ### El push a `main` no redespliega (2026-10-28)
 
