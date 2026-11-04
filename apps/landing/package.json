@@ -9,6 +9,7 @@
     "dev": "astro dev --port 4321",
     "build": "astro check && astro build",
     "preview": "astro preview",
+    "avance:pdf": "astro build && node scripts/avance-pdf.mjs",
     "lint": "astro check",
     "typecheck": "astro check"
   },

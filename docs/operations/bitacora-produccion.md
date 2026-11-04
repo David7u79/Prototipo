@@ -60,6 +60,24 @@ APK release contra la API pública, recorrido completo. Detalle y capturas en
   aplicada, mismo volumen de PostgreSQL, `PUT /workouts/:id/biometrics` → 401.
 - **Revertir.** `UPDATE applications SET source_id=0, repository_project_id=NULL WHERE id=20;`
 
+### Subpáginas de la landing redirigen a `:8080` (2026-11-04)
+
+- **Hallazgo.** `curl -sI https://garfit.da-bit.cloud/descargar` → `301` hacia
+  `http://garfit.da-bit.cloud:8080/descargar/`, que no carga. Sólo la portada funcionaba;
+  `/caracteristicas`, `/ia`, `/acerca` y `/descargar` estaban rotas.
+- **Causa.** `try_files $uri $uri/` en `apps/landing/nginx.conf` hace que nginx redirija a la
+  barra final con URL absoluta, usando su propio puerto (8080) y esquema (http) detrás de
+  Traefik y Cloudflare.
+- **Cambio.** `try_files $uri $uri/index.html =404`: sirve el `index.html` del directorio de Astro
+  sin redirigir.
+- **Revertir.** Volver a `try_files $uri $uri/ =404;` (o añadir `absolute_redirect off;`).
+
+### No hay APK publicada (2026-11-04)
+
+- **Hallazgo.** `GET /releases/latest/android` → `404 NO_RELEASE_PUBLISHED`; la landing muestra
+  la descarga como no disponible.
+- **Estado.** Pendiente de publicar una release con `release:publish`.
+
 ## Pendientes conocidos
 
 - Traefik acepta tráfico directo a la IP del VPS sin pasar por Cloudflare. Restringirlo afecta a

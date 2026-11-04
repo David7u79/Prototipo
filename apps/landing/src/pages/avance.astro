@@ -1,0 +1,344 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Fuente única del avance: esta página. El PDF descargable se imprime desde ella
+// (`pnpm --filter @garfit/landing avance:pdf`), así que no hay texto duplicado que mantener.
+const updated = '4 de noviembre de 2026';
+const version = '0.9.0-rc.1';
+const pdf = '/avance/garfit-avance.pdf';
+
+const numbers = [
+  ['1 319', 'movimientos en el catálogo'],
+  ['35', 'rutas documentadas en OpenAPI'],
+  ['289', 'pruebas automatizadas'],
+  ['11', 'decisiones de arquitectura (ADR)'],
+  ['5', 'aplicaciones: API, móvil, web, reloj y landing'],
+] as const;
+
+const layers = [
+  { name: 'Clientes', items: ['App Android (Expo)', 'App web (Next.js)', 'Wear OS (Kotlin)', 'Landing (Astro)'] },
+  { name: 'API central', items: ['NestJS + validación propia', 'JWT + refresh opaco', 'Google ID token', 'Límite de peticiones'] },
+  { name: 'Dominio y datos', items: ['@garfit/domain (cálculos puros)', 'Prisma + PostgreSQL', 'Catálogo de movimientos', 'Releases de la APK'] },
+  { name: 'Servicios', items: ['IA vía AiProvider (Gemini)', 'Health Connect', 'Coolify en VPS', 'Cloudflare + Traefik'] },
+] as const;
+
+const screens = [
+  { file: '01-login', title: 'Acceso', text: 'Registro e inicio de sesión con correo; Google preparado en la API.' },
+  { file: '02-inicio', title: 'Inicio', text: 'Acción principal arriba y estadísticas de la semana agrupadas.' },
+  { file: '03-nuevo-entrenamiento', title: 'Nuevo entrenamiento', text: 'Fuerza, WOD o sesión libre con movimientos del catálogo.' },
+  { file: '04-registro-series', title: 'Registro de series', text: 'Reps, carga y tiempo por serie mientras se entrena.' },
+  { file: '05-historial', title: 'Historial', text: 'Sesiones completadas con filtros por tipo y fecha.' },
+  { file: '06-movimientos', title: 'Catálogo', text: 'Búsqueda y filtros sobre 1 319 movimientos.' },
+  { file: '07-marcas', title: 'Marcas personales', text: 'Mejores resultados por movimiento, manuales o detectados al entrenar.' },
+  { file: '08-progreso', title: 'Progreso', text: 'Evolución de una marca en el tiempo con su historial completo.' },
+  { file: '09-wods', title: 'WODs', text: 'Benchmarks For Time, AMRAP y EMOM con comparación entre intentos.' },
+  { file: '10-analisis', title: 'Análisis con IA', text: 'Interpretación del progreso con evidencia y consentimiento previo.' },
+] as const;
+
+const flows = [
+  {
+    name: 'Registrar un entrenamiento',
+    steps: ['Inicio → botón central', 'Elegir tipo y movimientos', 'Iniciar sesión de entrenamiento', 'Anotar series', 'Completar'],
+    result: 'Se guarda el resultado y, si una serie supera la mejor marca, se crea una marca nueva con origen WORKOUT.',
+  },
+  {
+    name: 'Seguir una marca personal',
+    steps: ['Marcas', 'Elegir movimiento', 'Ver evolución', 'Registrar marca manual'],
+    result: 'Las marcas nunca se sobrescriben: el historial queda inmutable y comparable.',
+  },
+  {
+    name: 'Pedir un análisis',
+    steps: ['Análisis', 'Aceptar consentimiento', 'Elegir progreso o entrenamiento', 'Leer interpretación'],
+    result: 'La API calcula los hechos; el modelo sólo interpreta y cita la evidencia que recibió.',
+  },
+  {
+    name: 'Vincular el reloj',
+    steps: ['Entrenamiento completado', 'Importar de Health Connect o Wear OS', 'Ver FC y calorías'],
+    result: 'El resumen biométrico queda asociado al entrenamiento (ADR 0011).',
+  },
+] as const;
+
+const status = {
+  done: [
+    'Cuentas, sesión y perfil del atleta',
+    'Catálogo de movimientos con filtros',
+    'Marcas personales y detección automática',
+    'Entrenamientos estructurados y WODs',
+    'Historial y estadísticas',
+    'Análisis con IA sobre hechos deterministas',
+    'Datos del reloj (Health Connect y Wear OS)',
+    'Diseño Aurora en todas las pantallas móviles',
+    'Despliegue continuo en el VPS',
+  ],
+  pending: [
+    'Llamada real a Gemini (falta la clave)',
+    'Google OAuth con credenciales reales',
+    'Publicar la APK en la landing',
+    'Pruebas de usabilidad con atletas',
+  ],
+  next: [
+    'Timer integrado: For Time, AMRAP, EMOM y Tabata',
+    'Calculadora de % de 1RM y de discos',
+    '“La última vez” al registrar cada serie',
+    'Más benchmarks y separación Rx / Scaled',
+    'RPE por sesión y carga semanal',
+  ],
+};
+---
+
+<Layout
+  title="Avance del proyecto | GarFit"
+  description="Estado actual de GarFit: funciones, capturas de la app, flujos, arquitectura y próximos pasos."
+>
+  <div class="aurora">
+    <section class="hero">
+      <div class="shell">
+        <p class="kicker">Avance del proyecto · {updated}</p>
+        <h1>GarFit, hoy.</h1>
+        <p class="lead">
+          Plataforma móvil y web para registrar entrenamientos, seguir marcas personales y
+          entender el progreso con ayuda de IA. Esta página resume qué está hecho, cómo se usa
+          y qué sigue.
+        </p>
+        <div class="actions no-print">
+          <a class="btn primary" href={pdf} download>Descargar documento (PDF)</a>
+          <a class="btn ghost" href="/descargar">Descargar la app</a>
+        </div>
+        <p class="meta">Versión {version}</p>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="shell">
+        <ul class="numbers">
+          {numbers.map(([n, label]) => (
+            <li><strong>{n}</strong><span>{label}</span></li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="shell">
+        <p class="kicker">Qué es</p>
+        <h2>De notas sueltas a una historia deportiva.</h2>
+        <div class="two">
+          <p>
+            Quien entrena fuerza o CrossFit suele llevar sus resultados en libretas, notas del
+            teléfono o de memoria. Así cuesta saber si avanza, qué marca superó o por qué se
+            estancó.
+          </p>
+          <p>
+            GarFit centraliza entrenamientos, WODs y marcas personales, detecta récords
+            automáticamente y ofrece un análisis que se apoya en datos calculados por el sistema,
+            no en lo que el modelo imagina.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="shell">
+        <p class="kicker">La app</p>
+        <h2>Capturas reales en Android</h2>
+        <p class="sub">Tomadas en un Samsung Galaxy S23 Ultra contra la API pública.</p>
+        <div class="gallery">
+          {screens.map(({ file, title, text }) => (
+            <figure>
+              <img src={`/avance/${file}.png`} alt={`Pantalla de ${title} en GarFit`} loading="lazy" width="360" height="772" />
+              <figcaption><strong>{title}</strong>{text}</figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="shell">
+        <p class="kicker">Flujos</p>
+        <h2>Cómo se usa</h2>
+        <div class="flows">
+          {flows.map(({ name, steps, result }) => (
+            <article class="card">
+              <h3>{name}</h3>
+              <ol class="steps">{steps.map((s) => <li>{s}</li>)}</ol>
+              <p class="result">{result}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="shell">
+        <p class="kicker">Arquitectura</p>
+        <h2>Una API, varios clientes</h2>
+        <div class="layers">
+          {layers.map(({ name, items }) => (
+            <article class="card">
+              <h3>{name}</h3>
+              <ul>{items.map((i) => <li>{i}</li>)}</ul>
+            </article>
+          ))}
+        </div>
+        <p class="sub">
+          Los cálculos deportivos viven en un paquete puro (<code>@garfit/domain</code>) que
+          comparten API y clientes. La IA recibe ese resultado ya calculado.
+        </p>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="shell">
+        <p class="kicker">Estado</p>
+        <h2>Hecho, pendiente y siguiente</h2>
+        <div class="status">
+          <article class="card">
+            <h3 class="ok">Hecho</h3>
+            <ul>{status.done.map((i) => <li>{i}</li>)}</ul>
+          </article>
+          <article class="card">
+            <h3 class="warn">Pendiente</h3>
+            <ul>{status.pending.map((i) => <li>{i}</li>)}</ul>
+          </article>
+          <article class="card">
+            <h3 class="next">Siguiente</h3>
+            <ol>{status.next.map((i) => <li>{i}</li>)}</ol>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="block no-print">
+      <div class="shell cta">
+        <h2>Llévate el avance</h2>
+        <p class="sub">El mismo contenido de esta página, en PDF.</p>
+        <a class="btn primary" href={pdf} download>Descargar documento (PDF)</a>
+      </div>
+    </section>
+  </div>
+</Layout>
+
+<style>
+  /* Tokens Aurora de apps/mobile/src/constants/theme.ts, para que la página se vea como la app. */
+  .aurora {
+    --bg: #0a0d18;
+    --surface: #131829;
+    --raised: #1b2136;
+    --text: #eef1fa;
+    --muted: #8a93ad;
+    --border: #232a42;
+    --accent: #7c5cff;
+    --metric: #22d3ee;
+    --success: #34d399;
+    --danger: #fb7185;
+    background: var(--bg);
+    color: var(--text);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .hero {
+    padding: 5rem 0 3rem;
+    background: linear-gradient(160deg, #2a1f6b 0%, #131829 55%, var(--bg) 100%);
+  }
+  .block { padding: 3.5rem 0; border-top: 1px solid var(--border); }
+  .kicker {
+    margin: 0 0 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--metric);
+  }
+  h1 { margin: 0; font-size: clamp(2.5rem, 7vw, 4.5rem); font-weight: 900; letter-spacing: -0.03em; line-height: 1; }
+  h2 { margin: 0 0 1.5rem; font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.02em; }
+  h3 { margin: 0 0 0.75rem; font-size: 1.1rem; font-weight: 700; }
+  .lead { max-width: 40rem; margin: 1.5rem 0 0; font-size: 1.15rem; line-height: 1.7; color: var(--muted); }
+  .sub, .meta { color: var(--muted); line-height: 1.6; }
+  .meta { margin: 1.5rem 0 0; font-size: 0.85rem; }
+  code { color: var(--metric); }
+  .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 2rem; }
+  .btn {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .btn.primary { background: linear-gradient(135deg, var(--accent) 0%, var(--metric) 100%); color: #fff; }
+  .btn.ghost { border: 1px solid var(--border); background: var(--surface); }
+  .btn:focus-visible { outline: 2px solid var(--metric); outline-offset: 3px; }
+  .numbers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .numbers li, .card {
+    padding: 1.25rem;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface);
+    break-inside: avoid;
+  }
+  .numbers strong { display: block; font-size: 2.25rem; font-weight: 800; color: var(--metric); font-variant-numeric: tabular-nums; }
+  .numbers span { color: var(--muted); font-size: 0.9rem; }
+  .two { display: grid; gap: 1.5rem; color: var(--muted); line-height: 1.7; font-size: 1.05rem; }
+  .two p { margin: 0; }
+  .gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  figure { margin: 0; break-inside: avoid; }
+  figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+  }
+  figcaption { margin-top: 0.75rem; font-size: 0.85rem; line-height: 1.5; color: var(--muted); }
+  figcaption strong { display: block; color: var(--text); }
+  .flows, .layers, .status { display: grid; gap: 1rem; }
+  .steps { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; padding: 0; list-style: none; counter-reset: s; }
+  .steps li {
+    counter-increment: s;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: #211b45;
+    font-size: 0.85rem;
+  }
+  .steps li::before { content: counter(s) '. '; color: var(--metric); font-weight: 700; }
+  .result { margin: 0; color: var(--muted); line-height: 1.6; }
+  .card ul, .card ol:not(.steps) { margin: 0; padding-left: 1.1rem; color: var(--muted); line-height: 1.8; }
+  .ok { color: var(--success); }
+  .warn { color: var(--danger); }
+  .next { color: var(--metric); }
+  .cta { text-align: center; }
+  @media (min-width: 768px) {
+    .two, .flows { grid-template-columns: 1fr 1fr; }
+    .layers { grid-template-columns: repeat(4, 1fr); }
+    .status { grid-template-columns: repeat(3, 1fr); }
+  }
+  @media print {
+    @page { size: A4; margin: 0; }
+    .no-print { display: none; }
+    .hero { padding: 3rem 0 2rem; }
+    .block { padding: 2rem 0; }
+    .gallery { grid-template-columns: repeat(5, 1fr); gap: 0.75rem; }
+    .layers { grid-template-columns: repeat(2, 1fr); }
+    .status { grid-template-columns: repeat(3, 1fr); }
+    .flows, .two { grid-template-columns: 1fr 1fr; }
+  }
+  @media print {
+    :global(body:has(.aurora) > header),
+    :global(body:has(.aurora) > footer) { display: none; }
+  }
+</style>
