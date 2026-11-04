@@ -78,6 +78,21 @@ APK release contra la API pública, recorrido completo. Detalle y capturas en
   la descarga como no disponible.
 - **Estado.** Pendiente de publicar una release con `release:publish`.
 
+### Release 0.9.0-rc.2 y firma propia de la APK (2026-11-04)
+
+- **Hallazgo.** El `assembleRelease` generado por `expo prebuild` firma con la clave de depuración
+  pública de Android. Registrar esa huella en Google OAuth permitiría a cualquiera firmar una APK
+  `com.garfit.app` aceptada por el mismo cliente.
+- **Cambio.** Clave de release propia fuera del repositorio (`C:\Users\david\.garfit\garfit-release.jks`
+  y `keystore.properties` con la contraseña; hay que respaldarlas: sin ellas no se puede publicar
+  una actualización que instale encima). La APK se re-firma tras compilar con
+  `apksigner sign --ks …garfit-release.jks --ks-key-alias garfit`. SHA-1 del certificado:
+  `6D:A2:F4:FD:36:39:6F:43:5F:16:91:27:CB:8F:7A:78:CB:85:7B:86`.
+- **Cambio.** `docker-compose.demo.yml` pasa `GOOGLE_WEB_CLIENT_ID` y `GOOGLE_EXTRA_AUDIENCES` a la
+  API; vacías, Google sigue desactivado.
+- **Revertir.** Quitar las dos variables del compose. La firma no se revierte: quien instaló una
+  APK con esta clave tendría que desinstalar para volver a la de depuración.
+
 ## Pendientes conocidos
 
 - Traefik acepta tráfico directo a la IP del VPS sin pasar por Cloudflare. Restringirlo afecta a
