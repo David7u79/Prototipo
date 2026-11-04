@@ -20,6 +20,11 @@ const apiUrl = process.env.EXPO_PUBLIC_API_URL ?? '';
 
 // The API client reads this in-memory copy; SecureStore is the durable source.
 let currentTokens: AuthTokens | null = null;
+let refreshInFlight: Promise<boolean> | null = null;
+
+/** The server said no (expired, revoked, reused); a network error is not a rejection. */
+const isRejected = (error: unknown) =>
+  error instanceof ApiError && (error.status === 401 || error.status === 403);
 
 export const api = createApiClient({
   baseUrl: apiUrl,
@@ -91,18 +96,27 @@ export function SessionProvider({ children }: PropsWithChildren) {
     setUser(response.user);
   }, []);
 
-  const refreshSession = useCallback(async (): Promise<boolean> => {
-    if (!currentTokens) return false;
+  const refreshSession = useCallback((): Promise<boolean> => {
+    if (!currentTokens) return Promise.resolve(false);
+    // Single flight: refresh tokens rotate and the API treats a reused one as theft, revoking
+    // every session. Parallel 401s (Inicio loads several resources at once) must share one call.
+    if (refreshInFlight) return refreshInFlight;
 
-    try {
-      // Refresh tokens rotate, so persist the replacement before another request.
-      const response = await api.auth.refresh(currentTokens.refreshToken);
-      await saveAuthResponse(response);
-      return true;
-    } catch {
-      await clearLocalSession();
-      return false;
-    }
+    const { refreshToken } = currentTokens;
+    refreshInFlight = (async () => {
+      try {
+        // Persist the replacement before any other request can use the old token.
+        await saveAuthResponse(await api.auth.refresh(refreshToken));
+        return true;
+      } catch (error) {
+        // Without network the stored session is still valid: keep it for the next attempt.
+        if (isRejected(error)) await clearLocalSession();
+        return false;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+    return refreshInFlight;
   }, [clearLocalSession, saveAuthResponse]);
 
   const withSessionRefresh = useCallback(
@@ -158,8 +172,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
         try {
           setUser(await api.auth.me());
           await loadProfile();
-        } catch {
-          await clearLocalSession();
+        } catch (error) {
+          if (isRejected(error)) await clearLocalSession();
         }
       }
 
