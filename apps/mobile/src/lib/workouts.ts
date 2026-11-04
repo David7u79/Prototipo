@@ -12,6 +12,8 @@ export type EditableSet = {
 };
 
 const numberOrNull = (text: string, integer = false) => {
+  // Number('') es 0: sin esto un campo vacío viajaba como 0 sin unidad y la API rechazaba la serie.
+  if (!text.trim()) return null;
   const value = Number(text.replace(',', '.'));
   return Number.isFinite(value) && (!integer || Number.isInteger(value)) ? value : null;
 };
