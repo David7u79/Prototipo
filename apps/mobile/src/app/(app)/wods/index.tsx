@@ -2,9 +2,9 @@ import type { WodSummary } from '@garfit/types';
 import { WORKOUT_TYPE_LABELS } from '@garfit/validation';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
-import { Button, Chip, EmptyState, ListRow, Title, uiStyles } from '@/components/ui';
-import { colors, space, type } from '@/constants/theme';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { Chip, EmptyState, ErrorState, ListRow, LoadingState, Title, uiStyles } from '@/components/ui';
+import { colors } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import { wodPrescription } from '@/lib/wods';
 
@@ -37,8 +37,8 @@ export default function WodListScreen() {
 
   useFocusEffect(useCallback(() => void load(), [load]));
 
-  if (!items && !error) return <Loading />;
-  if (error) return <Failure message={error} onRetry={() => void load()} />;
+  if (!items && !error) return <LoadingState />;
+  if (error) return <ErrorState message={error} onRetry={() => void load()} />;
 
   return (
     <View style={styles.container}>
@@ -71,44 +71,9 @@ export default function WodListScreen() {
   );
 }
 
-function Loading() {
-  return (
-    <View style={styles.loadingContainer}>
-      <ActivityIndicator color={colors.accent} size="large" />
-    </View>
-  );
-}
-
-function Failure({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <View style={styles.failureContainer}>
-      <Text style={styles.errorText}>{message}</Text>
-      <Button label="Reintentar" onPress={onRetry} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  failureContainer: {
-    gap: space.md,
-    padding: space.xl,
-    flex: 1,
-    backgroundColor: colors.background,
-    justifyContent: 'center',
-  },
-  errorText: {
-    color: colors.danger,
-    ...type.body,
-    textAlign: 'center',
   },
 });

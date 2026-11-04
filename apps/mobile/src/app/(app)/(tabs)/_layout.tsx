@@ -2,7 +2,7 @@ import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet, View, type ColorValue, type GestureResponderEvent } from 'react-native';
 import { Tabs } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { colors, gradients } from '@/constants/theme';
+import { colors, gradients, headerOptions, radius } from '@/constants/theme';
 
 type SymbolName = ComponentProps<typeof SymbolView>['name'];
 type TabButtonProps = {
@@ -37,13 +37,10 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        headerShadowVisible: false,
-        headerTitleStyle: { fontWeight: '700' },
+        ...headerOptions,
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.subtle,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
         tabBarStyle: styles.bar,
       }}
     >
@@ -88,12 +85,18 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
-  trainSlot: { flex: 1, alignItems: 'center' },
+  trainSlot: {
+    flex: 1,
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+  },
   trainButton: {
-    top: -18,
+    marginTop: -22,
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
     experimental_backgroundImage: gradients.primary,

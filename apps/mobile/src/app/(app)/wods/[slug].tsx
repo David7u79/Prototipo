@@ -1,10 +1,12 @@
 import type { WodDetail, WodPerformanceResponse } from '@garfit/types';
+import { WORKOUT_TYPE_LABELS } from '@garfit/validation';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Chip, Label, SectionHeader, Stat, Title, uiStyles } from '@/components/ui';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Chip, ErrorState, Label, LoadingState, SectionHeader, Stat, Title, uiStyles } from '@/components/ui';
 import { colors, space, type } from '@/constants/theme';
 import { api, useSession } from '@/lib/auth';
+import { formatDate } from '@/lib/presentation';
 import { wodExerciseLabel, wodPrescription } from '@/lib/wods';
 
 export default function WodDetailScreen() {
@@ -55,12 +57,7 @@ export default function WodDetailScreen() {
     }
   }
 
-  if (!wod && !error)
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    );
+  if (!wod && !error) return <LoadingState />;
 
   if (error) return <ErrorState message={error} onRetry={() => void load()} />;
   if (!wod) return null;
@@ -70,7 +67,7 @@ export default function WodDetailScreen() {
       <Card hero style={styles.heroCard}>
         <Title>{wod.name}</Title>
         <View style={styles.chipsRow}>
-          <Chip label={wod.workoutType} tone="accent" />
+          <Chip label={WORKOUT_TYPE_LABELS[wod.workoutType]} tone="accent" />
           {wod.isBenchmark ? <Chip label="Benchmark" tone="metric" /> : null}
         </View>
         <Text style={styles.prescriptionText}>{wodPrescription(wod)}</Text>
@@ -177,17 +174,7 @@ function unavailableMessage(reason: WodPerformanceResponse['performance']['unava
 }
 
 function dateLabel(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('es-ES');
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <View style={styles.errorContainer}>
-      <Text style={styles.errorText}>{message}</Text>
-      <Button label="Reintentar" onPress={onRetry} />
-    </View>
-  );
+  return formatDate(value);
 }
 
 const styles = StyleSheet.create({

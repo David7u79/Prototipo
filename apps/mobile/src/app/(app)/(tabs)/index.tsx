@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Card, Icon, Label, ListRow, SectionHeader, Stat, uiStyles } from '@/components/ui';
 import { colors, gradients, radius, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
-import { formatValue } from '@/lib/presentation';
+import { formatValue, formatDate } from '@/lib/presentation';
 
 export default function HomeScreen() {
   const { loadProfile, profile, request, user } = useSession();
@@ -59,11 +59,11 @@ export default function HomeScreen() {
 
   const system = profile?.preferredUnits ?? 'METRIC';
   const recentRecords = (data?.recentRecords ?? []).slice(0, 5);
-  const todayFormatted = new Intl.DateTimeFormat('es-ES', {
+  const todayFormatted = formatDate(new Date(), {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
-  }).format(new Date());
+  });
 
   const userInitial = (user?.name || user?.email || 'A').charAt(0).toUpperCase();
   const activeWorkout = workoutStats?.lastWorkout && workoutStats.lastWorkout.status !== 'COMPLETED'
@@ -148,18 +148,6 @@ export default function HomeScreen() {
           </Card>
         )}
 
-        {/* Grid de 2 columnas con Stats */}
-        {workoutStats ? (
-          <View style={styles.grid2}>
-            <Card style={styles.gridCard}>
-              <Stat label="Semana" value={workoutStats.last7Days} tone="metric" />
-            </Card>
-            <Card style={styles.gridCard}>
-              <Stat label="Mes" value={workoutStats.last30Days} tone="metric" />
-            </Card>
-          </View>
-        ) : null}
-
         {/* Marcas recientes */}
         {recentRecords.length > 0 ? (
           <View style={styles.section}>
@@ -176,7 +164,7 @@ export default function HomeScreen() {
                   icon={{ ios: 'trophy.fill', android: 'emoji_events' }}
                   tone="metric"
                   title={record.movement.name}
-                  subtitle={record.performedAt}
+                  subtitle={formatDate(record.performedAt)}
                   trailing={formatted}
                   onPress={() => router.push(`/(app)/records/${record.movement.slug}`)}
                 />

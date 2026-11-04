@@ -1,3 +1,4 @@
+import { EQUIPMENT_LABELS, MOVEMENT_CATEGORY_LABELS } from '@garfit/movements';
 import type { MovementSummary, WorkoutType } from '@garfit/types';
 import { WORKOUT_TYPE_LABELS, createWorkoutSchema } from '@garfit/validation';
 import { useRouter } from 'expo-router';
@@ -21,6 +22,8 @@ import { listenForMovementSelection } from '@/lib/movement-picker';
 import { createWorkoutPayload, type EditableExercise } from '@/lib/workouts';
 
 const TYPES: readonly WorkoutType[] = ['STRENGTH', 'FOR_TIME', 'AMRAP', 'EMOM', 'CARDIO', 'CUSTOM'];
+const REST_OPTIONS = [60, 90, 120, 180] as const;
+
 const blankExercise = (
   movementSlug: string,
   name: string,
@@ -36,6 +39,7 @@ const blankExercise = (
   distanceValue: '',
   distanceUnit: 'METER',
   duration: '',
+  restSeconds: 90,
 });
 
 export default function NewWorkoutScreen() {
@@ -218,7 +222,7 @@ export default function NewWorkoutScreen() {
                 icon={{ ios: 'plus.circle.fill', android: 'add' }}
                 tone="accent"
                 title={m.name}
-                subtitle={`${m.category} · ${m.equipment}`}
+                subtitle={`${MOVEMENT_CATEGORY_LABELS[m.category]} · ${EQUIPMENT_LABELS[m.equipment]}`}
                 onPress={() => void addMovement(m.slug)}
               />
             ))}
@@ -363,6 +367,22 @@ function ExerciseBuilder({
             />
           </View>
         ) : null}
+      </View>
+
+      <View style={styles.fieldBlock}>
+        <Label>Descanso entre series</Label>
+        <View style={styles.chipsRow}>
+          {REST_OPTIONS.map((seconds) => (
+            <Chip
+              key={seconds}
+              label={`${seconds} s`}
+              selected={exercise.restSeconds === seconds}
+              onPress={() =>
+                onChange({ restSeconds: exercise.restSeconds === seconds ? null : seconds })
+              }
+            />
+          ))}
+        </View>
       </View>
     </Card>
   );
