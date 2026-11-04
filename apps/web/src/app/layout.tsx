@@ -3,14 +3,17 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GarFit',
+  title: {
+    template: '%s · GarFit',
+    default: 'GarFit',
+  },
   description: 'Entrena, registra y evoluciona.',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className="h-full">
-      <body className="flex min-h-full flex-col">{children}</body>
+      <body className="flex min-h-full flex-col bg-bg text-ink antialiased">{children}</body>
     </html>
   );
 }

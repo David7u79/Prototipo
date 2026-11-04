@@ -29,8 +29,8 @@ export function AiAnalysis({
 }) {
   const insufficient = analysis.status === 'INSUFFICIENT_DATA';
   return (
-    <article className="mt-8 rounded-2xl border border-line bg-panel p-5">
-      <h2 className="text-xl font-bold">{AI_ANALYSIS_TYPE_LABELS[analysis.type]}</h2>
+    <article className="mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <h2 className="text-xl font-bold text-ink">{AI_ANALYSIS_TYPE_LABELS[analysis.type]}</h2>
       <p className="mt-1 text-sm text-muted">
         {analysisGeneratedLabel(analysis.cached, analysis.provider)} ·{' '}
         {formatDate(analysis.generatedAt)}
@@ -99,7 +99,7 @@ function AnalysisItems({ title, items }: { title: string; items: AiAnalysisItem[
         {items.map((item, i) => (
           <article
             aria-label={`${singular}: ${item.title}`}
-            className="rounded border border-line p-3"
+            className="rounded-[10px] border border-line bg-raised/30 p-4"
             key={`${item.title}-${i}`}
           >
             <h4 className="font-medium">{item.title}</h4>

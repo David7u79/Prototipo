@@ -1,9 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ApiError } from '@garfit/api-client';
 import { notFound, redirect } from 'next/navigation';
 import { RecordForm } from '@/components/record-form';
 import { serverApi } from '@/lib/auth';
 import { parseMovementFilters } from '@/lib/movement-filters';
+
+export const metadata: Metadata = {
+  title: 'Registrar marca',
+};
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -32,9 +37,13 @@ export default async function NewRecordPage({ searchParams }: Props) {
       : null;
 
     return (
-      <section className="mx-auto max-w-3xl">
-        <h1 className="text-3xl font-bold">Elige un movimiento</h1>
-        <form action="/app/records/new" className="mt-6 flex gap-3" method="GET">
+      <section className="mx-auto max-w-3xl space-y-6">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-accent">Nueva marca</p>
+          <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">Elige un movimiento</h1>
+        </div>
+
+        <form action="/app/records/new" className="flex gap-2.5" method="GET">
           <label className="sr-only" htmlFor="search">
             Buscar movimiento
           </label>
@@ -42,23 +51,26 @@ export default async function NewRecordPage({ searchParams }: Props) {
             defaultValue={filters.search}
             id="search"
             name="search"
-            placeholder="Buscar movimiento"
+            placeholder="Buscar movimiento..."
+            className="flex-1"
           />
-          <button className="rounded-lg bg-brand px-4 py-2 font-semibold text-white">Buscar</button>
+          <button type="submit" className="btn-primary">
+            Buscar
+          </button>
         </form>
+
         {results && (
-          <div className="mt-5 space-y-3">
+          <div className="space-y-3">
             {results.items.length === 0 ? (
-              <p className="text-sm text-muted">No encontramos movimientos con esa búsqueda.</p>
+              <div className="rounded-2xl border border-line bg-surface p-6 text-center text-sm text-muted">
+                No encontramos movimientos con esa búsqueda.
+              </div>
             ) : (
               results.items.map((movement) => (
                 <Link
-                  className={[
-                    'block rounded-xl border border-line',
-                    'bg-panel p-4 font-semibold underline',
-                  ].join(' ')}
+                  className="block rounded-2xl border border-line bg-surface p-4 font-semibold text-ink no-underline transition hover:border-accent hover:text-accent"
                   href={`/app/records/new?movement=${movement.slug}`}
-                  key={movement.slug}
+                  key={movement.id}
                 >
                   {movement.name}
                 </Link>
@@ -70,29 +82,25 @@ export default async function NewRecordPage({ searchParams }: Props) {
     );
   }
 
-  let movement;
-  try {
-    movement = await api.movements.get(movementSlug);
-  } catch (error) {
+  const movement = await api.movements.get(movementSlug).catch((error: unknown) => {
     if (
       error instanceof ApiError &&
       (error.code === 'MOVEMENT_NOT_FOUND' || error.status === 404)
     ) {
       notFound();
     }
-    if (error instanceof ApiError && error.status === 401) {
-      redirect('/login');
-    }
     throw error;
-  }
+  });
 
   return (
-    <section className="mx-auto max-w-2xl">
-      <Link className="text-sm underline" href="/app/records/new">
-        Cambiar movimiento
+    <section className="mx-auto max-w-3xl space-y-6">
+      <Link className="text-sm font-semibold text-accent hover:underline" href="/app/records">
+        ← Volver a marcas
       </Link>
-      <h1 className="mt-4 text-3xl font-bold">Registrar marca</h1>
-      <p className="mt-2 text-muted">{movement.name}</p>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-accent">Nueva marca personal</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{movement.name}</h1>
+      </div>
       <RecordForm
         movementSlug={movement.slug}
         recordTypes={movement.recordTypes}

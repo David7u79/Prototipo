@@ -55,40 +55,54 @@ export function WorkoutBuilder({ workout }: Props) {
   };
 
   return (
-    <form action={action} className="mt-6 space-y-5 rounded-2xl border border-line bg-panel p-5">
+    <form action={action} className="mt-6 space-y-5 rounded-2xl border border-line bg-surface p-5 sm:p-6">
       {workout && <input name="id" type="hidden" value={workout.id} />}
       <input name="exercises" type="hidden" value={JSON.stringify(exercises)} />
-      <label>
-        Nombre
-        <input defaultValue={workout?.name} name="name" required />
-      </label>
+      <div>
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="workout-name">
+          Nombre
+        </label>
+        <input defaultValue={workout?.name} id="workout-name" name="name" required />
+      </div>
       {!workout && (
-        <label>
-          Tipo
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="workout-type">
+            Tipo
+          </label>
           <select
+            id="workout-type"
             name="workoutType"
+            value={type}
             onChange={(event) => setType(event.target.value as WorkoutType)}
           >
             {Object.entries(WORKOUT_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} selected={value === type} value={value}>
+              <option key={value} value={value}>
                 {label}
               </option>
             ))}
           </select>
-        </label>
+        </div>
       )}
       {!workout && <Prescription type={type} />}
-      <section aria-label="Ejercicios">
-        <h2 className="font-semibold">Ejercicios</h2>
-        <label>
-          Buscar movimiento
-          <input onChange={(event) => setQuery(event.target.value)} value={query} />
-        </label>
+      <section aria-label="Ejercicios" className="space-y-4 pt-2">
+        <h2 className="text-base font-bold text-ink">Ejercicios del entrenamiento</h2>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="movement-query">
+            Buscar movimiento para añadir
+          </label>
+          <input
+            id="movement-query"
+            onChange={(event) => setQuery(event.target.value)}
+            value={query}
+            placeholder="Escribe al menos 2 letras..."
+          />
+        </div>
         {query.trim().length >= 2 && matches.length > 0 && (
-          <ul className="mt-2 rounded border border-line" role="listbox">
+          <ul className="divide-y divide-line rounded-[10px] border border-line bg-raised" role="listbox">
             {matches.map((movement) => (
               <li key={movement.slug}>
                 <button
+                  className="w-full justify-start rounded-none border-none bg-transparent px-4 py-2.5 text-left text-sm font-medium text-ink hover:bg-surface hover:text-accent"
                   onClick={() => {
                     setExercises([...exercises, builderExercise(movement)]);
                     setQuery('');
@@ -113,11 +127,20 @@ export function WorkoutBuilder({ workout }: Props) {
           />
         ))}
       </section>
-      {issue && <p role="alert">{issue}</p>}
-      {state.message && <p role="alert">{state.message}</p>}
+      {issue && (
+        <p className="rounded-[10px] border border-danger/30 bg-danger/15 p-3 text-sm text-danger" role="alert">
+          {issue}
+        </p>
+      )}
+      {state.message && (
+        <p className="rounded-[10px] border border-danger/30 bg-danger/15 p-3 text-sm text-danger" role="alert">
+          {state.message}
+        </p>
+      )}
       <button
-        className="rounded-lg bg-brand px-4 py-2 font-semibold text-white disabled:opacity-60"
+        className="btn-primary"
         disabled={creating || updating || issue !== null}
+        type="submit"
       >
         Guardar entrenamiento
       </button>
@@ -150,10 +173,12 @@ function Field({
   placeholder?: string;
 }) {
   return (
-    <label>
-      {label}
-      <input min="1" name={name} placeholder={placeholder} type={placeholder ? 'text' : 'number'} />
-    </label>
+    <div>
+      <label className="mb-1 block text-xs font-medium text-muted">
+        {label}
+        <input min="1" name={name} placeholder={placeholder} type={placeholder ? 'text' : 'number'} />
+      </label>
+    </div>
   );
 }
 
@@ -176,8 +201,8 @@ function ExerciseEditor({
   const distance =
     exercise.recordTypes.includes('DISTANCE') || exercise.recordTypes.includes('TIME');
   return (
-    <fieldset className="mt-4 grid gap-2 rounded border border-line p-3 sm:grid-cols-3">
-      <legend>{exercise.name}</legend>
+    <fieldset className="grid gap-3 rounded-xl border border-line bg-raised/40 p-4 sm:grid-cols-3">
+      <legend className="px-2 text-sm font-bold text-accent">{exercise.name}</legend>
       <NumberInput
         label="Series"
         value={exercise.targetSets ?? null}
@@ -225,22 +250,29 @@ function ExerciseEditor({
           onChange={(value) => update('targetDurationSeconds', value)}
         />
       )}
-      <div className="flex gap-2 sm:col-span-3">
+      <div className="flex flex-wrap items-center gap-2 pt-2 sm:col-span-3">
         <button
           aria-label={`Subir ${exercise.name}`}
           onClick={() => onMove(index, -1)}
           type="button"
+          className="btn-secondary !py-1 !px-2.5 !text-xs"
         >
-          Subir
+          ↑ Subir
         </button>
         <button
           aria-label={`Bajar ${exercise.name}`}
           onClick={() => onMove(index, 1)}
           type="button"
+          className="btn-secondary !py-1 !px-2.5 !text-xs"
         >
-          Bajar
+          ↓ Bajar
         </button>
-        <button aria-label={`Quitar ${exercise.name}`} onClick={onRemove} type="button">
+        <button
+          aria-label={`Quitar ${exercise.name}`}
+          onClick={onRemove}
+          type="button"
+          className="rounded-[10px] border border-danger/30 bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger hover:bg-danger/20"
+        >
           Quitar
         </button>
       </div>
@@ -258,15 +290,17 @@ function NumberInput({
   onChange: (value: number | null) => void;
 }) {
   return (
-    <label>
-      {label}
-      <input
-        min="1"
-        onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
-        type="number"
-        value={value ?? ''}
-      />
-    </label>
+    <div>
+      <label className="mb-1 block text-xs font-medium text-muted">
+        {label}
+        <input
+          min="1"
+          onChange={(event) => onChange(event.target.value ? Number(event.target.value) : null)}
+          type="number"
+          value={value ?? ''}
+        />
+      </label>
+    </div>
   );
 }
 
@@ -282,16 +316,16 @@ function UnitInput({
   onChange: (value: string) => void;
 }) {
   return (
-    <label>
-      {label}
-      {/* Sin unidad elegida se muestra vacío: mostrar la primera unidad haría creer que ya
-          está seleccionada y el guardado fallaba sin explicar por qué. */}
-      <select onChange={(event) => onChange(event.target.value)} value={value ?? ''}>
-        <option value="">Selecciona unidad</option>
-        {values.map((unit) => (
-          <option key={unit}>{unit}</option>
-        ))}
-      </select>
-    </label>
+    <div>
+      <label className="mb-1 block text-xs font-medium text-muted">
+        {label}
+        <select onChange={(event) => onChange(event.target.value)} value={value ?? ''}>
+          <option value="">Selecciona unidad</option>
+          {values.map((unit) => (
+            <option key={unit} value={unit}>{unit}</option>
+          ))}
+        </select>
+      </label>
+    </div>
   );
 }

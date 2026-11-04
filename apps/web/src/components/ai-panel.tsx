@@ -10,7 +10,9 @@ import {
   type AiState,
 } from '@/app/ai-actions';
 import { AiAnalysis } from '@/components/ai-analysis';
+
 const empty: AiState = { message: '' };
+
 export function AiPanel({
   consentGivenAt,
   movements,
@@ -32,58 +34,68 @@ export function AiPanel({
   const [movement, movementAction, moving] = useActionState(explainMovement, empty);
   const state =
     [progress, workout, wod, movement].find((item) => item.analysis || item.message) ?? empty;
+
   if (!consent && !consentState.consentGivenAt)
     return (
-      <div className="mt-6 rounded-2xl border border-line bg-panel p-5">
-        <p>
+      <div className="mt-6 rounded-2xl border border-line bg-surface p-6 shadow-xl">
+        <h2 className="text-lg font-bold text-ink">Consentimiento de análisis deportivo</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
           GarFit utiliza Google Gemini para generar análisis. Al solicitar un análisis, los datos
           deportivos necesarios para esa operación se enviarán al proveedor de IA. No se envían tus
           credenciales de acceso.
         </p>
-        <form action={consentAction} className="mt-4 flex gap-3">
+        <form action={consentAction} className="mt-6 flex flex-wrap gap-3">
           <button
-            className="rounded-lg bg-brand px-4 py-2 font-semibold text-white"
+            type="submit"
+            className="btn-primary"
             disabled={consenting}
           >
-            Aceptar y continuar
+            {consenting ? 'Procesando…' : 'Aceptar y continuar'}
           </button>
-          <button type="button" onClick={() => history.back()}>
+          <button type="button" className="btn-secondary" onClick={() => history.back()}>
             Cancelar
           </button>
         </form>
-        {consentState.message && <p role="alert">{consentState.message}</p>}
+        {consentState.message && (
+          <p className="mt-3 rounded-[10px] border border-danger/30 bg-danger/15 p-3 text-sm text-danger" role="alert">
+            {consentState.message}
+          </p>
+        )}
       </div>
     );
+
   return (
     <>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        <form action={progressAction} className="rounded-2xl border border-line bg-panel p-4">
-          <h2 className="font-semibold">Analizar mi progreso</h2>
+        <form action={progressAction} className="rounded-2xl border border-line bg-surface p-5 space-y-3">
+          <h2 className="font-bold text-ink">Analizar mi progreso</h2>
           <select aria-label="Periodo" defaultValue="30" name="periodDays">
-            <option value="30">30 días</option>
-            <option value="60">60 días</option>
-            <option value="90">90 días</option>
+            <option value="30">Últimos 30 días</option>
+            <option value="60">Últimos 60 días</option>
+            <option value="90">Últimos 90 días</option>
           </select>
-          <button className="mt-3 block underline" disabled={progressing}>
-            Analizar mi progreso
+          <button type="submit" className="text-sm font-semibold text-accent hover:underline disabled:opacity-50" disabled={progressing}>
+            {progressing ? 'Analizando…' : 'Analizar mi progreso →'}
           </button>
         </form>
-        <form action={workoutAction} className="rounded-2xl border border-line bg-panel p-4">
-          <h2 className="font-semibold">Analizar mi último entrenamiento</h2>
+
+        <form action={workoutAction} className="rounded-2xl border border-line bg-surface p-5 space-y-3">
+          <h2 className="font-bold text-ink">Analizar mi último entrenamiento</h2>
           {lastWorkout ? (
             <>
               <input name="workoutId" type="hidden" value={initial?.workoutId ?? lastWorkout.id} />
-              <p>{lastWorkout.name}</p>
-              <button className="mt-3 underline" disabled={working}>
-                Analizar mi último entrenamiento
+              <p className="text-sm font-medium text-ink">{lastWorkout.name}</p>
+              <button type="submit" className="text-sm font-semibold text-accent hover:underline disabled:opacity-50" disabled={working}>
+                {working ? 'Analizando…' : 'Analizar mi último entrenamiento →'}
               </button>
             </>
           ) : (
-            <p>Aún no hay entrenamientos completados.</p>
+            <p className="text-sm text-muted">Aún no hay entrenamientos completados.</p>
           )}
         </form>
-        <form action={wodAction} className="rounded-2xl border border-line bg-panel p-4">
-          <h2 className="font-semibold">Explicar un WOD</h2>
+
+        <form action={wodAction} className="rounded-2xl border border-line bg-surface p-5 space-y-3">
+          <h2 className="font-bold text-ink">Explicar un WOD</h2>
           <select
             aria-label="WOD"
             defaultValue={initial?.type === 'wod' ? initial.slug : undefined}
@@ -95,12 +107,13 @@ export function AiPanel({
               </option>
             ))}
           </select>
-          <button className="mt-3 block underline" disabled={wodding}>
-            Explicar un WOD
+          <button type="submit" className="text-sm font-semibold text-accent hover:underline disabled:opacity-50" disabled={wodding}>
+            {wodding ? 'Consultando…' : 'Explicar este WOD →'}
           </button>
         </form>
-        <form action={movementAction} className="rounded-2xl border border-line bg-panel p-4">
-          <h2 className="font-semibold">Explicar un movimiento</h2>
+
+        <form action={movementAction} className="rounded-2xl border border-line bg-surface p-5 space-y-3">
+          <h2 className="font-bold text-ink">Explicar un movimiento</h2>
           <select
             aria-label="Movimiento"
             defaultValue={initial?.type === 'movement' ? initial.slug : undefined}
@@ -112,16 +125,18 @@ export function AiPanel({
               </option>
             ))}
           </select>
-          <button className="mt-3 block underline" disabled={moving}>
-            Explicar un movimiento
+          <button type="submit" className="text-sm font-semibold text-accent hover:underline disabled:opacity-50" disabled={moving}>
+            {moving ? 'Consultando…' : 'Explicar este movimiento →'}
           </button>
         </form>
       </div>
+
       {state.message && (
-        <p className="mt-4" role="alert">
+        <p className="mt-4 rounded-[10px] border border-danger/30 bg-danger/15 p-3 text-sm text-danger" role="alert">
           {state.message}
         </p>
       )}
+
       {state.analysis && <AiAnalysis analysis={state.analysis} />}
     </>
   );

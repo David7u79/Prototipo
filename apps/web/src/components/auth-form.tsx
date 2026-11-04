@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 import type { AuthState } from '@/app/auth-actions';
+import { GarFitLogo } from '@/components/logo';
 
 const EMPTY_AUTH_STATE: AuthState = { errors: {}, message: '' };
 
@@ -52,7 +53,7 @@ function FormField({ error, label, name, type = 'text' }: FieldProps) {
 
   return (
     <div>
-      <label className="mb-1 block text-sm font-medium" htmlFor={name}>
+      <label className="mb-1.5 block text-sm font-medium text-ink" htmlFor={name}>
         {label}
       </label>
       <input
@@ -63,7 +64,7 @@ function FormField({ error, label, name, type = 'text' }: FieldProps) {
         type={type}
       />
       {error?.map((message) => (
-        <p className="mt-1 text-sm text-red-700" id={errorId} key={message}>
+        <p className="mt-1 text-xs text-danger" id={errorId} key={message}>
           {message}
         </p>
       ))}
@@ -73,10 +74,15 @@ function FormField({ error, label, name, type = 'text' }: FieldProps) {
 
 function AuthHeading({ register }: { register: boolean }) {
   return (
-    <div>
-      <p className="text-sm font-semibold text-brand">GarFit</p>
-      <h1 className="mt-1 text-2xl font-bold">{register ? 'Crea tu cuenta' : 'Inicia sesión'}</h1>
-      <p className="mt-1 text-sm text-muted">Entrena · Registra · Evoluciona</p>
+    <div className="text-center">
+      <div className="flex justify-center mb-3">
+        <GarFitLogo size={48} />
+      </div>
+      <p className="text-xs font-bold uppercase tracking-widest text-accent">GarFit</p>
+      <h1 className="mt-1 text-2xl font-black tracking-tight text-ink">
+        {register ? 'Crea tu cuenta' : 'Inicia sesión'}
+      </h1>
+      <p className="mt-1 text-xs text-muted">Entrena · Registra · Evoluciona</p>
     </div>
   );
 }
@@ -89,7 +95,7 @@ function AuthSwitch({ register }: { register: boolean }) {
   return (
     <p className="text-center text-sm text-muted">
       {prompt}{' '}
-      <Link className="font-semibold text-brand underline" href={href}>
+      <Link className="font-semibold text-accent underline hover:text-ink" href={href}>
         {linkText}
       </Link>
     </p>
@@ -139,10 +145,10 @@ export function AuthForm({ action, googleClientId, next, register = false }: Aut
   }, [configureGoogle]);
 
   return (
-    <>
+    <div className="w-full">
       <form
         action={formAction}
-        className="space-y-4 rounded-2xl border border-line bg-panel p-6 shadow-sm"
+        className="space-y-4 rounded-2xl border border-line bg-surface p-6 shadow-2xl sm:p-8"
       >
         <input name="next" type="hidden" value={next ?? ''} />
         <AuthHeading register={register} />
@@ -160,15 +166,16 @@ export function AuthForm({ action, googleClientId, next, register = false }: Aut
           type="password"
         />
         {state.message && (
-          <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700" role="alert">
+          <p
+            className="rounded-[10px] border border-danger/30 bg-danger/15 p-3 text-sm text-danger"
+            role="alert"
+          >
             {state.message}
           </p>
         )}
         <button
-          className={[
-            'w-full rounded-lg bg-brand px-4 py-2.5 font-semibold text-white',
-            'hover:bg-brand-dark disabled:opacity-60',
-          ].join(' ')}
+          type="submit"
+          className="btn-primary w-full py-3 text-center"
           disabled={pending}
         >
           {pending ? 'Procesando…' : register ? 'Crear cuenta' : 'Entrar'}
@@ -184,12 +191,15 @@ export function AuthForm({ action, googleClientId, next, register = false }: Aut
           />
           <div className="mt-4 flex justify-center" ref={googleButton} />
           {googleError && (
-            <p className="mt-2 text-center text-sm text-red-700" role="alert">
+            <p
+              className="mt-2 text-center text-xs text-danger"
+              role="alert"
+            >
               {googleError}
             </p>
           )}
         </>
       )}
-    </>
+    </div>
   );
 }

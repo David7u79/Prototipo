@@ -1,25 +1,196 @@
-@import 'tailwindcss';
+@import "tailwindcss";
+
 @theme {
-  --color-ink: #18231f;
-  --color-surface: #f6f8f6;
-  --color-panel: #ffffff;
-  --color-brand: #176b4d;
-  --color-brand-dark: #104a36;
-  --color-line: #dbe3dd;
-  --color-muted: #5c6a62;
-  --font-sans: Arial, Helvetica, sans-serif;
+  --color-bg: #0a0d18;
+  --color-surface: #131829;
+  --color-raised: #1b2136;
+  --color-ink: #eef1fa;
+  --color-muted: #8a93ad;
+  --color-line: #232a42;
+  --color-border-input: #5b6480;
+  --color-accent: #9b85ff;
+  --color-accent-soft: #211b45;
+  --color-metric: #22d3ee;
+  --color-success: #34d399;
+  --color-danger: #fb7185;
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
+
+  /* Radios decididos: 10/16/24/pill */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+
+  /* Aliases para compatibilidad con código existente */
+  --color-panel: #131829;
+  --color-brand: #9b85ff;
+  --color-brand-dark: #6a4bf0;
 }
-body {
-  background: var(--color-surface);
-  color: var(--color-ink);
-  font-family: Arial, Helvetica, sans-serif;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    color-scheme: dark;
+    background-color: var(--color-bg);
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a {
+    color: inherit;
+    transition: color 0.15s ease, opacity 0.15s ease;
+  }
+
+  /* Q8: inputs, selects y textarea con borde >= 3:1 (#5B6480) y contraste */
+  input,
+  select,
+  textarea {
+    width: 100%;
+    border-radius: 10px;
+    border: 1px solid var(--color-border-input);
+    background-color: var(--color-surface);
+    padding: 0.5rem 0.75rem;
+    color: var(--color-ink);
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-muted);
+  }
+
+  input:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 2px var(--color-accent-soft);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-metric);
+    outline-offset: 2px;
+  }
+
+  button,
+  a {
+    outline-color: var(--color-metric);
+  }
+
+  /* Botones sin clase específica reciben estilo secundario por defecto */
+  button:not([class*="bg-"]):not([class*="underline"]):not([class*="btn-"]):not([class*="text-"]) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    background-color: var(--color-raised);
+    border: 1px solid var(--color-line);
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+
+  button:not([class*="bg-"]):not([class*="underline"]):not([class*="btn-"]):not([class*="text-"]):hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background-color: var(--color-surface);
+    color: var(--color-accent);
+  }
+
+  button:not([class*="bg-"]):not([class*="underline"]):not([class*="btn-"]):not([class*="text-"]):disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 }
-input,
-select {
-  @apply w-full rounded-lg border border-line bg-white px-3 py-2 text-ink
-    outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/25;
-}
-button,
-a {
-  @apply focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand;
+
+@layer components {
+  /* Botón primario Aurora con degradado y texto blanco */
+  .btn-primary,
+  .button-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: #ffffff !important;
+    background: linear-gradient(135deg, #6a4bf0 0%, #0e8fb0 100%);
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px 0 rgba(106, 75, 240, 0.25);
+    transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn-primary:hover:not(:disabled),
+  .button-primary:hover:not(:disabled) {
+    opacity: 0.95;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px 0 rgba(106, 75, 240, 0.35);
+  }
+
+  .btn-primary:disabled,
+  .button-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* Botón secundario Aurora */
+  .btn-secondary,
+  .button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 10px;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    background-color: var(--color-raised);
+    border: 1px solid var(--color-line);
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  }
+
+  .btn-secondary:hover:not(:disabled),
+  .button-secondary:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background-color: var(--color-surface);
+    color: var(--color-accent);
+  }
+
+  .btn-secondary:disabled,
+  .button-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* Estilo de tarjeta base Aurora */
+  .card-aurora {
+    border-radius: 16px;
+    border: 1px solid var(--color-line);
+    background-color: var(--color-surface);
+    padding: 1.25rem;
+  }
 }

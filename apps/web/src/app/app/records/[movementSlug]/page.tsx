@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ApiError } from '@garfit/api-client';
 import { RECORD_TYPE_LABELS } from '@garfit/validation';
@@ -6,6 +7,20 @@ import { removeRecord } from '@/app/app-actions';
 import { ProgressChart } from '@/components/progress-chart';
 import { serverApi } from '@/lib/auth';
 import { formatChange, formatValue } from '@/lib/records';
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ movementSlug: string }>;
+}): Promise<Metadata> {
+  const { movementSlug } = await params;
+  try {
+    const data = await serverApi().records.forMovement(movementSlug);
+    return { title: `Historial de ${data.movement.name}` };
+  } catch {
+    return { title: 'Historial de marcas' };
+  }
+}
 
 type Props = {
   params: Promise<{ movementSlug: string }>;
@@ -43,149 +58,122 @@ export default async function RecordHistoryPage({ params, searchParams }: Props)
   const units = profile?.preferredUnits ?? 'METRIC';
 
   return (
-    <section className="mx-auto max-w-4xl">
-      <div className="flex items-center justify-between">
-        <Link className="text-sm underline" href="/app/records">
-          Volver a mis marcas
+    <section className="mx-auto max-w-4xl space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <Link className="text-sm font-semibold text-accent hover:underline" href="/app/records">
+          ← Volver a mis marcas
         </Link>
         <Link
-          className="rounded-lg bg-brand px-4 py-2 font-semibold text-white"
-          href="/app/records/new"
+          className="btn-primary"
+          href={`/app/records/new?movement=${data.movement.slug}`}
         >
           Registrar marca
         </Link>
       </div>
-      <h1 className="mt-4 text-3xl font-bold">{data.movement.name}</h1>
+
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-accent">Historial de marcas</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">{data.movement.name}</h1>
+      </div>
+
       {data.series.length === 0 ? (
-        <div className="mt-6 rounded-2xl border border-line bg-panel p-6">
-          <p>Aún no hay marcas para este movimiento.</p>
-          <Link
-            className="mt-3 inline-block underline"
-            href={`/app/records/new?movement=${movementSlug}`}
-          >
-            Registrar la primera marca
-          </Link>
+        <div className="rounded-2xl border border-line bg-surface p-8 text-center">
+          <p className="text-sm text-muted">Aún no hay marcas registradas para este movimiento.</p>
         </div>
       ) : (
-        data.series.map((series) => (
-          <section className="mt-6 rounded-2xl border border-line bg-panel p-5" key={series.key}>
-            <h2 className="text-xl font-bold">
-              {RECORD_TYPE_LABELS[series.recordType] ?? series.recordType}
-              {series.repetitions ? ` · ${series.repetitions}RM` : ''}
-            </h2>
-            <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-              <div>
-                <dt className="text-sm text-muted">Mejor marca</dt>
-                <dd>{formatValue(series.recordType, series.best.normalizedValue, units)}</dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted">Marca actual</dt>
-                <dd>{formatValue(series.recordType, series.current.normalizedValue, units)}</dd>
-              </div>
-              {series.changeFromPrevious && (
+        <div className="space-y-8">
+          {data.series.map((series) => (
+            <div
+              key={series.key}
+              className="rounded-2xl border border-line bg-surface p-5 sm:p-6"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
                 <div>
-                  <dt className="text-sm text-muted">Cambio anterior</dt>
-                  <dd>
-                    {formatChange(series.recordType, series.changeFromPrevious.absolute, units)} (
-                    {series.changeFromPrevious.improved ? 'Mejora' : 'Empeoramiento'})
-                  </dd>
+                  <h2 className="text-xl font-bold text-ink">
+                    {RECORD_TYPE_LABELS[series.recordType] ?? series.recordType}
+                    {series.repetitions ? ` · ${series.repetitions}RM` : ''}
+                  </h2>
+                  <p className="text-xs text-muted">
+                    Mejor marca:{' '}
+                    <span className="font-bold text-metric">
+                      {formatValue(series.recordType, series.best.normalizedValue, units)}
+                    </span>
+                  </p>
                 </div>
-              )}
-              {series.totalProgress && (
-                <div>
-                  <dt className="text-sm text-muted">Progreso total</dt>
-                  <dd>
-                    {formatChange(series.recordType, series.totalProgress.absolute, units)} (
-                    {series.totalProgress.improved ? 'Mejora' : 'Empeoramiento'})
-                  </dd>
-                </div>
-              )}
-            </dl>
-            <ProgressChart entries={series.history} recordType={series.recordType} units={units} />
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full text-left">
-                <caption className="sr-only">Historial de marcas</caption>
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Valor</th>
-                    <th>Estado</th>
-                    <th>Notas</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
+                {series.bestImprovement && (
+                  <span className="rounded-full border border-success/30 bg-success/15 px-2.5 py-0.5 text-xs font-bold text-success">
+                    Mejora: {formatChange(series.recordType, series.bestImprovement.absolute, units)}
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <ProgressChart
+                  entries={series.history}
+                  recordType={series.recordType}
+                  units={units}
+                />
+              </div>
+
+              <div className="mt-6">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted">Historial de registros</h3>
+                <ul className="mt-3 divide-y divide-line rounded-[10px] border border-line bg-raised/30">
                   {series.history.map((entry) => (
-                    <tr className="border-t border-line" key={entry.id}>
-                      <td>{entry.performedAt}</td>
-                      <td>
-                        {formatValue(series.recordType, entry.normalizedValue, units)}
-                        {series.recordType === 'TIME' && entry.distanceMeters
-                          ? ` · ${formatValue('DISTANCE', entry.distanceMeters, units)}`
-                          : ''}
-                      </td>
-                      <td>{entry.isPersonalBest ? 'Mejor marca' : ''}</td>
-                      <td>
-                        {entry.notes ?? ''}
-                        {entry.origin && (
+                    <li
+                      key={entry.id}
+                      className="flex flex-wrap items-center justify-between gap-3 p-3 text-sm"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className="font-bold text-ink tabular-nums">
+                          {formatValue(series.recordType, entry.normalizedValue, units)}
+                        </span>
+                        {entry.isPersonalBest && (
+                          <span className="rounded-full border border-metric/40 bg-metric/15 px-2 py-0.5 text-[10px] font-bold text-metric">
+                            PR
+                          </span>
+                        )}
+                        <span className="text-xs text-muted">{entry.performedAt}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Link
+                          className="text-xs font-semibold text-accent hover:underline"
+                          href={`/app/records/${movementSlug}/${entry.id}/edit`}
+                        >
+                          Editar
+                        </Link>
+                        {confirm === entry.id ? (
+                          <form action={removeRecord} className="flex items-center gap-2">
+                            <input name="id" type="hidden" value={entry.id} />
+                            <input name="movementSlug" type="hidden" value={movementSlug} />
+                            <button
+                              type="submit"
+                              className="rounded border border-danger/30 bg-danger/15 px-2 py-0.5 text-xs font-bold text-danger hover:bg-danger/25"
+                            >
+                              Confirmar
+                            </button>
+                            <Link
+                              className="text-xs text-muted hover:text-ink"
+                              href={`/app/records/${movementSlug}`}
+                            >
+                              Cancelar
+                            </Link>
+                          </form>
+                        ) : (
                           <Link
-                            className="block underline"
-                            href={`/app/workouts/${entry.origin.workoutId}`}
+                            className="text-xs text-muted hover:text-danger hover:underline"
+                            href={`/app/records/${movementSlug}?confirm=${entry.id}`}
                           >
-                            Origen: {entry.origin.workoutName}
-                            {' · '}
-                            {entry.origin.performedOn} · Serie {entry.origin.setNumber}
+                            Eliminar
                           </Link>
                         )}
-                      </td>
-                      <td>
-                        {entry.source === 'WORKOUT' ? (
-                          <span className="text-muted">Gestionada por entrenamiento</span>
-                        ) : (
-                          <>
-                            <Link
-                              className="underline"
-                              href={`/app/records/${movementSlug}/${entry.id}/edit`}
-                            >
-                              Editar
-                            </Link>
-                            {confirm === entry.id ? (
-                              <form action={removeRecord} className="mt-2">
-                                <input name="id" type="hidden" value={entry.id} />
-                                <input name="movementSlug" type="hidden" value={movementSlug} />
-                                <p className="text-sm text-amber-700">
-                                  Esta marca dejará de contar en tu historial
-                                </p>
-                                <div className="mt-1 flex items-center gap-2">
-                                  <button className="font-semibold text-red-700 underline">
-                                    Confirmar retiro
-                                  </button>
-                                  <Link
-                                    className="text-sm text-muted underline"
-                                    href={`/app/records/${movementSlug}`}
-                                  >
-                                    Cancelar
-                                  </Link>
-                                </div>
-                              </form>
-                            ) : (
-                              <Link
-                                className="ml-2 underline"
-                                href={`/app/records/${movementSlug}?confirm=${entry.id}`}
-                              >
-                                Retirar
-                              </Link>
-                            )}
-                          </>
-                        )}
-                      </td>
-                    </tr>
+                      </div>
+                    </li>
                   ))}
-                </tbody>
-              </table>
+                </ul>
+              </div>
             </div>
-          </section>
-        ))
+          ))}
+        </div>
       )}
     </section>
   );

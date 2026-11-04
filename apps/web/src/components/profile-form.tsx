@@ -7,8 +7,7 @@ import {
   PRIMARY_GOAL_LABELS,
   PRIMARY_GOALS,
 } from '@garfit/validation';
-import { useActionState } from 'react';
-import { useState } from 'react';
+import { useActionState, useState } from 'react';
 import { saveProfile, type ProfileState } from '@/app/app-actions';
 import { profileFormValues } from '@/lib/profile-units';
 
@@ -27,7 +26,7 @@ function FieldErrors({ messages, name }: FieldErrorProps) {
   const errorId = `${name}-error`;
 
   return messages?.map((message) => (
-    <p className="mt-1 text-sm text-red-700" id={errorId} key={message}>
+    <p className="mt-1 text-xs text-danger" id={errorId} key={message}>
       {message}
     </p>
   ));
@@ -39,13 +38,16 @@ export function ProfileForm({ profile }: ProfileFormProps) {
   const values = profileFormValues(profile, units);
   const displayNameError = state.errors.displayName;
 
+  const weightUnitLabel = units === 'IMPERIAL' ? 'lb' : 'kg';
+  const heightUnitLabel = units === 'IMPERIAL' ? 'in' : 'cm';
+
   return (
     <form
       action={formAction}
-      className="mt-6 space-y-4 rounded-2xl border border-line bg-panel p-5"
+      className="mt-6 space-y-4 rounded-2xl border border-line bg-surface p-5 sm:p-6"
     >
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="displayName">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="displayName">
           Nombre visible
         </label>
         <input
@@ -57,7 +59,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         <FieldErrors messages={displayNameError} name="displayName" />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="preferredUnits">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="preferredUnits">
           Unidades preferidas
         </label>
         <select
@@ -66,17 +68,44 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           name="preferredUnits"
           onChange={(event) => setUnits(event.target.value as 'METRIC' | 'IMPERIAL')}
         >
-          <option value="METRIC">Métrico (kg, cm)</option>
-          <option value="IMPERIAL">Imperial (lb, pulgadas)</option>
+          <option value="METRIC">Métricas (kg, cm)</option>
+          <option value="IMPERIAL">Imperiales (lb, in)</option>
         </select>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="birthDate">
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="weight">
+            Peso corporal ({weightUnitLabel})
+          </label>
+          <input
+            defaultValue={values.weight}
+            id="weight"
+            name="weight"
+            step="0.1"
+            type="number"
+          />
+          <FieldErrors messages={state.errors.weightKg} name="weight" />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="height">
+            Altura ({heightUnitLabel})
+          </label>
+          <input
+            defaultValue={values.height}
+            id="height"
+            name="height"
+            step="0.1"
+            type="number"
+          />
+          <FieldErrors messages={state.errors.heightCm} name="height" />
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="birthDate">
             Fecha de nacimiento
           </label>
           <input
-            aria-describedby={state.errors.birthDate ? 'birthDate-error' : undefined}
             defaultValue={profile?.birthDate ?? ''}
             id="birthDate"
             name="birthDate"
@@ -85,11 +114,10 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           <FieldErrors messages={state.errors.birthDate} name="birthDate" />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="trainingSince">
-            Entrenas desde
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="trainingSince">
+            Entrenando desde
           </label>
           <input
-            aria-describedby={state.errors.trainingSince ? 'trainingSince-error' : undefined}
             defaultValue={profile?.trainingSince ?? ''}
             id="trainingSince"
             name="trainingSince"
@@ -97,42 +125,10 @@ export function ProfileForm({ profile }: ProfileFormProps) {
           />
           <FieldErrors messages={state.errors.trainingSince} name="trainingSince" />
         </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="height">
-            Altura ({units === 'IMPERIAL' ? 'pulgadas' : 'cm'})
-          </label>
-          <input
-            aria-describedby={state.errors.heightCm ? 'heightCm-error' : undefined}
-            defaultValue={values.height}
-            id="height"
-            key={`height-${units}`}
-            min="1"
-            name="height"
-            step="0.1"
-            type="number"
-          />
-          <FieldErrors messages={state.errors.heightCm} name="heightCm" />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="weight">
-            Peso ({units === 'IMPERIAL' ? 'lb' : 'kg'})
-          </label>
-          <input
-            aria-describedby={state.errors.weightKg ? 'weightKg-error' : undefined}
-            defaultValue={values.weight}
-            id="weight"
-            key={`weight-${units}`}
-            min="1"
-            name="weight"
-            step="0.1"
-            type="number"
-          />
-          <FieldErrors messages={state.errors.weightKg} name="weightKg" />
-        </div>
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="experienceLevel">
-          Experiencia
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="experienceLevel">
+          Nivel de experiencia
         </label>
         <select
           defaultValue={profile?.experienceLevel ?? 'BEGINNER'}
@@ -147,7 +143,7 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         </select>
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="primaryGoal">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="primaryGoal">
           Objetivo principal
         </label>
         <select
@@ -163,15 +159,16 @@ export function ProfileForm({ profile }: ProfileFormProps) {
         </select>
       </div>
       {state.message && (
-        <p className="rounded-lg bg-emerald-50 p-3 text-sm text-brand" role="status">
+        <p
+          className="rounded-[10px] border border-success/30 bg-success/15 p-3 text-sm text-success"
+          role="status"
+        >
           {state.message}
         </p>
       )}
       <button
-        className={[
-          'rounded-lg bg-brand px-4 py-2 font-semibold text-white',
-          'hover:bg-brand-dark disabled:opacity-60',
-        ].join(' ')}
+        type="submit"
+        className="btn-primary"
         disabled={pending}
       >
         {pending ? 'Guardando…' : 'Guardar perfil'}
