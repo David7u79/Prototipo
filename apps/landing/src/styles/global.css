@@ -1,13 +1,23 @@
 @import "tailwindcss";
 
+/*
+ * Tokens Aurora, los mismos de apps/mobile/src/constants/theme.ts, para que landing y app se
+ * vean como una sola marca. `accent` es la versión de texto (#9B85FF, 6:1 sobre el fondo) y el
+ * degradado de botón usa el par corregido (4,9:1 con texto blanco en el centro).
+ */
 @theme {
-  --color-ink: #14213d;
-  --color-muted: #526176;
-  --color-surface: #f6f8fb;
-  --color-line: #dce3ed;
-  --color-accent: #166534;
-  --color-accent-dark: #14532d;
-  --font-sans: "Inter", "Segoe UI", sans-serif;
+  --color-bg: #0a0d18;
+  --color-ink: #eef1fa;
+  --color-muted: #8a93ad;
+  --color-surface: #131829;
+  --color-raised: #1b2136;
+  --color-line: #232a42;
+  --color-accent: #9b85ff;
+  --color-accent-soft: #211b45;
+  --color-metric: #22d3ee;
+  --color-success: #34d399;
+  --color-danger: #fb7185;
+  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
 }
 
 @layer base {
@@ -15,8 +25,12 @@
     box-sizing: border-box;
   }
 
+  html {
+    color-scheme: dark;
+  }
+
   body {
-    @apply m-0 bg-white font-sans text-ink antialiased;
+    @apply m-0 bg-bg font-sans text-ink antialiased;
   }
 
   a {
@@ -24,13 +38,17 @@
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-4 outline-accent;
+    @apply outline-2 outline-offset-4 outline-metric;
+  }
+
+  code {
+    @apply text-metric;
   }
 }
 
 @layer components {
   .shell {
-    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-8;
   }
 
   .section {
@@ -38,11 +56,11 @@
   }
 
   .eyebrow {
-    @apply mb-3 text-sm font-bold uppercase tracking-[0.14em] text-accent;
+    @apply mb-3 text-xs font-bold uppercase tracking-[0.16em] text-metric;
   }
 
   .display {
-    @apply text-4xl font-black leading-[1.05] tracking-tight text-ink sm:text-6xl;
+    @apply text-4xl font-black leading-[1.02] tracking-tight text-ink sm:text-6xl;
   }
 
   .heading {
@@ -53,24 +71,46 @@
     @apply max-w-2xl text-lg leading-8 text-muted;
   }
 
+  .gradient-text {
+    background: linear-gradient(135deg, #9b85ff 0%, #22d3ee 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
   .button {
-    @apply inline-flex min-h-11 items-center justify-center rounded-lg px-5 py-3 text-center;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-6 py-3 text-center;
     @apply text-sm font-bold no-underline transition hover:-translate-y-0.5;
   }
 
   .button-primary {
-    @apply bg-accent text-white hover:bg-accent-dark;
+    @apply text-white shadow-lg shadow-[#6a4bf0]/25;
+    background: linear-gradient(135deg, #6a4bf0 0%, #0e8fb0 100%);
   }
 
   .button-secondary {
-    @apply border border-line bg-white text-ink hover:border-accent;
+    @apply border border-line bg-surface text-ink hover:border-accent;
   }
 
   .card {
-    @apply rounded-2xl border border-line bg-white p-6 shadow-sm;
+    @apply rounded-3xl border border-line bg-surface p-6;
+  }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-xs font-bold;
   }
 
   .status {
     @apply text-sm leading-6 text-muted;
+  }
+
+  .hero-glow {
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, #2a1f6b 0%, transparent 70%),
+      radial-gradient(40rem 24rem at -10% 110%, #0e2e3a 0%, transparent 70%);
+  }
+
+  .phone {
+    @apply block w-full rounded-[2rem] border border-line bg-surface shadow-2xl shadow-black/50;
   }
 }

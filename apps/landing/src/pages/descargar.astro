@@ -3,24 +3,89 @@ import AndroidDownload from '../components/AndroidDownload.astro';
 import Layout from '../layouts/Layout.astro';
 
 const webUrl = import.meta.env.PUBLIC_WEB_APP_URL ?? 'http://localhost:3000';
+
+const install = [
+  'Pulsa «Descargar para Android» o escanea el QR con el teléfono.',
+  'Abre el archivo garfit.apk desde las notificaciones o la carpeta Descargas.',
+  'Si Android avisa de «apps desconocidas», permite instalar desde tu navegador sólo para esta vez.',
+  'Pulsa Instalar y abre GarFit. Crea tu cuenta con correo y contraseña.',
+] as const;
+
+const verify = [
+  ['Windows (PowerShell)', 'Get-FileHash .\\garfit.apk -Algorithm SHA256'],
+  ['macOS', 'shasum -a 256 garfit.apk'],
+  ['Linux', 'sha256sum garfit.apk'],
+] as const;
 ---
 
 <Layout
   title="Descargar | GarFit"
-  description="Consulta la última versión Android publicada de GarFit o abre la aplicación web."
+  description="Descarga GarFit para Android, verifica el archivo e instálalo paso a paso."
 >
-  <section class="section">
-    <div class="shell grid gap-10 lg:grid-cols-[.8fr_1.2fr]">
+  <section class="section hero-glow">
+    <div class="shell grid gap-10 lg:grid-cols-[.9fr_1.1fr]">
       <div>
         <p class="eyebrow">Descargar GarFit</p>
-        <h1 class="display m-0">Elige cómo continuar.</h1>
+        <h1 class="display m-0">Instálalo en un minuto.</h1>
         <p class="copy mt-6">
-          La aplicación web está disponible desde tu navegador. Para Android, mostramos solo
-          la última versión publicada por GarFit.
+          GarFit se distribuye directamente desde aquí, sin Play Store. Necesitas Android 8 o
+          superior. Si prefieres no instalar nada, úsalo desde el navegador.
         </p>
-        <a class="button button-secondary mt-7" href={webUrl}>Abrir aplicación web</a>
+        <a class="button button-secondary mt-7" href={webUrl}>Abrir en el navegador</a>
       </div>
       <AndroidDownload detailed />
+    </div>
+  </section>
+
+  <section class="section border-t border-line">
+    <div class="shell grid gap-6 lg:grid-cols-3">
+      <article class="card lg:col-span-2">
+        <h2 class="m-0 text-xl font-bold">Instalación paso a paso</h2>
+        <ol class="mt-5 grid list-none gap-4 p-0">
+          {
+            install.map((step, index) => (
+              <li class="flex gap-4">
+                <span class="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-sm font-black text-accent">
+                  {index + 1}
+                </span>
+                <p class="m-0 leading-7 text-muted">{step}</p>
+              </li>
+            ))
+          }
+        </ol>
+      </article>
+      <article class="card">
+        <h2 class="m-0 text-xl font-bold">Actualizar</h2>
+        <p class="leading-7 text-muted">
+          Descarga la versión nueva desde esta misma página e instálala encima: tus datos viven
+          en tu cuenta, no en el teléfono.
+        </p>
+        <h2 class="mb-0 mt-6 text-xl font-bold">Permisos</h2>
+        <p class="mb-0 leading-7 text-muted">
+          Internet para sincronizar, y Health Connect sólo si decides importar datos de tu
+          reloj.
+        </p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section border-t border-line">
+    <div class="shell">
+      <h2 class="heading m-0">Comprueba que el archivo es el original</h2>
+      <p class="copy mt-4">
+        Calcula la huella SHA-256 de la APK descargada y compárala con la que aparece arriba.
+        Si no coinciden, no la instales.
+      </p>
+      <div class="mt-8 grid gap-4 md:grid-cols-3">
+        {
+          verify.map(([system, command]) => (
+            <div class="card">
+              <h3 class="m-0 text-sm font-bold text-muted">{system}</h3>
+              <code class="mt-3 block break-all text-sm">{command}</code>
+            </div>
+          ))
+        }
+      </div>
     </div>
   </section>
 </Layout>

@@ -3,68 +3,61 @@ import AndroidDownload from '../components/AndroidDownload.astro';
 import Layout from '../layouts/Layout.astro';
 
 const webUrl = import.meta.env.PUBLIC_WEB_APP_URL ?? 'http://localhost:3000';
-const overviewItems = ['Entrenamientos', 'Marcas personales', 'Evolución', 'Análisis'];
+
+const features = [
+  ['Registro serie a serie', 'Fuerza, For Time, AMRAP o EMOM. Reps, carga y tiempo mientras entrenas.'],
+  ['Marcas personales', 'Cada récord se detecta solo al completar una sesión y nunca se sobrescribe.'],
+  ['WODs benchmark', 'Fran, Grace, Cindy… con tu historial de intentos y el cambio frente al anterior.'],
+  ['1 319 movimientos', 'Catálogo con búsqueda y filtros por categoría y equipamiento.'],
+  ['Datos del reloj', 'Frecuencia cardiaca y calorías desde Health Connect o la app de Wear OS.'],
+  ['Análisis con evidencia', 'La IA interpreta números ya calculados por GarFit y cita de dónde salen.'],
+] as const;
+
 const steps = [
-  {
-    title: 'Registra',
-    text: 'Anota entrenamientos, movimientos y resultados con una estructura para tu práctica.',
-  },
-  {
-    title: 'Consulta',
-    text: 'Revisa historial, marcas personales y estadísticas conforme estén disponibles.',
-  },
-  {
-    title: 'Entiende',
-    text: 'Un asistente con IA, en desarrollo, ayudará a interpretar el progreso.',
-  },
-];
+  ['Entrena', 'Abre el botón central, elige movimientos o un WOD y anota cada serie.'],
+  ['Completa', 'Al terminar, GarFit guarda el resultado y marca los récords nuevos.'],
+  ['Evoluciona', 'Mira tu progreso por movimiento y compara cada intento con el anterior.'],
+] as const;
 ---
 
 <Layout
   title="GarFit | Entrena · Registra · Evoluciona"
-  description="Seguimiento inteligente del rendimiento deportivo para atletas."
+  description="App gratis para registrar entrenamientos de fuerza y CrossFit, seguir tus marcas personales y ver tu progreso."
 >
-  <section class="section bg-surface">
-    <div class="shell grid items-center gap-10 lg:grid-cols-[1.15fr_.85fr]">
+  <section class="hero-glow overflow-hidden">
+    <div class="shell grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[1.1fr_.9fr]">
       <div>
-        <p class="eyebrow">Seguimiento inteligente del rendimiento deportivo</p>
-        <h1 class="display m-0 max-w-3xl">Entrena. Registra. Evoluciona.</h1>
+        <p class="eyebrow">Fuerza · CrossFit · Progreso</p>
+        <h1 class="display m-0 max-w-3xl">
+          Entrena. Registra. <span class="gradient-text">Evoluciona.</span>
+        </h1>
         <p class="copy mt-6">
-          GarFit es una plataforma web y móvil para atletas que quieren comprender su avance
-          con un registro más claro de entrenamientos y marcas personales.
+          GarFit guarda cada serie, detecta tus marcas personales y te enseña cómo avanzas. Sin
+          libretas, sin notas sueltas y sin anuncios.
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
-          <a class="button button-primary" href={webUrl}>Abrir aplicación web</a>
-          <a class="button button-secondary" href="/descargar">Descargar para Android</a>
+          <a class="button button-primary" href="/descargar">Descargar para Android</a>
+          <a class="button button-secondary" href={webUrl}>Abrir en el navegador</a>
         </div>
+        <p class="status mt-5">Gratis · Android 8 o superior · También en la web</p>
       </div>
-      <div class="card border-accent/20 bg-white">
-        <p class="text-lg font-bold">Tu progreso merece algo mejor que notas dispersas.</p>
-        <p class="leading-7 text-muted">
-          Centraliza tu perfil deportivo, sesiones y resultados para volver a cada
-          entrenamiento con contexto.
-        </p>
-        <div class="mt-5 grid grid-cols-2 gap-3 text-sm font-bold">
-          {overviewItems.map((item) => <div class="rounded-lg bg-surface p-4">{item}</div>)}
-        </div>
+      <div class="relative mx-auto grid w-full max-w-md grid-cols-2 gap-4" aria-hidden="true">
+        <img class="phone mt-10" src="/avance/02-inicio.png" alt="" width="720" height="1469" />
+        <img class="phone" src="/avance/08-progreso.png" alt="" width="720" height="1469" />
       </div>
     </div>
   </section>
 
-  <section class="section">
+  <section class="section border-t border-line">
     <div class="shell">
-      <p class="eyebrow">El problema</p>
-      <h2 class="heading m-0">De registros sueltos a una historia deportiva.</h2>
-      <p class="copy mt-5">
-        Cuando los entrenamientos viven en una libreta, notas distintas o solo en la memoria,
-        es difícil reconocer qué cambió y hacia dónde avanzar.
-      </p>
-      <div class="mt-10 grid gap-5 md:grid-cols-3">
+      <p class="eyebrow">Qué hace</p>
+      <h2 class="heading m-0 max-w-2xl">Todo tu entrenamiento en un solo sitio.</h2>
+      <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {
-          steps.map(({ title, text }) => (
+          features.map(([title, text]) => (
             <article class="card">
-              <h3 class="m-0 text-xl font-bold">{title}</h3>
-              <p class="mb-0 leading-7 text-muted">{text}</p>
+              <h3 class="m-0 text-lg font-bold">{title}</h3>
+              <p class="mb-0 mt-2 leading-7 text-muted">{text}</p>
             </article>
           ))
         }
@@ -72,16 +65,45 @@ const steps = [
     </div>
   </section>
 
-  <section class="section bg-surface">
-    <div class="shell grid gap-8 lg:grid-cols-2">
+  <section class="section border-t border-line">
+    <div class="shell grid items-center gap-12 lg:grid-cols-2">
+      <div class="mx-auto grid w-full max-w-sm grid-cols-2 gap-4" aria-hidden="true">
+        <img class="phone" src="/avance/04-registro-series.png" alt="" width="720" height="1469" loading="lazy" />
+        <img class="phone mt-10" src="/avance/09-wods.png" alt="" width="720" height="1469" loading="lazy" />
+      </div>
       <div>
-        <p class="eyebrow">Disponibilidad</p>
-        <h2 class="heading m-0">Web hoy, Android cuando haya una versión publicada.</h2>
+        <p class="eyebrow">Cómo funciona</p>
+        <h2 class="heading m-0">Tres pasos, cada vez que entrenas.</h2>
+        <ol class="mt-8 grid list-none gap-4 p-0">
+          {
+            steps.map(([title, text], index) => (
+              <li class="card flex gap-4">
+                <span class="grid size-10 shrink-0 place-items-center rounded-full bg-accent-soft font-black text-accent">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 class="m-0 text-lg font-bold">{title}</h3>
+                  <p class="mb-0 mt-1 leading-7 text-muted">{text}</p>
+                </div>
+              </li>
+            ))
+          }
+        </ol>
+        <a class="button button-secondary mt-8" href="/avance">Ver capturas y flujos</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section border-t border-line">
+    <div class="shell grid gap-10 lg:grid-cols-2">
+      <div>
+        <p class="eyebrow">Descarga</p>
+        <h2 class="heading m-0">Llévalo al gimnasio.</h2>
         <p class="copy mt-5">
-          Ya puedes abrir GarFit en la web. La distribución para Android se consulta desde la
-          API de GarFit.
+          La app para Android se descarga directamente desde aquí, sin Play Store. Cada versión
+          trae su huella SHA-256 para que compruebes que el archivo es el original.
         </p>
-        <a class="button button-primary mt-7" href={webUrl}>Abrir aplicación web</a>
+        <a class="button button-secondary mt-7" href="/descargar">Cómo instalarla</a>
       </div>
       <AndroidDownload />
     </div>

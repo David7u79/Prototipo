@@ -1,50 +1,50 @@
 ---
 import Layout from '../layouts/Layout.astro';
 
-const features = [
-  ['Perfil del atleta', 'Disponible', 'Configura la información base de tu seguimiento.'],
-  ['Acceso con correo y Google', 'Disponible', 'Crea tu cuenta o inicia sesión.'],
-  ['Biblioteca de movimientos', 'En desarrollo', 'Consulta una base para registrar tu práctica.'],
-  ['Registro de entrenamientos', 'En desarrollo', 'Guarda sesiones y resultados en tu historial.'],
-  ['Marcas personales (PRs)', 'En desarrollo', 'Identifica mejores resultados consistentes.'],
-  [
-    'Historial y estadísticas',
-    'En desarrollo',
-    'Observa la evolución con visualizaciones claras.',
-  ],
+type Status = 'Disponible' | 'Preparado' | 'Próximamente';
+
+const features: readonly (readonly [string, Status, string])[] = [
+  ['Cuenta y perfil', 'Disponible', 'Registro con correo, nivel, objetivo y unidades métricas o imperiales.'],
+  ['Registro de entrenamientos', 'Disponible', 'Fuerza, For Time, AMRAP, EMOM, cardio o sesión libre, serie a serie.'],
+  ['Marcas personales', 'Disponible', 'Detección automática al completar una sesión, más registro manual.'],
+  ['WODs benchmark', 'Disponible', 'Fran, Grace, Helen, Diane, Karen y Cindy con historial de intentos.'],
+  ['Catálogo de movimientos', 'Disponible', '1 319 ejercicios con búsqueda, categoría y equipamiento.'],
+  ['Historial y estadísticas', 'Disponible', 'Sesiones de la semana y del mes, filtros por tipo y fecha.'],
+  ['Datos del reloj', 'Disponible', 'Frecuencia cardiaca y calorías desde Health Connect o Wear OS.'],
+  ['Análisis con IA', 'Preparado', 'Implementado y probado; se activa cuando el servidor tenga la clave de Gemini.'],
+  ['Acceso con Google', 'Preparado', 'Verificación lista en la API; falta configurar las credenciales.'],
+  ['Timer de WOD y descansos', 'Próximamente', 'For Time, AMRAP, EMOM y Tabata dentro de la sesión.'],
+  ['Calculadora de cargas', 'Próximamente', '% de tu 1RM y discos por lado.'],
 ] as const;
+
+const tone: Record<Status, string> = {
+  Disponible: 'bg-success/15 text-success',
+  Preparado: 'bg-accent-soft text-accent',
+  Próximamente: 'bg-raised text-muted',
+};
 ---
 
 <Layout
   title="Características | GarFit"
-  description="Funciones presentes y en desarrollo de GarFit."
+  description="Qué puedes hacer hoy con GarFit y qué viene después."
 >
-  <section class="section">
+  <section class="section hero-glow">
     <div class="shell">
       <p class="eyebrow">Características</p>
-      <h1 class="display m-0">Una base para seguir tu propio rendimiento.</h1>
+      <h1 class="display m-0 max-w-3xl">Lo que GarFit hace hoy.</h1>
       <p class="copy mt-6">
-        GarFit se construye por etapas. Estas son las capacidades actuales y la propuesta en
-        desarrollo.
+        Cada función está marcada con su estado real: disponible en la app, preparada a la
+        espera de un servicio externo, o en camino.
       </p>
-      <div class="mt-10 grid gap-5 md:grid-cols-2">
+      <div class="mt-10 grid gap-4 md:grid-cols-2">
         {
           features.map(([name, status, text]) => (
             <article class="card">
               <div class="flex items-start justify-between gap-3">
-                <h2 class="m-0 text-xl font-bold">{name}</h2>
-                <span
-                  class:list={[
-                    'shrink-0 rounded-full px-3 py-1 text-xs font-bold',
-                    status === 'Disponible'
-                      ? 'bg-green-100 text-green-900'
-                      : 'bg-slate-100 text-slate-700',
-                  ]}
-                >
-                  {status}
-                </span>
+                <h2 class="m-0 text-lg font-bold">{name}</h2>
+                <span class:list={['chip shrink-0', tone[status]]}>{status}</span>
               </div>
-              <p class="mb-0 mt-4 leading-7 text-muted">{text}</p>
+              <p class="mb-0 mt-3 leading-7 text-muted">{text}</p>
             </article>
           ))
         }
