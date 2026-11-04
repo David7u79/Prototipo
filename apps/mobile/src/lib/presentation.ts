@@ -70,3 +70,17 @@ export function evolutionWidth(value: number, values: number[]): `${number}%` {
   if (high === low) return '50%';
   return `${20 + ((value - low) / (high - low)) * 80}%`;
 }
+
+export function formatDate(
+  value: string | Date | null | undefined,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  if (!value) return 'Sin fecha';
+  const date =
+    typeof value === 'string'
+      ? new Date(value.includes('T') ? value : `${value}T12:00:00`)
+      : value;
+  if (Number.isNaN(date.getTime())) return typeof value === 'string' ? value : 'Sin fecha';
+  return new Intl.DateTimeFormat('es-MX', options ?? { dateStyle: 'medium' }).format(date);
+}
+

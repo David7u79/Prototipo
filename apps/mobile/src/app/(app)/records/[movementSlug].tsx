@@ -1,19 +1,21 @@
 import type { MovementRecordsResponse, RecordHistoryEntry } from '@garfit/types';
+import { RECORD_TYPE_LABELS } from '@garfit/validation';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Button, Card, Chip, Icon, Label, ListRow, SectionHeader, Stat, Title, uiStyles } from '@/components/ui';
+import { Button, Card, Chip, ErrorState, Icon, Label, ListRow, LoadingState, SectionHeader, Stat, Title, uiStyles } from '@/components/ui';
 import { colors, radius, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
-import { evolutionWidth, formatChange, formatValue } from '@/lib/presentation';
+import { evolutionWidth, formatChange, formatDate, formatValue } from '@/lib/presentation';
 
 function seriesLabel(
   recordType: string,
   repetitions: number | null,
   distanceMeters: number | null,
 ): string {
+  const label = RECORD_TYPE_LABELS[recordType as keyof typeof RECORD_TYPE_LABELS] ?? recordType;
   if (recordType === 'TIME' && distanceMeters) return `Tiempo · ${formatDistance(distanceMeters)}`;
-  return repetitions ? `${recordType} · ${repetitions} reps` : recordType;
+  return repetitions ? `${label} · ${repetitions} reps` : label;
 }
 
 function formatDistance(meters: number): string {
@@ -64,14 +66,14 @@ export default function RecordHistoryScreen() {
   if (error)
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={uiStyles.scroll}>
-        <Text style={styles.errorText}>{error}</Text>
+        <ErrorState message={error} onRetry={() => void load()} />
       </ScrollView>
     );
 
   if (!data)
     return (
       <ScrollView style={styles.scroll} contentContainerStyle={uiStyles.scroll}>
-        <Text style={uiStyles.muted}>Cargando historial…</Text>
+        <LoadingState message="Cargando historial…" />
       </ScrollView>
     );
 
@@ -151,8 +153,8 @@ export default function RecordHistoryScreen() {
                       title={formatted}
                       subtitle={
                         isWorkout && entry.origin
-                          ? `${entry.performedAt} · ${originLabel(entry.origin)}`
-                          : `${entry.performedAt}${entry.isPersonalBest ? ' · Récord personal' : ''}`
+                          ? `${formatDate(entry.performedAt)} · ${originLabel(entry.origin)}`
+                          : `${formatDate(entry.performedAt)}${entry.isPersonalBest ? ' · Récord personal' : ''}`
                       }
                       trailing={
                         isWorkout ? (

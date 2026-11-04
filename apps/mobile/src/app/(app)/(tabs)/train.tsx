@@ -1,14 +1,16 @@
 import type { WorkoutListItem } from '@garfit/types';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   Button,
   Card,
   Chip,
   EmptyState,
+  ErrorState,
   Icon,
   ListRow,
+  LoadingState,
   SectionHeader,
   Title,
   uiStyles,
@@ -97,11 +99,11 @@ export default function TrainScreen() {
         <SectionHeader title="Continúa donde lo dejaste" />
 
         {loading ? (
-          <ActivityIndicator color={colors.accent} style={styles.loading} />
+          <LoadingState />
         ) : null}
 
         {error ? (
-          <Text style={styles.errorText}>{error}</Text>
+          <ErrorState message={error} onRetry={() => void load()} />
         ) : null}
 
         {!loading && !error && !items.length ? (

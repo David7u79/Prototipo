@@ -1,12 +1,35 @@
 import { formatDuration, formatRecordValue, formatScore, parseDuration } from '@garfit/domain';
 import type { WorkoutDetail, WorkoutType } from '@garfit/types';
+import { WORKOUT_TYPE_LABELS } from '@garfit/validation';
 import type { WorkoutBiometricsInput } from '@garfit/validation';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Chip, Field, Icon, SectionHeader, Stat, Title, uiStyles } from '@/components/ui';
-import { colors, space, type } from '@/constants/theme';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  Vibration,
+  View,
+} from 'react-native';
+import {
+  Button,
+  Card,
+  Chip,
+  ErrorState,
+  Field,
+  Icon,
+  ListRow,
+  LoadingState,
+  SectionHeader,
+  Stat,
+  Title,
+  uiStyles,
+} from '@/components/ui';
+import { colors, radius, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
 import {
   ensureReadPermissions,
@@ -24,8 +47,35 @@ export default function WorkoutScreen() {
   const [workout, setWorkout] = useState<WorkoutDetail | null>(null);
   const [sets, setSets] = useState<Record<string, EditableSet[]>>({});
   const [score, setScore] = useState(emptyScore);
+  const [completedSets, setCompletedSets] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [restTimeLeft, setRestTimeLeft] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [aiAvailable, setAiAvailable] = useState(false);
+
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialMount = useRef(true);
+
+  const isResting = restTimeLeft !== null;
+
+  // Cuenta atrás del timer de descanso
+  useEffect(() => {
+    if (!isResting) return;
+
+    const timer = setInterval(() => {
+      setRestTimeLeft((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          Vibration.vibrate([0, 400, 200, 400]);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isResting]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -55,15 +105,59 @@ export default function WorkoutScreen() {
   );
 
   async function save(complete = false) {
-    if (!workout) return;
+    if (!workout || saving) return;
+    // Un autoguardado pendiente no debe llegar después de completar.
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    setSaving(true);
     const results = resultsPayload(sets, score);
     try {
       const value = complete
         ? await request(() => api.workouts.complete(workout.id, { results }))
         : await request(() => api.workouts.saveResults(workout.id, results));
       setWorkout(value);
+      setSaveStatus('Guardado ✓');
+      setTimeout(() => setSaveStatus(null), 2500);
     } catch (cause) {
       Alert.alert(complete ? 'No se pudo completar' : 'No se pudo guardar', messageFor(cause));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Autoguardado con debounce tras cambios en sets o score
+  useEffect(() => {
+    if (isInitialMount.current) {
+      if (workout) isInitialMount.current = false;
+      return;
+    }
+    if (!workout || workout.status !== 'IN_PROGRESS') return;
+
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        const results = resultsPayload(sets, score);
+        await request(() => api.workouts.saveResults(workout.id, results));
+        setSaveStatus('Guardado ✓');
+        setTimeout(() => setSaveStatus(null), 2500);
+      } catch {
+        // Fallo silencioso en autoguardado de fondo
+      }
+    }, 1500);
+
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [sets, score, workout, request]);
+
+  function handleToggleSetDone(exerciseId: string, setIndex: number, restSeconds: number | null) {
+    const key = `${exerciseId}-${setIndex}`;
+    const nextState = !completedSets[key];
+    setCompletedSets((prev) => ({ ...prev, [key]: nextState }));
+
+    if (nextState) {
+      Vibration.vibrate(50);
+      const seconds = restSeconds ?? 90;
+      setRestTimeLeft(seconds);
     }
   }
 
@@ -93,17 +187,12 @@ export default function WorkoutScreen() {
   if (error)
     return (
       <ScrollView contentContainerStyle={uiStyles.scroll} style={styles.scroll}>
-        <Text style={styles.error}>{error}</Text>
-        <Button label="Reintentar" onPress={() => void load()} />
+        <ErrorState message={error} onRetry={() => void load()} />
       </ScrollView>
     );
 
   if (!workout)
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={colors.accent} size="large" />
-      </View>
-    );
+    return <LoadingState message="Cargando entrenamiento…" />;
 
   if (workout.status === 'COMPLETED')
     return (
@@ -122,133 +211,297 @@ export default function WorkoutScreen() {
     );
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={uiStyles.scroll}>
-      <Card hero style={styles.heroCard}>
-        <View style={styles.heroHeader}>
-          <Title>{workout.name}</Title>
-          <Chip
-            label={workout.status === 'DRAFT' ? 'Borrador' : 'En curso'}
-            tone={workout.status === 'IN_PROGRESS' ? 'success' : 'neutral'}
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[uiStyles.scroll, restTimeLeft !== null && styles.scrollWithRest]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <Card hero style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <Title>{workout.name}</Title>
+            <View style={styles.headerChips}>
+              {saveStatus ? <Chip label={saveStatus} tone="success" /> : null}
+              <Chip
+                label={workout.status === 'DRAFT' ? 'Borrador' : 'En curso'}
+                tone={workout.status === 'IN_PROGRESS' ? 'success' : 'neutral'}
+              />
+            </View>
+          </View>
+          <Text style={uiStyles.muted}>
+            {workout.performedOn ?? 'Hoy'} · {workout.exercises.length} movimientos
+          </Text>
+          {workout.status === 'DRAFT' ? (
+            <Button label="Empezar entrenamiento" onPress={() => void start()} />
+          ) : null}
+        </Card>
+
+        <SectionHeader title="Ejercicios y series" />
+
+        {workout.exercises.map((exercise) => (
+          <ResultExercise
+            key={exercise.id}
+            exerciseId={exercise.id}
+            name={exercise.movement.name}
+            recordTypes={exercise.movement.recordTypes}
+            restSeconds={exercise.restSeconds}
+            values={sets[exercise.id] ?? []}
+            completedSets={completedSets}
+            onToggleDone={(sIdx) =>
+              handleToggleSetDone(exercise.id, sIdx, exercise.restSeconds)
+            }
+            onChange={(values) => setSets((current) => ({ ...current, [exercise.id]: values }))}
           />
+        ))}
+
+        <Score type={workout.workoutType} score={score} onChange={setScore} />
+
+        <View style={styles.actionsGroup}>
+          <Button
+            label={saving ? 'Guardando…' : 'Completar entrenamiento'}
+            disabled={saving}
+            onPress={() => void save(true)}
+          />
+          <View style={styles.dangerActionContainer}>
+            <Button
+              label="Borrar entrenamiento"
+              onPress={remove}
+              variant="danger"
+              disabled={saving}
+            />
+          </View>
         </View>
-        <Text style={uiStyles.muted}>
-          {workout.performedOn ?? 'Hoy'} · {workout.exercises.length} movimientos
-        </Text>
-        {workout.status === 'DRAFT' ? (
-          <Button label="Empezar entrenamiento" onPress={() => void start()} />
-        ) : null}
-      </Card>
+      </ScrollView>
 
-      <SectionHeader title="Ejercicios y series" />
-
-      {workout.exercises.map((exercise) => (
-        <ResultExercise
-          key={exercise.id}
-          name={exercise.movement.name}
-          values={sets[exercise.id] ?? []}
-          onChange={(values) => setSets((current) => ({ ...current, [exercise.id]: values }))}
-        />
-      ))}
-
-      <Score type={workout.workoutType} score={score} onChange={setScore} />
-
-      <View style={styles.actionsGroup}>
-        <Button label="Completar entrenamiento" onPress={() => void save(true)} />
-        <Button label="Guardar progreso" onPress={() => void save()} variant="secondary" />
-        <Button label="Borrar entrenamiento" onPress={remove} variant="danger" />
-      </View>
-    </ScrollView>
+      {/* Barra fija de descanso abajo */}
+      {restTimeLeft !== null ? (
+        <View style={styles.restBar}>
+          <View style={styles.restBarLeft}>
+            <Icon
+              name={{ ios: 'timer', android: 'timer' }}
+              size={24}
+              color={colors.metric}
+            />
+            <View>
+              <Text style={styles.restBarLabel}>Descanso</Text>
+              <Text style={styles.restBarTime}>{formatDuration(restTimeLeft)}</Text>
+            </View>
+          </View>
+          <View style={styles.restBarActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Restar 15 segundos"
+              hitSlop={8}
+              onPress={() => setRestTimeLeft((t) => Math.max(0, (t ?? 0) - 15))}
+              style={({ pressed }) => [styles.restAdjustBtn, pressed && uiStyles.pressed]}
+            >
+              <Text style={styles.restAdjustText}>−15</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sumar 15 segundos"
+              hitSlop={8}
+              onPress={() => setRestTimeLeft((t) => (t ?? 0) + 15)}
+              style={({ pressed }) => [styles.restAdjustBtn, pressed && uiStyles.pressed]}
+            >
+              <Text style={styles.restAdjustText}>+15</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Saltar descanso"
+              hitSlop={8}
+              onPress={() => setRestTimeLeft(null)}
+              style={({ pressed }) => [styles.restSkipBtn, pressed && uiStyles.pressed]}
+            >
+              <Text style={styles.restSkipText}>Saltar</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 function ResultExercise({
+  exerciseId,
   name,
+  recordTypes,
+  restSeconds,
   values,
+  completedSets,
+  onToggleDone,
   onChange,
 }: {
+  exerciseId: string;
   name: string;
+  recordTypes?: readonly string[];
+  restSeconds?: number | null;
   values: EditableSet[];
+  completedSets: Record<string, boolean>;
+  onToggleDone: (index: number) => void;
   onChange: (values: EditableSet[]) => void;
 }) {
+  const records = recordTypes?.length ? new Set(recordTypes) : null;
+  const showReps = !records || records.has('REPS') || records.has('WEIGHT');
+  const showLoad = !records || records.has('WEIGHT');
+  const showDistance = !records || records.has('DISTANCE') || records.has('TIME');
+  const showDuration = !records || records.has('DURATION') || records.has('TIME');
+
+  // Referencias para encadenar campos con returnKeyType
+  const loadInputRefs = useRef<Record<number, TextInput | null>>({});
+
   const edit = (index: number, patch: Partial<EditableSet>) =>
     onChange(values.map((value, i) => (i === index ? { ...value, ...patch } : value)));
 
   return (
     <Card style={styles.exerciseCard}>
-      <Text style={styles.exerciseTitle}>{name}</Text>
-      {values.map((value, index) => (
-        <View key={index} style={styles.setRow}>
-          <View style={styles.setHeader}>
-            <Chip label={`Serie ${index + 1}`} tone="accent" />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={`Quitar serie ${index + 1}`}
-              hitSlop={12}
-              onPress={() => onChange(values.filter((_, i) => i !== index))}
-              style={({ pressed }) => [styles.deleteBtn, pressed && uiStyles.pressed]}
-            >
-              <Icon name={{ ios: 'trash', android: 'delete' }} size={16} color={colors.danger} />
-            </Pressable>
+      <View style={styles.exerciseHeader}>
+        <Text style={styles.exerciseTitle}>{name}</Text>
+        {restSeconds ? (
+          <Chip label={`Descanso: ${restSeconds} s`} tone="neutral" />
+        ) : null}
+      </View>
+      {values.map((value, index) => {
+        const isDone = completedSets[`${exerciseId}-${index}`] ?? false;
+        return (
+          <View
+            key={index}
+            style={[styles.setRow, isDone && styles.setRowDone]}
+          >
+            <View style={styles.setHeader}>
+              <View style={styles.setHeaderLeft}>
+                <Chip
+                  label={`Serie ${index + 1}`}
+                  tone={isDone ? 'success' : 'accent'}
+                />
+                {isDone ? (
+                  <Text style={styles.setDoneBadge}>✓ Hecha</Text>
+                ) : null}
+              </View>
+              <View style={styles.setHeaderRight}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Marcar serie ${index + 1} como ${isDone ? 'pendiente' : 'completada'}`}
+                  hitSlop={8}
+                  onPress={() => onToggleDone(index)}
+                  style={({ pressed }) => [
+                    styles.checkBtn,
+                    isDone && styles.checkBtnDone,
+                    pressed && uiStyles.pressed,
+                  ]}
+                >
+                  <Icon
+                    name={{ ios: isDone ? 'checkmark.circle.fill' : 'circle', android: isDone ? 'check_circle' : 'radio_button_unchecked' }}
+                    size={26}
+                    color={isDone ? colors.success : colors.subtle}
+                  />
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`Quitar serie ${index + 1}`}
+                  hitSlop={12}
+                  onPress={() => onChange(values.filter((_, i) => i !== index))}
+                  style={({ pressed }) => [styles.deleteBtn, pressed && uiStyles.pressed]}
+                >
+                  <Icon name={{ ios: 'trash', android: 'delete' }} size={16} color={colors.danger} />
+                </Pressable>
+              </View>
+            </View>
+            <View style={styles.grid}>
+              {showReps ? (
+                <View style={styles.gridItem}>
+                  <Field
+                    label="Reps"
+                    accessibilityLabel={`Reps ${name} ${index + 1}`}
+                    value={value.reps}
+                    onChangeText={(reps) => edit(index, { reps })}
+                    placeholder="Reps"
+                    keyboardType="number-pad"
+                    selectTextOnFocus
+                    returnKeyType={showLoad ? 'next' : 'done'}
+                    onSubmitEditing={() => {
+                      if (showLoad) {
+                        loadInputRefs.current[index]?.focus();
+                      }
+                    }}
+                  />
+                </View>
+              ) : null}
+              {showLoad ? (
+                <View style={styles.gridItem}>
+                  <Field
+                    ref={(ref) => {
+                      loadInputRefs.current[index] = ref;
+                    }}
+                    label="Carga (kg)"
+                    accessibilityLabel={`Carga ${name} ${index + 1}`}
+                    value={value.loadValue}
+                    onChangeText={(loadValue) => edit(index, { loadValue })}
+                    placeholder="kg"
+                    keyboardType="decimal-pad"
+                    selectTextOnFocus
+                    returnKeyType={showDistance || showDuration ? 'next' : 'done'}
+                  />
+                </View>
+              ) : null}
+              {showDistance ? (
+                <View style={styles.gridItem}>
+                  <Field
+                    label="Distancia (m)"
+                    accessibilityLabel={`Distancia ${name} ${index + 1}`}
+                    value={value.distanceValue}
+                    onChangeText={(distanceValue) => edit(index, { distanceValue })}
+                    placeholder="m"
+                    keyboardType="decimal-pad"
+                    selectTextOnFocus
+                    returnKeyType={showDuration ? 'next' : 'done'}
+                  />
+                </View>
+              ) : null}
+              {showDuration ? (
+                <View style={styles.gridItem}>
+                  <Field
+                    label="Duración"
+                    accessibilityLabel={`Duración ${name} ${index + 1}`}
+                    value={value.duration}
+                    onChangeText={(duration) => edit(index, { duration })}
+                    placeholder="mm:ss"
+                    keyboardType="numbers-and-punctuation"
+                    selectTextOnFocus
+                    returnKeyType="done"
+                  />
+                </View>
+              ) : null}
+            </View>
           </View>
-          <View style={styles.grid}>
-            <View style={styles.gridItem}>
-              <Field
-                label="Reps"
-                accessibilityLabel={`Reps ${name} ${index + 1}`}
-                value={value.reps}
-                onChangeText={(reps) => edit(index, { reps })}
-                placeholder="Reps"
-                keyboardType="numeric"
-              />
-            </View>
-            <View style={styles.gridItem}>
-              <Field
-                label="Carga (kg)"
-                accessibilityLabel={`Carga ${name} ${index + 1}`}
-                value={value.loadValue}
-                onChangeText={(loadValue) => edit(index, { loadValue })}
-                placeholder="kg"
-                keyboardType="decimal-pad"
-              />
-            </View>
-            <View style={styles.gridItem}>
-              <Field
-                label="Distancia (m)"
-                accessibilityLabel={`Distancia ${name} ${index + 1}`}
-                value={value.distanceValue}
-                onChangeText={(distanceValue) => edit(index, { distanceValue })}
-                placeholder="m"
-                keyboardType="decimal-pad"
-              />
-            </View>
-            <View style={styles.gridItem}>
-              <Field
-                label="Duración"
-                accessibilityLabel={`Duración ${name} ${index + 1}`}
-                value={value.duration}
-                onChangeText={(duration) => edit(index, { duration })}
-                placeholder="mm:ss"
-                keyboardType="numbers-and-punctuation"
-              />
-            </View>
-          </View>
-        </View>
-      ))}
+        );
+      })}
       <Button
         label="Agregar serie"
-        onPress={() =>
+        onPress={() => {
+          const last = values.at(-1);
           onChange([
             ...values,
-            {
-              reps: '',
-              loadValue: '',
-              loadUnit: 'KILOGRAM',
-              distanceValue: '',
-              distanceUnit: 'METER',
-              duration: '',
-            },
-          ])
-        }
+            last
+              ? {
+                  reps: last.reps,
+                  loadValue: last.loadValue,
+                  loadUnit: last.loadUnit,
+                  distanceValue: last.distanceValue,
+                  distanceUnit: last.distanceUnit,
+                  duration: last.duration,
+                }
+              : {
+                  reps: '',
+                  loadValue: '',
+                  loadUnit: 'KILOGRAM',
+                  distanceValue: '',
+                  distanceUnit: 'METER',
+                  duration: '',
+                },
+          ]);
+        }}
         variant="secondary"
       />
     </Card>
@@ -295,6 +548,7 @@ function Score({
         <View style={styles.roundRow}>
           <Button
             label="−"
+            accessibilityLabel="Restar ronda"
             onPress={() =>
               onChange({ ...emptyScore(), rounds: Math.max(0, (score.rounds ?? 0) - 1) })
             }
@@ -303,6 +557,7 @@ function Score({
           <Text style={styles.roundsText}>{`${score.rounds ?? 0} rondas`}</Text>
           <Button
             label="+"
+            accessibilityLabel="Sumar ronda"
             onPress={() => onChange({ ...emptyScore(), rounds: (score.rounds ?? 0) + 1 })}
             variant="secondary"
           />
@@ -489,7 +744,7 @@ function Completed({
           <Chip label="Completado" tone="success" />
         </View>
         <Text style={uiStyles.muted}>
-          {workout.performedOn ?? 'Completado'} · {workout.workoutType}
+          {workout.performedOn ?? 'Completado'} · {WORKOUT_TYPE_LABELS[workout.workoutType]}
         </Text>
 
         {/* Fila de stats: volumen UNA sola vez */}
@@ -614,11 +869,17 @@ function Completed({
           <Text style={styles.cardTitle}>{exercise.movement.name}</Text>
           <View style={styles.setsTable}>
             {exercise.results.map((set, sIdx) => {
+              const distanceLabel =
+                set.distanceUnit === 'KILOMETER'
+                  ? 'km'
+                  : set.distanceUnit === 'MILE'
+                    ? 'mi'
+                    : 'm';
               const details = [
                 set.reps ? `${set.reps} reps` : null,
                 set.loadValue ? `${set.loadValue} ${set.loadUnit === 'POUND' ? 'lb' : 'kg'}` : null,
-                set.distanceValue ? `${set.distanceValue} ${set.distanceUnit}` : null,
-                set.durationSeconds ? `${set.durationSeconds}s` : null,
+                set.distanceValue ? `${set.distanceValue} ${distanceLabel}` : null,
+                set.durationSeconds ? formatDuration(set.durationSeconds) : null,
               ]
                 .filter(Boolean)
                 .join(' · ');
@@ -640,17 +901,30 @@ function Completed({
           {workout.personalRecords.length ? 'Marcas personales conseguidas' : 'Sin marcas nuevas esta vez'}
         </Text>
         {workout.personalRecords.map((item) => (
-          <Text key={item.record.id} style={styles.prItem}>
-            🏆{' '}
-            {item.previousBest === null
-              ? 'Primera marca registrada'
-              : formatMark(
-                  item.record.recordType,
-                  item.previousBest,
-                  item.record.normalizedValue,
-                  item.change?.absolute ?? null,
-                )}
-          </Text>
+          <ListRow
+            key={item.record.id}
+            icon={{ ios: 'trophy.fill', android: 'emoji_events' }}
+            tone="metric"
+            title={item.record.movement.name}
+            subtitle={
+              item.previousBest === null
+                ? 'Primera marca registrada'
+                : formatMark(
+                    item.record.recordType,
+                    item.previousBest,
+                    item.record.normalizedValue,
+                    item.change?.absolute ?? null,
+                  )
+            }
+            trailing={
+              item.change?.absolute ? (
+                <Chip
+                  label={`${item.change.absolute > 0 ? '+' : ''}${item.change.absolute}`}
+                  tone="success"
+                />
+              ) : undefined
+            }
+          />
         ))}
       </Card>
 
@@ -680,9 +954,16 @@ function formatMark(
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   scroll: {
     backgroundColor: colors.background,
     flex: 1,
+  },
+  scrollWithRest: {
+    paddingBottom: 180,
   },
   loadingContainer: {
     flex: 1,
@@ -699,21 +980,60 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: space.sm,
   },
+  headerChips: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+  },
   exerciseCard: {
     gap: space.md,
+  },
+  exerciseHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: space.sm,
   },
   exerciseTitle: {
     color: colors.text,
     ...type.headline,
+    flex: 1,
   },
   setRow: {
     gap: space.sm,
     paddingVertical: space.xs,
+    paddingHorizontal: space.xs,
+    borderRadius: radius.sm,
+  },
+  setRowDone: {
+    backgroundColor: colors.successSoft,
   },
   setHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  setHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  setHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.xs,
+  },
+  setDoneBadge: {
+    color: colors.success,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  checkBtn: {
+    padding: 6,
+    borderRadius: radius.pill,
+  },
+  checkBtnDone: {
+    opacity: 0.9,
   },
   deleteBtn: {
     padding: 6,
@@ -801,12 +1121,78 @@ const styles = StyleSheet.create({
   prCard: {
     gap: space.sm,
   },
-  prItem: {
-    color: colors.text,
-    fontSize: 15,
-  },
   actionsGroup: {
     gap: space.md,
     marginTop: space.sm,
+  },
+  dangerActionContainer: {
+    marginTop: space.xl,
+  },
+  restBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    minHeight: 72,
+    backgroundColor: colors.surfaceRaised,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderStrong,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.lg,
+    paddingVertical: space.sm,
+  },
+  restBarLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+  },
+  restBarLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  restBarTime: {
+    color: colors.metric,
+    ...type.metric,
+    fontSize: 24,
+  },
+  restBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  restAdjustBtn: {
+    minHeight: 44,
+    minWidth: 44,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restAdjustText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  restSkipBtn: {
+    minHeight: 44,
+    paddingHorizontal: space.md,
+    paddingVertical: space.xs,
+    borderRadius: radius.md,
+    backgroundColor: colors.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  restSkipText: {
+    color: colors.accentText,
+    fontSize: 15,
+    fontWeight: '700',
   },
 });

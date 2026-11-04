@@ -5,19 +5,14 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Button, EmptyState, ListRow, SectionHeader, Title, uiStyles } from '@/components/ui';
 import { colors, space, type } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
+import { formatDate } from '@/lib/presentation';
 
 function formatMonthYear(dateString: string | null): string {
-  if (!dateString) return 'Sin fecha';
-  const d = new Date(`${dateString}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return 'Sin fecha';
-  return d.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  return formatDate(dateString, { month: 'long', year: 'numeric' });
 }
 
 function formatDayAndDate(dateString: string | null): string {
-  if (!dateString) return 'Sin fecha';
-  const d = new Date(`${dateString}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return dateString;
-  return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+  return formatDate(dateString, { weekday: 'short', day: 'numeric', month: 'short' });
 }
 
 export default function HistoryScreen() {

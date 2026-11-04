@@ -1,5 +1,6 @@
-import type { ComponentProps, PropsWithChildren, ReactNode } from 'react';
+import { forwardRef, type ComponentProps, type PropsWithChildren, type ReactNode } from 'react';
 import {
+  ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
@@ -15,7 +16,7 @@ export type SymbolName = ComponentProps<typeof SymbolView>['name'];
 type Tone = 'accent' | 'metric' | 'success' | 'danger' | 'neutral';
 
 const toneColors: Record<Tone, { fg: string; bg: string }> = {
-  accent: { fg: colors.accent, bg: colors.accentSoft },
+  accent: { fg: colors.accentText, bg: colors.accentSoft },
   metric: { fg: colors.metric, bg: colors.metricSoft },
   success: { fg: colors.success, bg: colors.successSoft },
   danger: { fg: colors.danger, bg: colors.dangerSoft },
@@ -24,6 +25,7 @@ const toneColors: Record<Tone, { fg: string; bg: string }> = {
 
 type ButtonProps = {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   disabled?: boolean;
   /** Kept for existing callers; same as `variant="secondary"`. */
@@ -51,27 +53,31 @@ export function Icon({ name, size = 20, color = colors.text }: { name: SymbolNam
   return <SymbolView name={name} size={size} tintColor={color} />;
 }
 
-export function Field({ label, ...props }: TextInputProps & { label?: string }) {
-  const input = (
-    <TextInput
-      placeholderTextColor={colors.subtle}
-      selectionColor={colors.accent}
-      accessibilityLabel={label ?? props.placeholder}
-      style={uiStyles.field}
-      {...props}
-    />
-  );
-  if (!label) return input;
-  return (
-    <View style={uiStyles.fieldGroup}>
-      <Label>{label}</Label>
-      {input}
-    </View>
-  );
-}
+export const Field = forwardRef<TextInput, TextInputProps & { label?: string }>(
+  function Field({ label, ...props }, ref) {
+    const input = (
+      <TextInput
+        ref={ref}
+        placeholderTextColor={colors.subtle}
+        selectionColor={colors.accent}
+        accessibilityLabel={label ?? props.placeholder}
+        style={uiStyles.field}
+        {...props}
+      />
+    );
+    if (!label) return input;
+    return (
+      <View style={uiStyles.fieldGroup}>
+        <Label>{label}</Label>
+        {input}
+      </View>
+    );
+  },
+);
 
 export function Button({
   label,
+  accessibilityLabel,
   onPress,
   disabled = false,
   secondary = false,
@@ -84,7 +90,7 @@ export function Button({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
@@ -260,6 +266,30 @@ export function EmptyState({
   );
 }
 
+export function LoadingState({ message }: { message?: string }) {
+  return (
+    <View style={uiStyles.centerBox}>
+      <ActivityIndicator color={colors.accent} size="large" />
+      {message ? <Text style={[uiStyles.muted, uiStyles.center]}>{message}</Text> : null}
+    </View>
+  );
+}
+
+export function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry?: () => void;
+}) {
+  return (
+    <View style={uiStyles.centerBox}>
+      <Text style={[uiStyles.errorText, uiStyles.center]}>{message}</Text>
+      {onRetry ? <Button label="Reintentar" onPress={onRetry} /> : null}
+    </View>
+  );
+}
+
 export const uiStyles = StyleSheet.create({
   screen: { flex: 1, gap: space.lg, padding: 20, backgroundColor: colors.background },
   scroll: { gap: space.lg, padding: 20, paddingBottom: 120 },
@@ -267,6 +297,14 @@ export const uiStyles = StyleSheet.create({
   headline: { color: colors.text, ...type.headline },
   muted: { color: colors.muted, ...type.body },
   center: { textAlign: 'center' },
+  errorText: { color: colors.danger, ...type.body },
+  centerBox: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: space.md,
+    padding: space.xl,
+  },
   label: { color: colors.muted, ...type.caption },
   fieldGroup: { gap: 6 },
   field: {
@@ -275,8 +313,8 @@ export const uiStyles = StyleSheet.create({
     paddingVertical: 14,
     borderWidth: 1,
     borderRadius: radius.md,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceRaised,
     color: colors.text,
     fontSize: 17,
   },
@@ -288,7 +326,7 @@ export const uiStyles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20,
     borderRadius: radius.md,
-    experimental_backgroundImage: gradients.primary,
+    experimental_backgroundImage: gradients.primaryButton,
   },
   secondaryButton: {
     borderWidth: 1,
@@ -324,7 +362,7 @@ export const uiStyles = StyleSheet.create({
     marginTop: space.sm,
   },
   sectionTitle: { color: colors.text, ...type.title },
-  sectionAction: { color: colors.accent, fontSize: 15, fontWeight: '600' },
+  sectionAction: { color: colors.accentText, fontSize: 15, fontWeight: '600' },
   row: {
     minHeight: 64,
     flexDirection: 'row',
@@ -352,6 +390,8 @@ export const uiStyles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: radius.pill,
     borderWidth: 1,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   chipText: { fontSize: 13, fontWeight: '600' },
   empty: { alignItems: 'center', gap: space.sm, paddingVertical: space.xxl, paddingHorizontal: space.xl },

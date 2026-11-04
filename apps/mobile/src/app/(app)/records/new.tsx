@@ -3,10 +3,11 @@ import { RECORD_TYPE_LABELS, createRecordSchema } from '@garfit/validation';
 import type { MovementDetail } from '@garfit/types';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Chip, Field, Label, Title, uiStyles } from '@/components/ui';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Card, Chip, EmptyState, Field, Label, LoadingState, Title, uiStyles } from '@/components/ui';
 import { colors, space, type as typography } from '@/constants/theme';
 import { api, messageFor, useSession } from '@/lib/auth';
+import { listenForMovementSelection } from '@/lib/movement-picker';
 import { parseRecordValue } from '@/lib/presentation';
 
 function today(offset = 0): string {
@@ -19,6 +20,7 @@ export default function NewRecordScreen() {
   const { movement: slug } = useLocalSearchParams<{ movement: string }>();
   const { profile, request } = useSession();
   const router = useRouter();
+  const [selectedSlug, setSelectedSlug] = useState<string | undefined>(slug);
   const [movement, setMovement] = useState<MovementDetail | null>(null);
   const [type, setType] = useState<RecordType | null>(null);
   const [value, setValue] = useState('');
@@ -31,22 +33,38 @@ export default function NewRecordScreen() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (slug)
-      void request(() => api.movements.get(slug))
+    let active = true;
+    if (selectedSlug) {
+      void request(() => api.movements.get(selectedSlug))
         .then((item) => {
+          if (!active) return;
           setMovement(item);
           setType(item.recordTypes[0] ?? null);
+          setError(null);
         })
-        .catch((cause: unknown) => setError(messageFor(cause)));
-  }, [request, slug]);
+        .catch((cause: unknown) => {
+          if (!active) return;
+          setError(messageFor(cause));
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [request, selectedSlug]);
+
+  useEffect(() => {
+    return listenForMovementSelection((mSlug) => {
+      setSelectedSlug(mSlug);
+    });
+  }, []);
 
   const unit = type ? displayUnitFor(type, profile?.preferredUnits ?? 'METRIC') : null;
 
   async function submit() {
-    if (!type || !unit || !slug) return;
+    if (!type || !unit || !selectedSlug) return;
     const parsedValue = parseRecordValue(type, value);
     const parsed = createRecordSchema.safeParse({
-      movementSlug: slug,
+      movementSlug: selectedSlug,
       recordType: type,
       value: parsedValue,
       unit,
@@ -64,7 +82,7 @@ export default function NewRecordScreen() {
     setError(null);
     try {
       await request(() => api.records.create(parsed.data));
-      router.replace(`/(app)/records/${slug}`);
+      router.replace(`/(app)/records/${selectedSlug}`);
     } catch (cause) {
       setError(messageFor(cause));
     } finally {
@@ -72,21 +90,53 @@ export default function NewRecordScreen() {
     }
   }
 
+  if (!selectedSlug) {
+    return (
+      <ScrollView
+        contentContainerStyle={uiStyles.scroll}
+        style={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
+        <EmptyState
+          icon={{ ios: 'figure.cross.training', android: 'fitness_center' }}
+          title="Selecciona un movimiento"
+          message="Elige el movimiento del que deseas registrar una marca personal."
+          action={
+            <Button
+              label="Elegir movimiento"
+              icon={{ ios: 'magnifyingglass', android: 'search' }}
+              onPress={() => router.push('/(app)/movements?select=1')}
+            />
+          }
+        />
+      </ScrollView>
+    );
+  }
+
   if (!movement || !type || !unit)
     return (
-      <ScrollView contentContainerStyle={uiStyles.scroll} style={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={uiStyles.scroll}
+        style={styles.scroll}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         {error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator color={colors.accent} size="large" />
-          </View>
+          <LoadingState message="Cargando movimiento…" />
         )}
       </ScrollView>
     );
 
   return (
-    <ScrollView contentContainerStyle={uiStyles.scroll} style={styles.scroll}>
+    <ScrollView
+      contentContainerStyle={uiStyles.scroll}
+      style={styles.scroll}
+      keyboardShouldPersistTaps="handled"
+      keyboardDismissMode="on-drag"
+    >
       <Card hero style={styles.heroCard}>
         <Title>{movement.name}</Title>
         <Label>Tipo de marca</Label>

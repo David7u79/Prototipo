@@ -12,6 +12,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { Button, Card, Chip, Icon, SectionHeader, Title, uiStyles } from '@/components/ui';
 import { colors, radius, space, type } from '@/constants/theme';
 import { api, useSession } from '@/lib/auth';
+import { formatDate } from '@/lib/presentation';
 
 type RequestedAction = 'progress' | 'workout' | 'wod' | 'movement';
 const HISTORY_PAGE_SIZE = 10;
@@ -38,8 +39,7 @@ function aiMessageFor(error: unknown): string {
 }
 
 function dateLabel(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString('es-ES');
+  return formatDate(value);
 }
 
 function analysisTypeLabel(type: AiAnalysisSummary['type']) {

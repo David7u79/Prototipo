@@ -8,9 +8,11 @@ export const colors = {
   surfaceRaised: '#1B2136',
   text: '#EEF1FA',
   muted: '#8A93AD',
-  subtle: '#5B6480',
+  subtle: '#7A84A3',
   border: '#232A42',
+  borderStrong: '#5B6480',
   accent: '#7C5CFF',
+  accentText: '#9B85FF',
   onAccent: '#FFFFFF',
   accentSoft: '#211B45',
   metric: '#22D3EE',
@@ -24,6 +26,7 @@ export const colors = {
 /** Native CSS gradient (RN `experimental_backgroundImage`), no extra dependency. */
 export const gradients = {
   primary: 'linear-gradient(135deg, #7C5CFF 0%, #22D3EE 100%)',
+  primaryButton: 'linear-gradient(135deg, #6A4BF0 0%, #0E8FB0 100%)',
   hero: 'linear-gradient(160deg, #2A1F6B 0%, #131829 70%)',
 };
 

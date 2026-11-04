@@ -101,6 +101,7 @@ export type EditableExercise = {
   distanceValue: string;
   distanceUnit: 'METER' | 'KILOMETER' | 'MILE';
   duration: string;
+  restSeconds?: number | null;
 };
 
 export function createWorkoutPayload(input: {
@@ -132,7 +133,7 @@ export function createWorkoutPayload(input: {
       targetDistanceValue: optional(exercise.distanceValue),
       targetDistanceUnit: exercise.distanceValue.trim() ? exercise.distanceUnit : null,
       targetDurationSeconds: parseDuration(exercise.duration),
-      restSeconds: null,
+      restSeconds: exercise.restSeconds ?? null,
       notes: null,
     })),
   };
