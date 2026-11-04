@@ -1,10 +1,13 @@
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { registerSchema } from '@garfit/validation';
-import { Button, Field, Icon, uiStyles } from '@/components/ui';
-import { colors, gradients, radius, space, type } from '@/constants/theme';
+import { Button, Field, uiStyles } from '@/components/ui';
+import { colors, space, type } from '@/constants/theme';
 import { messageFor, useSession } from '@/lib/auth';
+
+const heron = require('@/assets/images/splash-icon.png');
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -43,9 +46,7 @@ export default function RegisterScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.brand}>
-          <View style={styles.logoBadge}>
-            <Icon name={{ ios: 'bolt.fill', android: 'bolt' }} size={36} color={colors.onAccent} />
-          </View>
+          <Image source={heron} style={styles.logo} contentFit="contain" accessibilityLabel="Logo de GarFit" />
           <Text style={styles.brandTitle}>GarFit</Text>
           <Text style={styles.brandSubtitle}>Entrena, mide y progresa</Text>
         </View>
@@ -108,13 +109,9 @@ const styles = StyleSheet.create({
     gap: space.xs,
     marginBottom: space.lg,
   },
-  logoBadge: {
-    width: 72,
-    height: 72,
-    borderRadius: radius.pill,
-    alignItems: 'center',
-    justifyContent: 'center',
-    experimental_backgroundImage: gradients.primary,
+  logo: {
+    width: 96,
+    height: 96,
     marginBottom: space.sm,
   },
   brandTitle: {
