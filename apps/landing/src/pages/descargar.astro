@@ -6,15 +6,15 @@ const webUrl = import.meta.env.PUBLIC_WEB_APP_URL ?? 'http://localhost:3000';
 
 const install = [
   'Pulsa «Descargar para Android» o escanea el QR con el teléfono.',
-  'Abre el archivo garfit.apk desde las notificaciones o la carpeta Descargas.',
+  'Abre el archivo garfit-(versión).apk desde las notificaciones o la carpeta Descargas.',
   'Si Android avisa de «apps desconocidas», permite instalar desde tu navegador sólo para esta vez.',
   'Pulsa Instalar y abre GarFit. Crea tu cuenta con correo y contraseña.',
 ] as const;
 
 const verify = [
-  ['Windows (PowerShell)', 'Get-FileHash .\\garfit.apk -Algorithm SHA256'],
-  ['macOS', 'shasum -a 256 garfit.apk'],
-  ['Linux', 'sha256sum garfit.apk'],
+  ['Windows (PowerShell)', 'Get-FileHash .\\garfit-*.apk -Algorithm SHA256'],
+  ['macOS', 'shasum -a 256 garfit-*.apk'],
+  ['Linux', 'sha256sum garfit-*.apk'],
 ] as const;
 ---
 
