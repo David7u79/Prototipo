@@ -14,6 +14,20 @@ export function setupApp(app: INestApplication): void {
   // la validación de entorno exige orígenes explícitos en producción para no dejar
   // abierta una futura integración basada en cookies.
   app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }), credentials: false });
+  // ponytail: cabeceras básicas a mano; helmet si algún día se sirve HTML desde la API.
+  app.use(
+    (
+      _req: unknown,
+      res: { removeHeader(n: string): void; setHeader(n: string, v: string): void },
+      next: () => void,
+    ) => {
+      res.removeHeader('X-Powered-By');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('X-Frame-Options', 'DENY');
+      res.setHeader('Referrer-Policy', 'no-referrer');
+      next();
+    },
+  );
   app.useGlobalPipes(
     new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
   );

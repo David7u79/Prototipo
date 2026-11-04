@@ -22,6 +22,8 @@ describe('GET /health', () => {
       readFileSync(new URL('../package.json', import.meta.url), 'utf8'),
     );
     expect(res.body).toMatchObject({ status: 'ok', database: 'up', version });
+    expect(res.headers['x-powered-by']).toBeUndefined();
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(Date.parse(res.body.timestamp)).not.toBeNaN();
   });
 });
