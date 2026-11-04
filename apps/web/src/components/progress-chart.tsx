@@ -88,13 +88,13 @@ export function ProgressChart({
     <div className="mt-4 max-w-3xl">
       <svg
         aria-labelledby={`${titleId} ${descId}`}
-        className="h-auto w-full text-brand"
+        className="h-auto w-full text-metric"
         role="img"
         viewBox={`0 0 ${CHART.width} ${CHART.height}`}
       >
         <title id={titleId}>Evolución de marcas</title>
         <desc id={descId}>{description}</desc>
-        <g className="text-slate-300" stroke="currentColor" strokeWidth="1">
+        <g className="text-line" stroke="currentColor" strokeWidth="1">
           <line x1={left} x2={right} y1={top} y2={top} strokeDasharray="4 4" />
           <line x1={left} x2={right} y1={bottom} y2={bottom} />
         </g>
@@ -120,7 +120,7 @@ export function ProgressChart({
             <circle cx={point.x} cy={point.y} fill="currentColor" key={point.entry.id} r="5" />
           ),
         )}
-        <g className="fill-slate-600 text-[13px]" fontSize="13">
+        <g className="fill-muted text-[13px]" fontSize="13">
           <text textAnchor="end" x={left - 12} y={top + 4}>
             {formatValue(recordType, Math.max(...values), units)}
           </text>

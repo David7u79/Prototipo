@@ -10,12 +10,21 @@ export function AiHistoryActions({ id }: { id?: string }) {
 
   if (confirming) {
     return (
-      <div className="mt-2 flex items-center gap-2">
-        <span className="text-sm">¿Confirmas?</span>
+      <div className="mt-2 flex items-center gap-3">
+        <span className="text-xs text-danger font-semibold">¿Confirmas?</span>
         <form action={action}>
-          <button className="text-sm underline">Sí, borrar</button>
+          <button
+            type="submit"
+            className="rounded border border-danger/30 bg-danger/15 px-2.5 py-1 text-xs font-bold text-danger hover:bg-danger/25"
+          >
+            Sí, borrar
+          </button>
         </form>
-        <button className="text-sm underline" onClick={() => setConfirming(false)} type="button">
+        <button
+          className="text-xs text-muted hover:text-ink hover:underline"
+          onClick={() => setConfirming(false)}
+          type="button"
+        >
           Cancelar
         </button>
       </div>
@@ -23,7 +32,11 @@ export function AiHistoryActions({ id }: { id?: string }) {
   }
 
   return (
-    <button className="text-sm underline" onClick={() => setConfirming(true)} type="button">
+    <button
+      className="text-xs font-semibold text-muted hover:text-danger hover:underline"
+      onClick={() => setConfirming(true)}
+      type="button"
+    >
       {label}
     </button>
   );

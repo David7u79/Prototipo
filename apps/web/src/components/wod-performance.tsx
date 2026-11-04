@@ -26,8 +26,8 @@ export function WodPerformance({ performance }: { performance: WodPerformanceCom
   });
 
   return (
-    <section className="mt-8 rounded-2xl border border-line bg-panel p-5">
-      <h2 className="text-xl font-bold">Tu rendimiento</h2>
+    <section className="mt-8 rounded-2xl border border-line bg-surface p-5">
+      <h2 className="text-xl font-bold text-ink">Tu rendimiento</h2>
       {performance.attempts === 0 ? (
         <p className="mt-2 text-sm text-muted">Aún no hay resultados comparables.</p>
       ) : (
@@ -41,7 +41,7 @@ export function WodPerformance({ performance }: { performance: WodPerformanceCom
           {history.length > 1 && (
             <svg
               aria-label="Evolución de resultados del WOD"
-              className="mt-5 h-auto w-full text-brand"
+              className="mt-5 h-auto w-full text-metric"
               role="img"
               viewBox="0 0 320 140"
             >

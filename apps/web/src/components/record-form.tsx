@@ -40,7 +40,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
   const initialValue = record ? (isTime ? formatDuration(record.value) : record.value) : undefined;
 
   return (
-    <form action={action} className="mt-6 space-y-4 rounded-2xl border border-line bg-panel p-5">
+    <form action={action} className="mt-6 space-y-4 rounded-2xl border border-line bg-surface p-5 sm:p-6">
       <input name="movementSlug" type="hidden" value={movementSlug} />
       {record && <input name="id" type="hidden" value={record.id} />}
       {record && (
@@ -50,7 +50,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
         <input name="existingDistanceUnit" type="hidden" value={record.distanceUnit ?? ''} />
       )}
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="recordType">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="recordType">
           Tipo de marca
         </label>
         <select
@@ -69,7 +69,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
         {record && <input name="recordType" type="hidden" value={recordType} />}
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="value">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="value">
           {isTime ? 'Tiempo (mm:ss)' : 'Valor'}
         </label>
         <input
@@ -83,7 +83,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
         <FieldError messages={state.errors.value} name="value" />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="unit">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="unit">
           Unidad
         </label>
         <select
@@ -103,7 +103,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
       </div>
       {recordType === 'WEIGHT' && (
         <div>
-          <label className="mb-1 block text-sm font-medium" htmlFor="repetitions">
+          <label className="mb-1 block text-sm font-medium text-ink" htmlFor="repetitions">
             Repeticiones
           </label>
           <input
@@ -122,7 +122,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
       {recordType === 'TIME' && (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium" htmlFor="distanceValue">
+            <label className="mb-1 block text-sm font-medium text-ink" htmlFor="distanceValue">
               Distancia
             </label>
             <input
@@ -136,7 +136,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium" htmlFor="distanceUnit">
+            <label className="mb-1 block text-sm font-medium text-ink" htmlFor="distanceUnit">
               Unidad de distancia
             </label>
             <select
@@ -154,7 +154,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
         </div>
       )}
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="performedAt">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="performedAt">
           Fecha
         </label>
         <input
@@ -169,12 +169,11 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
         <FieldError messages={state.errors.performedAt} name="performedAt" />
       </div>
       <div>
-        <label className="mb-1 block text-sm font-medium" htmlFor="notes">
+        <label className="mb-1 block text-sm font-medium text-ink" htmlFor="notes">
           Notas (opcional)
         </label>
         <textarea
           aria-describedby={state.errors.notes ? 'notes-error' : undefined}
-          className="w-full rounded-lg border border-line p-3"
           defaultValue={record?.notes ?? ''}
           id="notes"
           maxLength={500}
@@ -184,12 +183,13 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
         <FieldError messages={state.errors.notes} name="notes" />
       </div>
       {state.message && (
-        <p className="mt-2 text-sm text-red-700" role="alert">
+        <p className="rounded-[10px] border border-danger/30 bg-danger/15 p-3 text-sm text-danger" role="alert">
           {state.message}
         </p>
       )}
       <button
-        className="rounded-lg bg-brand px-4 py-2 font-semibold text-white disabled:opacity-50"
+        type="submit"
+        className="btn-primary"
         disabled={pending}
       >
         {pending ? 'Guardando…' : 'Guardar marca'}
@@ -200,7 +200,7 @@ export function RecordForm({ movementSlug, recordTypes, units, record }: Props) 
 
 function FieldError({ messages, name }: { messages?: string[]; name: string }) {
   return messages?.map((message) => (
-    <p className="mt-1 text-sm text-red-700" id={`${name}-error`} key={message}>
+    <p className="mt-1 text-xs text-danger" id={`${name}-error`} key={message}>
       {message}
     </p>
   ));

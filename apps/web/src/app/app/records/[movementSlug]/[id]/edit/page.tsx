@@ -1,8 +1,13 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ApiError } from '@garfit/api-client';
 import { notFound, redirect } from 'next/navigation';
 import { RecordForm } from '@/components/record-form';
 import { serverApi } from '@/lib/auth';
+
+export const metadata: Metadata = {
+  title: 'Corregir marca',
+};
 
 type Props = { params: Promise<{ movementSlug: string; id: string }> };
 
@@ -34,12 +39,14 @@ export default async function EditRecordPage({ params }: Props) {
   if (!entry) notFound();
 
   return (
-    <section className="mx-auto max-w-2xl">
-      <Link className="text-sm underline" href={`/app/records/${movementSlug}`}>
-        Volver al historial
+    <section className="mx-auto max-w-2xl space-y-6">
+      <Link className="text-sm font-semibold text-accent hover:underline" href={`/app/records/${movementSlug}`}>
+        ← Volver al historial
       </Link>
-      <h1 className="mt-4 text-3xl font-bold">Corregir marca</h1>
-      <p className="mt-2 text-muted">{data.movement.name}</p>
+      <div>
+        <p className="text-xs font-bold uppercase tracking-wider text-accent">{data.movement.name}</p>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight text-ink">Corregir marca</h1>
+      </div>
       <RecordForm
         movementSlug={movementSlug}
         record={{ ...entry, recordType: entry.recordType }}
