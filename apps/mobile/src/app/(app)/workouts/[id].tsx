@@ -905,7 +905,12 @@ function Completed({
             key={item.record.id}
             icon={{ ios: 'trophy.fill', android: 'emoji_events' }}
             tone="metric"
-            title={item.record.movement.name}
+            // Las marcas se guardan por repeticiones: sin ellas, un 5RM y un 3RM parecen duplicados.
+            title={
+              item.record.repetitions
+                ? `${item.record.movement.name} · ${item.record.repetitions} reps`
+                : item.record.movement.name
+            }
             subtitle={
               item.previousBest === null
                 ? 'Primera marca registrada'
