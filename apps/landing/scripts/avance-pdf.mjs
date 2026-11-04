@@ -35,6 +35,7 @@ try {
   ]);
   console.log(`PDF: ${out}`);
 } finally {
+  // Astro 7 deja `preview` corriendo en segundo plano: matar el proceso hijo no basta.
+  execFileSync('pnpm', ['exec', 'astro', 'preview', 'stop'], { shell: true, stdio: 'ignore' });
   server.kill();
-  if (process.platform === 'win32') spawn('taskkill', ['/pid', String(server.pid), '/t', '/f']);
 }

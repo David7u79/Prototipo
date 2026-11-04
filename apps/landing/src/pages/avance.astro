@@ -10,7 +10,7 @@ const pdf = '/avance/garfit-avance.pdf';
 const numbers = [
   ['1 319', 'movimientos en el catálogo'],
   ['35', 'rutas documentadas en OpenAPI'],
-  ['289', 'pruebas automatizadas'],
+  ['311', 'pruebas automatizadas en verde'],
   ['11', 'decisiones de arquitectura (ADR)'],
   ['5', 'aplicaciones: API, móvil, web, reloj y landing'],
 ] as const;
@@ -32,7 +32,7 @@ const screens = [
   { file: '07-marcas', title: 'Marcas personales', text: 'Mejores resultados por movimiento, manuales o detectados al entrenar.' },
   { file: '08-progreso', title: 'Progreso', text: 'Evolución de una marca en el tiempo con su historial completo.' },
   { file: '09-wods', title: 'WODs', text: 'Benchmarks For Time, AMRAP y EMOM con comparación entre intentos.' },
-  { file: '10-analisis', title: 'Análisis con IA', text: 'Interpretación del progreso con evidencia y consentimiento previo.' },
+  { file: '10-perfil', title: 'Perfil', text: 'Nivel, objetivo y unidades; acceso al análisis con IA.' },
 ] as const;
 
 const flows = [
@@ -65,13 +65,13 @@ const status = {
     'Marcas personales y detección automática',
     'Entrenamientos estructurados y WODs',
     'Historial y estadísticas',
-    'Análisis con IA sobre hechos deterministas',
+    'Análisis con IA sobre hechos deterministas (probado con proveedor simulado)',
     'Datos del reloj (Health Connect y Wear OS)',
     'Diseño Aurora en todas las pantallas móviles',
     'Despliegue continuo en el VPS',
   ],
   pending: [
-    'Llamada real a Gemini (falta la clave)',
+    'Activar la IA en producción: falta la clave de Gemini',
     'Google OAuth con credenciales reales',
     'Publicar la APK en la landing',
     'Pruebas de usabilidad con atletas',
@@ -145,7 +145,7 @@ const status = {
         <div class="gallery">
           {screens.map(({ file, title, text }) => (
             <figure>
-              <img src={`/avance/${file}.png`} alt={`Pantalla de ${title} en GarFit`} loading="lazy" width="360" height="772" />
+              <img src={`/avance/${file}.png`} alt={`Pantalla de ${title} en GarFit`} loading="lazy" width="720" height="1469" />
               <figcaption><strong>{title}</strong>{text}</figcaption>
             </figure>
           ))}
